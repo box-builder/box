@@ -57,7 +57,7 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 	}
 
 	b.config.Cmd = append([]string{"/bin/sh", "-c"}, stringArgs...)
-	defer func() { b.config.Cmd = []string{} }()
+	defer func() { b.config.Cmd = nil }()
 
 	resp, err := b.client.ContainerCreate(
 		context.Background(),
