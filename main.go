@@ -155,7 +155,6 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 	builderFunc := func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 		val1, val2 := fn(b, m, self)
 
-		fmt.Printf("%+v\n", b.config)
 		commitResp, err := b.client.ContainerCommit(context.Background(), b.id, types.ContainerCommitOptions{Config: b.config})
 		if err != nil {
 			return mruby.String(fmt.Sprintf("Error during commit: %v", err)), nil
@@ -193,8 +192,6 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 		if err != nil {
 			return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
 		}
-
-		fmt.Printf("%+v\n", b.config)
 
 		resp, err := b.client.ContainerCommit(context.Background(), createResp.ID, types.ContainerCommitOptions{Config: b.config})
 		if err != nil {
