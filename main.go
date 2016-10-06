@@ -190,12 +190,13 @@ func cmd(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 }
 
 var jumpTable = map[string]Definition{
-	"from":    {from, mruby.ArgsReq(1)},
-	"run":     {run, mruby.ArgsAny()},
-	"user":    {user, mruby.ArgsBlock() | mruby.ArgsReq(1)},
-	"workdir": {workdir, mruby.ArgsBlock() | mruby.ArgsReq(1)},
-	"env":     {env, mruby.ArgsAny()},
-	"cmd":     {cmd, mruby.ArgsAny()},
+	"from":       {from, mruby.ArgsReq(1)},
+	"run":        {run, mruby.ArgsAny()},
+	"user":       {user, mruby.ArgsBlock() | mruby.ArgsReq(1)},
+	"workdir":    {workdir, mruby.ArgsBlock() | mruby.ArgsReq(1)},
+	"env":        {env, mruby.ArgsAny()},
+	"cmd":        {cmd, mruby.ArgsAny()},
+	"entrypoint": {entrypoint, mruby.ArgsAny()},
 }
 
 // Func is a builder DSL function used to interact with docker.
@@ -243,6 +244,7 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 			wd := b.config.WorkingDir
 			user := b.config.User
 			cmd := b.config.Cmd
+			entrypoint := b.config.Entrypoint
 
 			b.config.WorkingDir = "/"
 			b.config.User = "root"
@@ -252,6 +254,7 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 				b.config.WorkingDir = wd
 				b.config.User = user
 				b.config.Cmd = cmd
+				b.config.Entrypoint = entrypoint
 			}()
 
 			b.config.Image = commitResp.ID
