@@ -23,9 +23,15 @@ type Definition struct {
 
 func from(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
+
+	b.config.Image = args[0].String()
+	b.config.Tty = true
+	b.config.AttachStdout = true
+	b.config.AttachStderr = true
+
 	resp, err := b.client.ContainerCreate(
 		context.Background(),
-		&container.Config{Image: args[0].String(), Tty: true},
+		b.config,
 		nil,
 		nil,
 		"",
@@ -37,42 +43,44 @@ func from(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 
 	b.id = resp.ID
 
-	if err := b.client.ContainerStart(context.Background(), b.id, types.ContainerStartOptions{}); err != nil {
-		return mruby.String(err.Error()), nil
-	}
-
 	return mruby.String(fmt.Sprintf("Response: %v", resp.ID)), nil
 }
 
 func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	if b.id == "" {
+	if b.imageID == "" {
 		return mruby.String("`from` must be the first docker command`"), nil
 	}
 
-	stringArgs := []string{"/bin/sh", "-c"}
+	stringArgs := []string{}
 	for _, arg := range m.GetArgs() {
 		stringArgs = append(stringArgs, arg.String())
 	}
 
-	cecresp, err := b.client.ContainerExecCreate(context.Background(), b.id, types.ExecConfig{
-		Tty:          true,
-		AttachStdout: true,
-		AttachStderr: true,
-		Cmd:          stringArgs,
-	})
+	b.config.Cmd = append([]string{"/bin/sh", "-c"}, stringArgs...)
+	defer func() { b.config.Cmd = []string{} }()
+
+	resp, err := b.client.ContainerCreate(
+		context.Background(),
+		b.config,
+		nil,
+		nil,
+		"",
+	)
 	if err != nil {
-		return mruby.String(fmt.Sprintf("Error executing: %v", err)), nil
+		return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
 	}
 
-	cearesp, err := b.client.ContainerExecAttach(context.Background(), cecresp.ID, types.ExecConfig{Tty: true, AttachStdout: true, AttachStderr: true})
+	cearesp, err := b.client.ContainerAttach(context.Background(), resp.ID, types.ContainerAttachOptions{Stream: true, Stdout: true, Stderr: true})
 	if err != nil {
-		return mruby.String(fmt.Sprintf("Error attaching to execution context %q: %v", cecresp.ID, err)), nil
+		return mruby.String(fmt.Sprintf("Error attaching to execution context %q: %v", resp.ID, err)), nil
 	}
 
-	err = b.client.ContainerExecStart(context.Background(), cecresp.ID, types.ExecStartCheck{})
+	err = b.client.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{})
 	if err != nil {
-		return mruby.String(fmt.Sprintf("Error attaching to execution context %q: %v", cecresp.ID, err)), nil
+		return mruby.String(fmt.Sprintf("Error attaching to execution context %q: %v", resp.ID, err)), nil
 	}
+
+	b.id = resp.ID
 
 	_, err = io.Copy(os.Stdout, cearesp.Reader)
 	if err != nil && err != io.EOF {
@@ -82,9 +90,39 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 	return nil, nil
 }
 
+func user(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+
+	b.config.User = args[0].String()
+	val, err := m.Yield(args[1], args[0])
+	b.config.User = ""
+
+	if err != nil {
+		return mruby.String(fmt.Sprintf("Could not yield: %v", err)), nil
+	}
+
+	return val, nil
+}
+
+func workdir(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+
+	b.config.WorkingDir = args[0].String()
+	val, err := m.Yield(args[1], args[0])
+	b.config.WorkingDir = ""
+
+	if err != nil {
+		return mruby.String(fmt.Sprintf("Could not yield: %v", err)), nil
+	}
+
+	return val, nil
+}
+
 var jumpTable = map[string]Definition{
-	"from": {from, mruby.ArgsReq(1)},
-	"run":  {run, mruby.ArgsAny()},
+	"from":    {from, mruby.ArgsReq(1)},
+	"run":     {run, mruby.ArgsAny()},
+	"user":    {user, mruby.ArgsBlock() | mruby.ArgsReq(1)},
+	"workdir": {workdir, mruby.ArgsBlock() | mruby.ArgsReq(1)},
 }
 
 // Func is a builder DSL function used to interact with docker.
@@ -93,6 +131,7 @@ type Func func(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mru
 // Builder implements the builder core.
 type Builder struct {
 	imageID string
+	lastID  string
 	id      string
 	mrb     *mruby.Mrb
 	client  *client.Client
@@ -106,7 +145,7 @@ func NewBuilder() (*Builder, error) {
 		return nil, err
 	}
 
-	return &Builder{mrb: mruby.NewMrb(), client: client}, nil
+	return &Builder{mrb: mruby.NewMrb(), client: client, config: &container.Config{}}, nil
 }
 
 // AddFunc adds a function to the mruby dispatch as well as adding hooks around
@@ -116,22 +155,67 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 	builderFunc := func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 		val1, val2 := fn(b, m, self)
 
-		if b.id != "" {
-			resp, err := b.client.ContainerCommit(context.Background(), b.id, types.ContainerCommitOptions{Config: b.config})
-			if err != nil {
-				return mruby.String(fmt.Sprintf("Error during commit: %v", err)), nil
-			}
-
-			if b.imageID != "" {
-				_, err := b.client.ImageRemove(context.Background(), b.imageID, types.ImageRemoveOptions{})
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error removing parent image: %v", err)
-				}
-			}
-
-			b.imageID = resp.ID
-			fmt.Println("+++ Commit", b.imageID)
+		fmt.Printf("%+v\n", b.config)
+		commitResp, err := b.client.ContainerCommit(context.Background(), b.id, types.ContainerCommitOptions{Config: b.config})
+		if err != nil {
+			return mruby.String(fmt.Sprintf("Error during commit: %v", err)), nil
 		}
+
+		err = b.client.ContainerRemove(context.Background(), b.id, types.ContainerRemoveOptions{Force: true})
+		if err != nil {
+			return mruby.String(fmt.Sprintf("Could not remove intermediate container %q: %v", b.id, err)), nil
+		}
+
+		// save for restore later
+		wd := b.config.WorkingDir
+		user := b.config.User
+		cmd := b.config.Cmd
+
+		b.config.WorkingDir = "/"
+		b.config.User = "root"
+		b.config.Cmd = nil
+
+		defer func() {
+			b.config.WorkingDir = wd
+			b.config.User = user
+			b.config.Cmd = cmd
+		}()
+
+		b.config.Image = commitResp.ID
+
+		createResp, err := b.client.ContainerCreate(
+			context.Background(),
+			b.config,
+			nil,
+			nil,
+			"",
+		)
+		if err != nil {
+			return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
+		}
+
+		fmt.Printf("%+v\n", b.config)
+
+		resp, err := b.client.ContainerCommit(context.Background(), createResp.ID, types.ContainerCommitOptions{Config: b.config})
+		if err != nil {
+			return mruby.String(fmt.Sprintf("Error during commit: %v", err)), nil
+		}
+
+		err = b.client.ContainerRemove(context.Background(), createResp.ID, types.ContainerRemoveOptions{Force: true})
+		if err != nil {
+			return mruby.String(fmt.Sprintf("Could not remove intermediate container %q: %v", b.id, err)), nil
+		}
+
+		if b.imageID != "" {
+			_, err := b.client.ImageRemove(context.Background(), b.imageID, types.ImageRemoveOptions{})
+			if err != nil {
+				return mruby.String(fmt.Sprintf("Error removing parent image: %v", err)), nil
+			}
+		}
+
+		b.imageID = resp.ID
+		b.id = createResp.ID
+		fmt.Println("+++ Commit", b.imageID)
 
 		return val1, val2
 	}
@@ -174,10 +258,17 @@ func main() {
 		panic(fmt.Sprintf("Could not read input: %v", err))
 	}
 
-	_, err = builder.Run(string(content))
+	response, err := builder.Run(string(content))
 	if err != nil {
 		panic(fmt.Sprintf("Could not execute ruby: %v", err))
 	}
 
-	fmt.Printf("success: %v\n", strings.SplitN(builder.imageID, ":", 2)[1])
+	if response.String() != "" {
+		fmt.Printf("+++ Eval: %v\n", response)
+	}
+
+	if builder.imageID != "" {
+		id := strings.SplitN(builder.imageID, ":", 2)[1]
+		fmt.Printf("+++ Finish: %v\n", id)
+	}
 }
