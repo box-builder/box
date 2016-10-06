@@ -56,8 +56,10 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 		stringArgs = append(stringArgs, arg.String())
 	}
 
+	cmd := b.config.Cmd
+
 	b.config.Cmd = append([]string{"/bin/sh", "-c"}, stringArgs...)
-	defer func() { b.config.Cmd = nil }()
+	defer func() { b.config.Cmd = cmd }()
 
 	resp, err := b.client.ContainerCreate(
 		context.Background(),
@@ -161,12 +163,39 @@ func env(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 	return nil, nil
 }
 
+func cmd(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+
+	stringArgs := []string{}
+	for _, arg := range args {
+		stringArgs = append(stringArgs, arg.String())
+	}
+
+	b.config.Cmd = stringArgs
+
+	createResp, err := b.client.ContainerCreate(
+		context.Background(),
+		b.config,
+		nil,
+		nil,
+		"",
+	)
+	if err != nil {
+		return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
+	}
+
+	b.id = createResp.ID
+
+	return nil, nil
+}
+
 var jumpTable = map[string]Definition{
 	"from":    {from, mruby.ArgsReq(1)},
 	"run":     {run, mruby.ArgsAny()},
 	"user":    {user, mruby.ArgsBlock() | mruby.ArgsReq(1)},
 	"workdir": {workdir, mruby.ArgsBlock() | mruby.ArgsReq(1)},
 	"env":     {env, mruby.ArgsAny()},
+	"cmd":     {cmd, mruby.ArgsAny()},
 }
 
 // Func is a builder DSL function used to interact with docker.

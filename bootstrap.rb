@@ -1,7 +1,10 @@
 from "golang"
 
+cmd "/go/bin/box"
 env "GOPATH" => "/go"
 run "apt-get update"
+
+__END__
 run "apt-get install -y build-essential g++ git wget curl ruby bison flex"
 run "mkdir -p /go/src/github.com/mitchellh"
 
@@ -25,10 +28,9 @@ run %q[
   git checkout -b class origin/class
   cd /go/src/github.com/mitchellh/go-mruby && \
   make && \
-  cp libmruby.a /root/
+  cp libmruby.a /root
 ]
 
 workdir "/root" do
-  run "wget https://gist.githubusercontent.com/erikh/b45e9f45e2cd2f2937dfda0d2bd35cfb/raw/28633f70b0c4152eb6361ae8ae8c3ee0d2dfcc44/main.go"
-  run "go build -v main.go"
+  run "go get -v github.com/erikh/box"
 end
