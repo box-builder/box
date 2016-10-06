@@ -18,5 +18,6 @@ RUN cd /go/src/github.com/mitchellh/go-mruby && \
     make && \
     cp libmruby.a /root/
 RUN cd /root && \
-    wget https://gist.githubusercontent.com/erikh/b45e9f45e2cd2f2937dfda0d2bd35cfb/raw/28633f70b0c4152eb6361ae8ae8c3ee0d2dfcc44/main.go && \
-    go build main.go
+    go get -v github.com/erikh/box
+
+CMD "/go/bin/box"
