@@ -20,4 +20,4 @@ RUN cd /go/src/github.com/mitchellh/go-mruby && \
 RUN cd /root && \
     go get -v github.com/erikh/box
 
-CMD "/go/bin/box"
+ENTRYPOINT "/go/bin/box"
