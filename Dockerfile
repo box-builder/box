@@ -17,6 +17,8 @@ RUN cd /go/src/github.com/mitchellh && \
 RUN cd /go/src/github.com/mitchellh/go-mruby && \
     make && \
     cp libmruby.a /root/
+RUN mkdir -p /go/src/github.com/erikh/box
+COPY . /go/src/github.com/erikh/box
 RUN cd /root && \
     go get -v github.com/erikh/box
 
