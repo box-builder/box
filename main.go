@@ -120,11 +120,53 @@ func workdir(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby
 	return val, nil
 }
 
+func env(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+	hash := args[0].Hash()
+
+	// mruby does not expose native maps, just ruby primitives, so we have to
+	// iterate through it with indexing functions instead of typical idioms.
+	keys, err := hash.Keys()
+	if err != nil {
+		return mruby.String(err.Error()), nil
+	}
+
+	for i := 0; i < keys.Array().Len(); i++ {
+		key, err := keys.Array().Get(i)
+		if err != nil {
+			return mruby.String(err.Error()), nil
+		}
+
+		value, err := hash.Get(key)
+		if err != nil {
+			return mruby.String(err.Error()), nil
+		}
+
+		b.config.Env = append(b.config.Env, fmt.Sprintf("%s=%s", key.String(), value.String()))
+	}
+
+	createResp, err := b.client.ContainerCreate(
+		context.Background(),
+		b.config,
+		nil,
+		nil,
+		"",
+	)
+	if err != nil {
+		return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
+	}
+
+	b.id = createResp.ID
+
+	return nil, nil
+}
+
 var jumpTable = map[string]Definition{
 	"from":    {from, mruby.ArgsReq(1)},
 	"run":     {run, mruby.ArgsAny()},
 	"user":    {user, mruby.ArgsBlock() | mruby.ArgsReq(1)},
 	"workdir": {workdir, mruby.ArgsBlock() | mruby.ArgsReq(1)},
+	"env":     {env, mruby.ArgsAny()},
 }
 
 // Func is a builder DSL function used to interact with docker.
