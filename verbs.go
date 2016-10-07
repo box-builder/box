@@ -37,10 +37,8 @@ func entrypoint(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mr
 	}
 
 	b.config.Entrypoint = stringArgs
-	var err error
 
-	b.id, err = b.commit()
-	if err != nil {
+	if err := b.commit(); err != nil {
 		return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
 	}
 
@@ -50,14 +48,12 @@ func entrypoint(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mr
 func from(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	b.config.Image = args[0].String()
+	b.imageID = args[0].String()
 	b.config.Tty = true
 	b.config.AttachStdout = true
 	b.config.AttachStderr = true
 
-	var err error
-	b.id, err = b.commit()
-	if err != nil {
+	if err := b.commit(); err != nil {
 		return mruby.String(err.Error()), nil
 	}
 
@@ -66,7 +62,7 @@ func from(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 
 func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if b.imageID == "" {
-		return mruby.String("`from` must be the first docker command`"), nil
+		return mruby.String("`from` must precede any `run` statements"), nil
 	}
 
 	stringArgs := []string{}
@@ -79,19 +75,23 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 	b.config.Cmd = append([]string{"/bin/sh", "-c"}, stringArgs...)
 	defer func() { b.config.Cmd = cmd }()
 
-	var err error
-
-	b.id, err = b.commit()
+	resp, err := b.client.ContainerCreate(
+		context.Background(),
+		b.config,
+		nil,
+		nil,
+		"",
+	)
 	if err != nil {
-		return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
+		return mruby.String(fmt.Sprintf("Error creating container: %v", err)), nil
 	}
 
-	cearesp, err := b.client.ContainerAttach(context.Background(), b.id, types.ContainerAttachOptions{Stream: true, Stdout: true, Stderr: true})
+	cearesp, err := b.client.ContainerAttach(context.Background(), resp.ID, types.ContainerAttachOptions{Stream: true, Stdout: true, Stderr: true})
 	if err != nil {
 		return mruby.String(fmt.Sprintf("Error attaching to execution context %q: %v", b.id, err)), nil
 	}
 
-	err = b.client.ContainerStart(context.Background(), b.id, types.ContainerStartOptions{})
+	err = b.client.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{})
 	if err != nil {
 		return mruby.String(fmt.Sprintf("Error attaching to execution context %q: %v", b.id, err)), nil
 	}
@@ -99,6 +99,19 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 	_, err = io.Copy(os.Stdout, cearesp.Reader)
 	if err != nil && err != io.EOF {
 		return mruby.String(err.Error()), nil
+	}
+
+	commitResp, err := b.client.ContainerCommit(context.Background(), resp.ID, types.ContainerCommitOptions{Config: b.config})
+	if err != nil {
+		return mruby.String(fmt.Sprintf("Error during commit: %v", err)), nil
+	}
+
+	b.imageID = commitResp.ID
+	b.id = ""
+
+	err = b.client.ContainerRemove(context.Background(), resp.ID, types.ContainerRemoveOptions{Force: true})
+	if err != nil {
+		return mruby.String(fmt.Sprintf("Could not remove intermediate container %q: %v", b.id, err)), nil
 	}
 
 	return nil, nil
@@ -159,8 +172,7 @@ func env(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 		b.config.Env = append(b.config.Env, fmt.Sprintf("%s=%s", key.String(), value.String()))
 	}
 
-	b.id, err = b.commit()
-	if err != nil {
+	if err := b.commit(); err != nil {
 		return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
 	}
 
@@ -177,9 +189,7 @@ func cmd(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 
 	b.config.Cmd = stringArgs
 
-	var err error
-	b.id, err = b.commit()
-	if err != nil {
+	if err := b.commit(); err != nil {
 		return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
 	}
 

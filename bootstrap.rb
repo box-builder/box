@@ -4,6 +4,7 @@ cmd "/go/bin/box"
 env "GOPATH" => "/go"
 run "apt-get update"
 run "apt-get install -y build-essential g++ git wget curl ruby bison flex"
+
 run "mkdir -p /go/src/github.com/mitchellh"
 
 gopaths = [
