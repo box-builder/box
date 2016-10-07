@@ -13,12 +13,14 @@ import (
 
 // Builder implements the builder core.
 type Builder struct {
-	imageID string
-	lastID  string
-	id      string
-	mrb     *mruby.Mrb
-	client  *client.Client
-	config  *container.Config
+	imageID    string
+	lastID     string
+	id         string
+	mrb        *mruby.Mrb
+	client     *client.Client
+	config     *container.Config
+	cmd        []string
+	entrypoint []string
 }
 
 // NewBuilder creates a new builder. Returns error on docker or mruby issues.
@@ -53,19 +55,17 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 		// save for restore later
 		wd := b.config.WorkingDir
 		user := b.config.User
-		cmd := b.config.Cmd
-		entrypoint := b.config.Entrypoint
 
 		b.config.WorkingDir = "/"
 		b.config.User = "root"
-		b.config.Cmd = nil
-		b.config.Entrypoint = nil
+		b.config.Cmd = b.cmd
+		b.config.Entrypoint = b.entrypoint
 
 		defer func() {
 			b.config.WorkingDir = wd
 			b.config.User = user
-			b.config.Cmd = cmd
-			b.config.Entrypoint = entrypoint
+			b.config.Cmd = nil
+			b.config.Entrypoint = nil
 		}()
 
 		if err := b.commit(); err != nil {

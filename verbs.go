@@ -36,6 +36,7 @@ func entrypoint(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mr
 		stringArgs = append(stringArgs, arg.String())
 	}
 
+	b.entrypoint = stringArgs
 	b.config.Entrypoint = stringArgs
 
 	if err := b.commit(); err != nil {
@@ -187,6 +188,7 @@ func cmd(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 		stringArgs = append(stringArgs, arg.String())
 	}
 
+	b.cmd = stringArgs
 	b.config.Cmd = stringArgs
 
 	if err := b.commit(); err != nil {
