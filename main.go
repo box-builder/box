@@ -5,14 +5,16 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/erikh/box/builder"
 )
 
 func main() {
-	builder, err := NewBuilder()
+	b, err := builder.NewBuilder()
 	if err != nil {
 		panic(err)
 	}
-	defer builder.Close()
+	defer b.Close()
 
 	var content []byte
 
@@ -26,7 +28,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	response, err := builder.Run(string(content))
+	response, err := b.Run(string(content))
 	if err != nil {
 		fmt.Printf("!!! Error: %v\n", err.Error())
 		os.Exit(1)
@@ -36,8 +38,8 @@ func main() {
 		fmt.Printf("+++ Eval Response: %v\n", response)
 	}
 
-	if builder.imageID != "" {
-		id := strings.SplitN(builder.imageID, ":", 2)[1]
+	if b.ImageID() != "" {
+		id := strings.SplitN(b.ImageID(), ":", 2)[1]
 		fmt.Printf("+++ Finish: %v\n", id)
 	}
 }

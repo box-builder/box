@@ -1,4 +1,4 @@
-package main
+package builder
 
 import (
 	"context"
@@ -36,6 +36,12 @@ func NewBuilder() (*Builder, error) {
 	}
 
 	return builder, nil
+}
+
+// ImageID returns the latest known Image identifier that we committed. At the
+// end of the run this will be the golden docker image.
+func (b *Builder) ImageID() string {
+	return b.ImageID()
 }
 
 // AddFunc adds a function to the mruby dispatch as well as adding hooks around
