@@ -40,7 +40,7 @@ func entrypoint(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mr
 	b.config.Entrypoint = stringArgs
 
 	if err := b.commit(); err != nil {
-		return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
+		return nil, createException(m, err.Error())
 	}
 
 	return nil, nil
@@ -55,7 +55,7 @@ func from(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 	b.config.AttachStderr = true
 
 	if err := b.commit(); err != nil {
-		return mruby.String(err.Error()), nil
+		return nil, createException(m, err.Error())
 	}
 
 	return mruby.String(fmt.Sprintf("Response: %v", b.id)), nil
@@ -88,27 +88,36 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 		"",
 	)
 	if err != nil {
-		return mruby.String(fmt.Sprintf("Error creating container: %v", err)), nil
+		return nil, createException(m, fmt.Sprintf("Error creating container: %v", err))
 	}
 
 	cearesp, err := b.client.ContainerAttach(context.Background(), resp.ID, types.ContainerAttachOptions{Stream: true, Stdout: true, Stderr: true})
 	if err != nil {
-		return mruby.String(fmt.Sprintf("Error attaching to execution context %q: %v", b.id, err)), nil
+		return nil, createException(m, fmt.Sprintf("Could not attach to container: %v", err))
 	}
 
 	err = b.client.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{})
 	if err != nil {
-		return mruby.String(fmt.Sprintf("Error attaching to execution context %q: %v", b.id, err)), nil
+		return nil, createException(m, fmt.Sprintf("Could not start container: %v", err))
 	}
 
 	_, err = io.Copy(os.Stdout, cearesp.Reader)
 	if err != nil && err != io.EOF {
-		return mruby.String(err.Error()), nil
+		return nil, createException(m, err.Error())
+	}
+
+	stat, err := b.client.ContainerWait(context.Background(), resp.ID)
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	if stat != 0 {
+		return nil, createException(m, fmt.Sprintf("Command exited with status %d for container %q", stat, b.id))
 	}
 
 	commitResp, err := b.client.ContainerCommit(context.Background(), resp.ID, types.ContainerCommitOptions{Config: b.config})
 	if err != nil {
-		return mruby.String(fmt.Sprintf("Error during commit: %v", err)), nil
+		return nil, createException(m, fmt.Sprintf("Error during commit: %v", err))
 	}
 
 	b.imageID = commitResp.ID
@@ -116,7 +125,7 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 
 	err = b.client.ContainerRemove(context.Background(), resp.ID, types.ContainerRemoveOptions{Force: true})
 	if err != nil {
-		return mruby.String(fmt.Sprintf("Could not remove intermediate container %q: %v", b.id, err)), nil
+		return nil, createException(m, fmt.Sprintf("Could not remove intermediate container %q: %v", b.id, err))
 	}
 
 	return nil, nil

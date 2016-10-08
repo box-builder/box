@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/docker/engine-api/types"
+	mruby "github.com/mitchellh/go-mruby"
 )
 
 func (b *Builder) commit() error {
@@ -35,4 +36,13 @@ func (b *Builder) commit() error {
 	b.imageID = commitResp.ID
 
 	return nil
+}
+
+func createException(m *mruby.Mrb, msg string) mruby.Value {
+	val, err := m.Class("Exception", nil).New(mruby.String(msg))
+	if err != nil {
+		panic(fmt.Sprintf("could not construct exception for return: %v", err))
+	}
+
+	return val
 }
