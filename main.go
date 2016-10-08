@@ -38,8 +38,11 @@ func main() {
 		fmt.Printf("+++ Eval Response: %v\n", response)
 	}
 
-	if b.ImageID() != "" {
-		id := strings.SplitN(b.ImageID(), ":", 2)[1]
-		fmt.Printf("+++ Finish: %v\n", id)
+	id := b.ImageID()
+
+	if strings.Contains(id, ":") {
+		id = strings.SplitN(id, ":", 2)[1]
 	}
+
+	fmt.Printf("+++ Finish: %v\n", id)
 }

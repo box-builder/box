@@ -1,7 +1,9 @@
 package builder
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -54,8 +56,23 @@ func from(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 	b.config.AttachStdout = true
 	b.config.AttachStderr = true
 
-	if err := b.commit(); err != nil {
+	reader, err := b.client.ImagePull(context.Background(), b.imageID, types.ImagePullOptions{})
+	if err != nil {
 		return nil, createException(m, err.Error())
+	}
+
+	buf := bufio.NewReader(reader)
+	for {
+		line, err := buf.ReadBytes('\n')
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, createException(m, err.Error())
+		}
+
+		var unpacked map[string]string
+		json.Unmarshal(line, &unpacked)
+		fmt.Printf("%s %s %s\r", unpacked["id"], unpacked["status"], unpacked["progress"])
 	}
 
 	return mruby.String(fmt.Sprintf("Response: %v", b.id)), nil
