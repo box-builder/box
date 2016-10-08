@@ -1,6 +1,6 @@
 from "golang"
 
-cmd "/go/bin/box"
+entrypoint "/go/bin/box"
 env "GOPATH" => "/go"
 run "apt-get update"
 run "apt-get install -y build-essential g++ git wget curl ruby bison flex"

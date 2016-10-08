@@ -56,14 +56,14 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 		wd := b.config.WorkingDir
 		user := b.config.User
 
-		b.config.WorkingDir = "/"
-		b.config.User = "root"
+		b.config.WorkingDir = wd
+		b.config.User = user
 		b.config.Cmd = b.cmd
 		b.config.Entrypoint = b.entrypoint
 
 		defer func() {
-			b.config.WorkingDir = wd
-			b.config.User = user
+			b.config.WorkingDir = "/"
+			b.config.User = "root"
 			b.config.Cmd = nil
 			b.config.Entrypoint = nil
 		}()

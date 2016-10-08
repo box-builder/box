@@ -71,10 +71,14 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 		stringArgs = append(stringArgs, arg.String())
 	}
 
+	entrypoint := b.config.Entrypoint
 	cmd := b.config.Cmd
-
-	b.config.Cmd = append([]string{"/bin/sh", "-c"}, stringArgs...)
-	defer func() { b.config.Cmd = cmd }()
+	b.config.Entrypoint = []string{"/bin/sh", "-c"}
+	b.config.Cmd = stringArgs
+	defer func() {
+		b.config.Entrypoint = entrypoint
+		b.config.Cmd = cmd
+	}()
 
 	resp, err := b.client.ContainerCreate(
 		context.Background(),
