@@ -72,7 +72,7 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 			return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
 		}
 
-		fmt.Println("+++ Commit", b.imageID)
+		fmt.Println("+++ Commit:", b.imageID)
 
 		return val1, val2
 	}

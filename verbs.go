@@ -20,8 +20,8 @@ type Definition struct {
 var jumpTable = map[string]Definition{
 	"from":       {from, mruby.ArgsReq(1)},
 	"run":        {run, mruby.ArgsAny()},
-	"user":       {user, mruby.ArgsBlock() | mruby.ArgsReq(1)},
-	"workdir":    {workdir, mruby.ArgsBlock() | mruby.ArgsReq(1)},
+	"with_user":  {withUser, mruby.ArgsBlock() | mruby.ArgsReq(1)},
+	"inside":     {inside, mruby.ArgsBlock() | mruby.ArgsReq(1)},
 	"env":        {env, mruby.ArgsAny()},
 	"cmd":        {cmd, mruby.ArgsAny()},
 	"entrypoint": {entrypoint, mruby.ArgsAny()},
@@ -101,10 +101,14 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 		return nil, createException(m, fmt.Sprintf("Could not start container: %v", err))
 	}
 
+	fmt.Println("------ BEGIN OUTPUT ------")
+
 	_, err = io.Copy(os.Stdout, cearesp.Reader)
 	if err != nil && err != io.EOF {
 		return nil, createException(m, err.Error())
 	}
+
+	fmt.Println("------ END OUTPUT ------")
 
 	stat, err := b.client.ContainerWait(context.Background(), resp.ID)
 	if err != nil {
@@ -131,7 +135,7 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 	return nil, nil
 }
 
-func user(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func withUser(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
 	b.config.User = args[0].String()
@@ -146,7 +150,7 @@ func user(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 	return val, nil
 }
 
-func workdir(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func inside(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
 	b.config.WorkingDir = args[0].String()

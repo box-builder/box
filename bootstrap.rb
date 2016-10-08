@@ -27,6 +27,6 @@ run %q[
   cp libmruby.a /root
 ]
 
-workdir "/root" do
+inside "/root" do
   run "go get -v github.com/erikh/box"
 end

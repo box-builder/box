@@ -12,7 +12,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	defer builder.Close()
 
 	var content []byte
@@ -23,16 +22,18 @@ func main() {
 		content, err = ioutil.ReadAll(os.Stdin)
 	}
 	if err != nil {
-		panic(fmt.Sprintf("Could not read input: %v", err))
+		fmt.Printf("!!! Error: %v", err.Error())
+		os.Exit(2)
 	}
 
 	response, err := builder.Run(string(content))
 	if err != nil {
-		panic(fmt.Sprintf("Could not execute ruby: %v", err))
+		fmt.Printf("!!! Error: %v\n", err.Error())
+		os.Exit(1)
 	}
 
 	if response.String() != "" {
-		fmt.Printf("+++ Eval: %v\n", response)
+		fmt.Printf("+++ Eval Response: %v\n", response)
 	}
 
 	if builder.imageID != "" {
