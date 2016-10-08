@@ -144,7 +144,7 @@ func withUser(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mrub
 	b.id = ""
 
 	if err != nil {
-		return mruby.String(fmt.Sprintf("Could not yield: %v", err)), nil
+		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
 	}
 
 	return val, nil
@@ -159,7 +159,7 @@ func inside(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.
 	b.id = ""
 
 	if err != nil {
-		return mruby.String(fmt.Sprintf("Could not yield: %v", err)), nil
+		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
 	}
 
 	return val, nil
@@ -173,25 +173,25 @@ func env(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 	// iterate through it with indexing functions instead of typical idioms.
 	keys, err := hash.Keys()
 	if err != nil {
-		return mruby.String(err.Error()), nil
+		return nil, createException(m, err.Error())
 	}
 
 	for i := 0; i < keys.Array().Len(); i++ {
 		key, err := keys.Array().Get(i)
 		if err != nil {
-			return mruby.String(err.Error()), nil
+			return nil, createException(m, err.Error())
 		}
 
 		value, err := hash.Get(key)
 		if err != nil {
-			return mruby.String(err.Error()), nil
+			return nil, createException(m, err.Error())
 		}
 
 		b.config.Env = append(b.config.Env, fmt.Sprintf("%s=%s", key.String(), value.String()))
 	}
 
 	if err := b.commit(); err != nil {
-		return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
+		return nil, createException(m, err.Error())
 	}
 
 	return nil, nil
@@ -209,7 +209,7 @@ func cmd(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 	b.config.Cmd = stringArgs
 
 	if err := b.commit(); err != nil {
-		return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
+		return nil, createException(m, err.Error())
 	}
 
 	return nil, nil
