@@ -10,10 +10,7 @@ RUN go get github.com/docker/engine-api && \
     go get github.com/Sirupsen/logrus && \
     go get github.com/opencontainers/runc/libcontainer/user 
 RUN cd /go/src/github.com/mitchellh && \
-    git clone https://github.com/erikh/go-mruby && \
-    cd go-mruby && \
-    git fetch && \
-    git checkout -b class origin/class
+    git clone https://github.com/mitchellh/go-mruby
 RUN cd /go/src/github.com/mitchellh/go-mruby && \
     make && \
     cp libmruby.a /root/
