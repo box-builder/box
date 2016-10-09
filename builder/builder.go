@@ -68,8 +68,8 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 		defer func() {
 			b.config.WorkingDir = "/"
 			b.config.User = "root"
-			b.config.Cmd = nil
-			b.config.Entrypoint = nil
+			b.config.Cmd = []string{"/bin/sh"}
+			b.config.Entrypoint = []string{"/bin/sh", "-c"}
 		}()
 
 		if err := b.commit(nil); err != nil {

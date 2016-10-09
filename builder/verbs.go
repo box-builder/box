@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -22,6 +23,7 @@ type Definition struct {
 }
 
 var jumpTable = map[string]Definition{
+	"flatten":    {flatten, mruby.ArgsNone()},
 	"tag":        {tag, mruby.ArgsReq(1)},
 	"copy":       {copy, mruby.ArgsReq(2)},
 	"from":       {from, mruby.ArgsReq(1)},
@@ -35,6 +37,73 @@ var jumpTable = map[string]Definition{
 
 // Func is a builder DSL function used to interact with docker.
 type Func func(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
+
+func flatten(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	cont, err := b.client.ContainerCreate(
+		context.Background(),
+		b.config,
+		nil,
+		nil,
+		"",
+	)
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	defer b.client.ContainerRemove(context.Background(), cont.ID, types.ContainerRemoveOptions{})
+
+	rc, err := b.client.ContainerExport(context.Background(), cont.ID)
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	f, err := ioutil.TempFile("", "box-flatten.")
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	defer os.Remove(f.Name())
+	if _, err := io.Copy(f, rc); err != nil && err != io.EOF {
+		f.Close()
+		return nil, createException(m, err.Error())
+	}
+	f.Close()
+
+	f, err = os.Open(f.Name())
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	b.config.Image = ""
+
+	cont2, err := b.client.ContainerCreate(
+		context.Background(),
+		b.config,
+		nil,
+		nil,
+		"",
+	)
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	defer b.client.ContainerRemove(context.Background(), cont2.ID, types.ContainerRemoveOptions{})
+
+	if err := b.client.CopyToContainer(context.Background(), cont2.ID, "/", f, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true}); err != nil {
+		fmt.Println("copy")
+		return nil, createException(m, err.Error())
+	}
+
+	commitResp, err := b.client.ContainerCommit(context.Background(), cont2.ID, types.ContainerCommitOptions{Config: b.config})
+	if err != nil {
+		fmt.Println("commit")
+		return nil, createException(m, err.Error())
+	}
+
+	b.imageID = commitResp.ID
+	fmt.Printf("+++ Flattened Image: %s\n", b.imageID)
+	return nil, nil
+}
 
 func tag(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()

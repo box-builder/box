@@ -1,7 +1,9 @@
 from "golang"
 
+packages = "build-essential g++ git wget curl ruby bison flex"
+
 run "apt-get update"
-run "apt-get install -y build-essential g++ git wget curl ruby bison flex"
+run "apt-get install -y #{packages}"
 
 tag "erikh/box:packages"
 
@@ -37,4 +39,10 @@ inside "/root" do
   run "go get -v github.com/erikh/box"
 end
 
+run "rm -rf /go/src /go/pkg"
+run "apt-get purge -y #{packages}"
+run "apt-get autoremove -y"
+run "apt-get clean -y"
+run "rm -rf /var/lib/apt"
+flatten
 tag "erikh/box:latest"
