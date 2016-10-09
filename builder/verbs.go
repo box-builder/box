@@ -256,14 +256,52 @@ func copy(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 		errChan <- b.commit(hook)
 	}()
 
-	fi, err := os.Lstat(rel)
+	fi, err := os.Stat(rel)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
 
 	if fi.IsDir() {
-		fmt.Println("Cannot copy directory yet")
-		wr.Close()
+		err := filepath.Walk(rel, func(path string, fi os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if fi.IsDir() {
+				return nil
+			}
+
+			fmt.Printf("--- COPY: %s\n", path)
+
+			header, err := tar.FileInfoHeader(fi, filepath.Join(target, path))
+			if err != nil {
+				return err
+			}
+
+			header.Name = filepath.Join(target, path)
+			header.Linkname = filepath.Join(target, path)
+
+			if err := tw.WriteHeader(header); err != nil {
+				return err
+			}
+
+			f, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			_, err = io.Copy(tw, f)
+			if err != nil && err != io.EOF {
+				f.Close()
+				return err
+			}
+
+			f.Close()
+			return nil
+		})
+		if err != nil {
+			return nil, createException(m, err.Error())
+		}
+
 	} else {
 		header, err := tar.FileInfoHeader(fi, target)
 		if err != nil {
@@ -283,6 +321,7 @@ func copy(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 		}
 		_, err = io.Copy(tw, f)
 		if err != nil && err != io.EOF {
+			f.Close()
 			return nil, createException(m, err.Error())
 		}
 		f.Close()
