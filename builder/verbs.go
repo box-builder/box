@@ -22,6 +22,7 @@ type Definition struct {
 }
 
 var jumpTable = map[string]Definition{
+	"tag":        {tag, mruby.ArgsReq(1)},
 	"copy":       {copy, mruby.ArgsReq(2)},
 	"from":       {from, mruby.ArgsReq(1)},
 	"run":        {run, mruby.ArgsAny()},
@@ -34,6 +35,21 @@ var jumpTable = map[string]Definition{
 
 // Func is a builder DSL function used to interact with docker.
 type Func func(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
+
+func tag(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+	if len(args) != 1 {
+		return nil, createException(m, "tag call expects one argument!")
+	}
+
+	if err := b.client.ImageTag(context.Background(), b.imageID, args[0].String()); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	fmt.Printf("+++ Tagged: %q\n", args[0].String())
+
+	return nil, nil
+}
 
 func entrypoint(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	stringArgs := []string{}

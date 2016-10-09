@@ -1,10 +1,11 @@
 from "golang"
 
-entrypoint "/go/bin/box"
-env "GOPATH" => "/go"
-
 run "apt-get update"
 run "apt-get install -y build-essential g++ git wget curl ruby bison flex"
+
+tag "erikh/box:packages"
+
+env "GOPATH" => "/go"
 
 gopaths = [
   "github.com/docker/engine-api",
@@ -28,7 +29,12 @@ run %q[
   cp libmruby.a /root
 ]
 
+tag "erikh/box:prereqs"
+
+entrypoint "/go/bin/box"
 inside "/root" do
   copy "example.rb", "example.rb"
   run "go get -v github.com/erikh/box"
 end
+
+tag "erikh/box:latest"
