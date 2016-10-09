@@ -8,7 +8,7 @@ import (
 	mruby "github.com/mitchellh/go-mruby"
 )
 
-func (b *Builder) commit() error {
+func (b *Builder) commit(hook func(b *Builder, id string) error) error {
 	b.config.Image = b.imageID
 
 	resp, err := b.client.ContainerCreate(
@@ -22,6 +22,13 @@ func (b *Builder) commit() error {
 		return err
 	}
 
+	if hook != nil {
+		if err := hook(b, resp.ID); err != nil {
+			fmt.Println(resp.ID, err)
+			return err
+		}
+	}
+
 	commitResp, err := b.client.ContainerCommit(context.Background(), resp.ID, types.ContainerCommitOptions{Config: b.config})
 	if err != nil {
 		return fmt.Errorf("Error during commit: %v", err)
@@ -29,10 +36,9 @@ func (b *Builder) commit() error {
 
 	err = b.client.ContainerRemove(context.Background(), resp.ID, types.ContainerRemoveOptions{})
 	if err != nil {
-		return fmt.Errorf("Could not remove intermediate container %q: %v", b.id, err)
+		return fmt.Errorf("Could not remove intermediate container %q: %v", resp.ID, err)
 	}
 
-	b.id = resp.ID
 	b.imageID = commitResp.ID
 
 	return nil

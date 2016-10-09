@@ -1,12 +1,14 @@
 package builder
 
 import (
+	"archive/tar"
 	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/docker/engine-api/types"
 	mruby "github.com/mitchellh/go-mruby"
@@ -20,6 +22,7 @@ type Definition struct {
 }
 
 var jumpTable = map[string]Definition{
+	"copy":       {copy, mruby.ArgsReq(2)},
 	"from":       {from, mruby.ArgsReq(1)},
 	"run":        {run, mruby.ArgsAny()},
 	"with_user":  {withUser, mruby.ArgsBlock() | mruby.ArgsReq(1)},
@@ -40,10 +43,6 @@ func entrypoint(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mr
 
 	b.entrypoint = stringArgs
 	b.config.Entrypoint = stringArgs
-
-	if err := b.commit(); err != nil {
-		return nil, createException(m, err.Error())
-	}
 
 	return nil, nil
 }
@@ -75,7 +74,7 @@ func from(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 		fmt.Printf("%s %s %s\r", unpacked["id"], unpacked["status"], unpacked["progress"])
 	}
 
-	return mruby.String(fmt.Sprintf("Response: %v", b.id)), nil
+	return args[0], nil
 }
 
 func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
@@ -90,63 +89,54 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 
 	entrypoint := b.config.Entrypoint
 	cmd := b.config.Cmd
+	wd := b.config.WorkingDir
+
 	b.config.Entrypoint = []string{"/bin/sh", "-c"}
 	b.config.Cmd = stringArgs
+	if b.insideDir != "" {
+		b.config.WorkingDir = b.insideDir
+	}
+
 	defer func() {
 		b.config.Entrypoint = entrypoint
 		b.config.Cmd = cmd
+		b.config.WorkingDir = wd
 	}()
 
-	resp, err := b.client.ContainerCreate(
-		context.Background(),
-		b.config,
-		nil,
-		nil,
-		"",
-	)
-	if err != nil {
-		return nil, createException(m, fmt.Sprintf("Error creating container: %v", err))
+	hook := func(b *Builder, id string) error {
+		cearesp, err := b.client.ContainerAttach(context.Background(), id, types.ContainerAttachOptions{Stream: true, Stdout: true, Stderr: true})
+		if err != nil {
+			return fmt.Errorf("Could not attach to container: %v", err)
+		}
+
+		err = b.client.ContainerStart(context.Background(), id, types.ContainerStartOptions{})
+		if err != nil {
+			return fmt.Errorf("Could not start container: %v", err)
+		}
+
+		fmt.Println("------ BEGIN OUTPUT ------")
+
+		_, err = io.Copy(os.Stdout, cearesp.Reader)
+		if err != nil && err != io.EOF {
+			return err
+		}
+
+		fmt.Println("------ END OUTPUT ------")
+
+		stat, err := b.client.ContainerWait(context.Background(), id)
+		if err != nil {
+			return err
+		}
+
+		if stat != 0 {
+			return fmt.Errorf("Command exited with status %d for container %q", stat, id)
+		}
+
+		return nil
 	}
 
-	cearesp, err := b.client.ContainerAttach(context.Background(), resp.ID, types.ContainerAttachOptions{Stream: true, Stdout: true, Stderr: true})
-	if err != nil {
-		return nil, createException(m, fmt.Sprintf("Could not attach to container: %v", err))
-	}
-
-	err = b.client.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{})
-	if err != nil {
-		return nil, createException(m, fmt.Sprintf("Could not start container: %v", err))
-	}
-
-	fmt.Println("------ BEGIN OUTPUT ------")
-
-	_, err = io.Copy(os.Stdout, cearesp.Reader)
-	if err != nil && err != io.EOF {
+	if err := b.commit(hook); err != nil {
 		return nil, createException(m, err.Error())
-	}
-
-	fmt.Println("------ END OUTPUT ------")
-
-	stat, err := b.client.ContainerWait(context.Background(), resp.ID)
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	if stat != 0 {
-		return nil, createException(m, fmt.Sprintf("Command exited with status %d for container %q", stat, b.id))
-	}
-
-	commitResp, err := b.client.ContainerCommit(context.Background(), resp.ID, types.ContainerCommitOptions{Config: b.config})
-	if err != nil {
-		return nil, createException(m, fmt.Sprintf("Error during commit: %v", err))
-	}
-
-	b.imageID = commitResp.ID
-	b.id = ""
-
-	err = b.client.ContainerRemove(context.Background(), resp.ID, types.ContainerRemoveOptions{Force: true})
-	if err != nil {
-		return nil, createException(m, fmt.Sprintf("Could not remove intermediate container %q: %v", b.id, err))
 	}
 
 	return nil, nil
@@ -158,7 +148,6 @@ func withUser(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mrub
 	b.config.User = args[0].String()
 	val, err := m.Yield(args[1], args[0])
 	b.config.User = ""
-	b.id = ""
 
 	if err != nil {
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
@@ -170,10 +159,9 @@ func withUser(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mrub
 func inside(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	b.config.WorkingDir = args[0].String()
+	b.insideDir = args[0].String()
 	val, err := m.Yield(args[1], args[0])
-	b.config.WorkingDir = ""
-	b.id = ""
+	b.insideDir = ""
 
 	if err != nil {
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
@@ -207,7 +195,7 @@ func env(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 		b.config.Env = append(b.config.Env, fmt.Sprintf("%s=%s", key.String(), value.String()))
 	}
 
-	if err := b.commit(); err != nil {
+	if err := b.commit(nil); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -225,7 +213,85 @@ func cmd(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 	b.cmd = stringArgs
 	b.config.Cmd = stringArgs
 
-	if err := b.commit(); err != nil {
+	return nil, nil
+}
+
+func copy(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+
+	if len(args) != 2 {
+		return nil, createException(m, "Did not receive the proper number of arguments in copy")
+	}
+
+	source := args[0].String()
+	target := args[1].String()
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	rel, err := filepath.Rel(wd, filepath.Join(wd, source))
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	fmt.Printf("+++ Copying: %q to %q\n", rel, target)
+
+	errChan := make(chan error)
+
+	rd, wr := io.Pipe()
+	tw := tar.NewWriter(wr)
+
+	hook := func(b *Builder, id string) error {
+		dir := b.config.WorkingDir
+		if b.insideDir != "" {
+			dir = b.insideDir
+		}
+
+		return b.client.CopyToContainer(context.Background(), id, dir, rd, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+	}
+
+	go func() {
+		errChan <- b.commit(hook)
+	}()
+
+	fi, err := os.Lstat(rel)
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	if fi.IsDir() {
+		fmt.Println("Cannot copy directory yet")
+		wr.Close()
+	} else {
+		header, err := tar.FileInfoHeader(fi, target)
+		if err != nil {
+			return nil, createException(m, err.Error())
+		}
+
+		header.Name = target
+		header.Linkname = target
+
+		if err := tw.WriteHeader(header); err != nil {
+			return nil, createException(m, err.Error())
+		}
+
+		f, err := os.Open(rel)
+		if err != nil {
+			return nil, createException(m, err.Error())
+		}
+		_, err = io.Copy(tw, f)
+		if err != nil && err != io.EOF {
+			return nil, createException(m, err.Error())
+		}
+		f.Close()
+	}
+
+	tw.Close()
+	wr.Close()
+
+	if err := <-errChan; err != nil {
 		return nil, createException(m, err.Error())
 	}
 

@@ -1,12 +1,10 @@
 package builder
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
 	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/container"
 	mruby "github.com/mitchellh/go-mruby"
 )
@@ -15,12 +13,12 @@ import (
 type Builder struct {
 	imageID    string
 	lastID     string
-	id         string
 	mrb        *mruby.Mrb
 	client     *client.Client
 	config     *container.Config
 	cmd        []string
 	entrypoint []string
+	insideDir  string
 }
 
 // NewBuilder creates a new builder. Returns error on docker or mruby issues.
@@ -74,7 +72,7 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 			b.config.Entrypoint = nil
 		}()
 
-		if err := b.commit(); err != nil {
+		if err := b.commit(nil); err != nil {
 			return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
 		}
 
@@ -94,6 +92,5 @@ func (b *Builder) Run(script string) (*mruby.MrbValue, error) {
 // Close tears down all functions of the builder, preparing it for exit.
 func (b *Builder) Close() error {
 	b.mrb.Close()
-	b.client.ContainerRemove(context.Background(), b.id, types.ContainerRemoveOptions{})
 	return nil
 }

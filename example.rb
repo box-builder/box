@@ -2,6 +2,8 @@ from "golang"
 
 entrypoint "/go/bin/box"
 env "GOPATH" => "/go"
+copy "example.rb", "example.rb"
+
 run "apt-get update"
 run "apt-get install -y build-essential g++ git wget curl ruby bison flex"
 
@@ -28,5 +30,6 @@ run %q[
 ]
 
 inside "/root" do
+  copy "example.rb", "example.rb"
   run "go get -v github.com/erikh/box"
 end
