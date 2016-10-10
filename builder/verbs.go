@@ -36,9 +36,9 @@ var jumpTable = map[string]Definition{
 }
 
 // Func is a builder DSL function used to interact with docker.
-type Func func(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
+type Func func(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
 
-func flatten(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	cont, err := b.client.ContainerCreate(
 		context.Background(),
 		b.config,
@@ -49,8 +49,6 @@ func flatten(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
-
-	defer b.client.ContainerRemove(context.Background(), cont.ID, types.ContainerRemoveOptions{})
 
 	rc, err := b.client.ContainerExport(context.Background(), cont.ID)
 	if err != nil {
@@ -90,13 +88,11 @@ func flatten(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby
 	defer b.client.ContainerRemove(context.Background(), cont2.ID, types.ContainerRemoveOptions{})
 
 	if err := b.client.CopyToContainer(context.Background(), cont2.ID, "/", f, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true}); err != nil {
-		fmt.Println("copy")
 		return nil, createException(m, err.Error())
 	}
 
 	commitResp, err := b.client.ContainerCommit(context.Background(), cont2.ID, types.ContainerCommitOptions{Config: b.config})
 	if err != nil {
-		fmt.Println("commit")
 		return nil, createException(m, err.Error())
 	}
 
@@ -105,7 +101,7 @@ func flatten(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby
 	return nil, nil
 }
 
-func tag(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func tag(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 	if len(args) != 1 {
 		return nil, createException(m, "tag call expects one argument!")
@@ -120,7 +116,7 @@ func tag(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 	return nil, nil
 }
 
-func entrypoint(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	stringArgs := []string{}
 	for _, arg := range m.GetArgs() {
 		stringArgs = append(stringArgs, arg.String())
@@ -129,10 +125,14 @@ func entrypoint(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mr
 	b.entrypoint = stringArgs
 	b.config.Entrypoint = stringArgs
 
+	if err := b.commit(cacheKey, nil); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
 	return nil, nil
 }
 
-func from(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
 	b.imageID = args[0].String()
@@ -140,31 +140,50 @@ func from(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 	b.config.AttachStdout = true
 	b.config.AttachStderr = true
 
-	reader, err := b.client.ImagePull(context.Background(), b.imageID, types.ImagePullOptions{})
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
+	var retried bool
 
-	buf := bufio.NewReader(reader)
-	for {
-		line, err := buf.ReadBytes('\n')
-		if err == io.EOF {
-			break
-		} else if err != nil {
+retry:
+	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), args[0].String())
+	if err != nil {
+		if retried {
 			return nil, createException(m, err.Error())
 		}
 
-		var unpacked map[string]string
-		json.Unmarshal(line, &unpacked)
-		fmt.Printf("%s %s %s\r", unpacked["id"], unpacked["status"], unpacked["progress"])
+		reader, err := b.client.ImagePull(context.Background(), args[0].String(), types.ImagePullOptions{})
+		if err != nil {
+			return nil, createException(m, err.Error())
+		}
+
+		buf := bufio.NewReader(reader)
+		for {
+			line, err := buf.ReadBytes('\n')
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return nil, createException(m, err.Error())
+			}
+
+			var unpacked map[string]interface{}
+			if err := json.Unmarshal(line, &unpacked); err != nil {
+				return nil, createException(m, err.Error())
+			}
+
+			fmt.Printf("%s %s %s\r", unpacked["id"], unpacked["status"], unpacked["progress"])
+		}
+
+		retried = true
+
+		goto retry
 	}
 
-	return args[0], nil
+	b.imageID = inspect.ID
+
+	return mruby.String(b.imageID), nil
 }
 
-func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if b.imageID == "" {
-		return mruby.String("`from` must precede any `run` statements"), nil
+		return nil, createException(m, "`from` must precede any `run` statements")
 	}
 
 	stringArgs := []string{}
@@ -172,20 +191,15 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 		stringArgs = append(stringArgs, arg.String())
 	}
 
-	entrypoint := b.config.Entrypoint
-	cmd := b.config.Cmd
-	wd := b.config.WorkingDir
-
+	b.resetConfig()
 	b.config.Entrypoint = []string{"/bin/sh", "-c"}
 	b.config.Cmd = stringArgs
-	if b.insideDir != "" {
-		b.config.WorkingDir = b.insideDir
-	}
+	b.config.WorkingDir = b.insideDir
 
 	defer func() {
-		b.config.Entrypoint = entrypoint
-		b.config.Cmd = cmd
-		b.config.WorkingDir = wd
+		b.resetConfig()
+		b.config.Entrypoint = b.entrypoint
+		b.config.Cmd = b.cmd
 	}()
 
 	hook := func(b *Builder, id string) error {
@@ -220,14 +234,14 @@ func run(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 		return nil
 	}
 
-	if err := b.commit(hook); err != nil {
+	if err := b.commit(cacheKey, hook); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
 	return nil, nil
 }
 
-func withUser(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
 	b.config.User = args[0].String()
@@ -241,7 +255,7 @@ func withUser(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mrub
 	return val, nil
 }
 
-func inside(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
 	b.insideDir = args[0].String()
@@ -255,7 +269,7 @@ func inside(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.
 	return val, nil
 }
 
-func env(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func env(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 	hash := args[0].Hash()
 
@@ -280,14 +294,14 @@ func env(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 		b.config.Env = append(b.config.Env, fmt.Sprintf("%s=%s", key.String(), value.String()))
 	}
 
-	if err := b.commit(nil); err != nil {
+	if err := b.commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
 	return nil, nil
 }
 
-func cmd(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func cmd(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
 	stringArgs := []string{}
@@ -298,10 +312,14 @@ func cmd(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Val
 	b.cmd = stringArgs
 	b.config.Cmd = stringArgs
 
+	if err := b.commit(cacheKey, nil); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
 	return nil, nil
 }
 
-func copy(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
 	if len(args) != 2 {
@@ -316,6 +334,7 @@ func copy(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 		return nil, createException(m, err.Error())
 	}
 
+	// FIXME do not allow traversing above the wd
 	rel, err := filepath.Rel(wd, filepath.Join(wd, source))
 	if err != nil {
 		return nil, createException(m, err.Error())
@@ -338,10 +357,10 @@ func copy(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 	}
 
 	go func() {
-		errChan <- b.commit(hook)
+		errChan <- b.commit(cacheKey, hook)
 	}()
 
-	fi, err := os.Stat(rel)
+	fi, err := os.Lstat(rel)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -363,6 +382,7 @@ func copy(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 				return err
 			}
 
+			// FIXME filepath.Rel these into shape
 			header.Name = filepath.Join(target, path)
 			header.Linkname = filepath.Join(target, path)
 

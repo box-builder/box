@@ -1,10 +1,13 @@
 package builder
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/container"
 	mruby "github.com/mitchellh/go-mruby"
 )
@@ -33,7 +36,17 @@ func NewBuilder() (*Builder, error) {
 		builder.AddFunc(name, def.Func, def.ArgSpec)
 	}
 
+	builder.resetConfig()
+
 	return builder, nil
+}
+
+func (b *Builder) resetConfig() {
+	// TODO make this inherit from teh base image
+	b.config.WorkingDir = "/"
+	b.config.User = "root"
+	b.config.Cmd = nil
+	b.config.Entrypoint = []string{"/bin/sh", "-c"}
 }
 
 // ImageID returns the latest known Image identifier that we committed. At the
@@ -50,35 +63,40 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 		args := m.GetArgs()
 		strArgs := []string{}
 		for _, arg := range args {
-			strArgs = append(strArgs, arg.String())
+			if arg.Type() != mruby.TypeProc {
+				strArgs = append(strArgs, arg.String())
+			}
 		}
 
+		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")
 		fmt.Printf("+++ Execute: %s %s\n", name, strings.Join(strArgs, ", "))
-		val1, val2 := fn(b, m, self)
 
-		// save for restore later
-		wd := b.config.WorkingDir
-		user := b.config.User
+		if os.Getenv("NO_CACHE") == "" {
+			if b.imageID != "" {
+				images, err := b.client.ImageList(context.Background(), types.ImageListOptions{All: true})
+				if err != nil {
+					return nil, createException(m, err.Error())
+				}
 
-		b.config.WorkingDir = wd
-		b.config.User = user
-		b.config.Cmd = b.cmd
-		b.config.Entrypoint = b.entrypoint
+				for _, img := range images {
+					if img.ParentID == b.imageID {
+						inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), img.ID)
+						if err != nil {
+							return nil, createException(m, err.Error())
+						}
 
-		defer func() {
-			b.config.WorkingDir = "/"
-			b.config.User = "root"
-			b.config.Cmd = []string{"/bin/sh"}
-			b.config.Entrypoint = []string{"/bin/sh", "-c"}
-		}()
-
-		if err := b.commit(nil); err != nil {
-			return mruby.String(fmt.Sprintf("Error creating intermediate container: %v", err)), nil
+						if inspect.Comment == cacheKey {
+							fmt.Printf("+++ Cache hit: using %q\n", img.ID)
+							b.imageID = img.ID
+							b.config.Image = img.ID
+							return nil, nil
+						}
+					}
+				}
+			}
 		}
 
-		fmt.Println("+++ Commit:", b.imageID)
-
-		return val1, val2
+		return fn(b, cacheKey, m, self)
 	}
 
 	b.mrb.TopSelf().SingletonClass().DefineMethod(name, builderFunc, args)

@@ -34,6 +34,7 @@ run %q[
 tag "erikh/box:prereqs"
 
 entrypoint "/go/bin/box"
+
 inside "/root" do
   copy "example.rb", "example.rb"
   run "go get -v github.com/erikh/box"

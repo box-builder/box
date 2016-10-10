@@ -3,12 +3,17 @@ package builder
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/docker/engine-api/types"
 	mruby "github.com/mitchellh/go-mruby"
 )
 
-func (b *Builder) commit(hook func(b *Builder, id string) error) error {
+func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) error) error {
+	if os.Getenv("NO_CACHE") != "" {
+		cacheKey = ""
+	}
+
 	b.config.Image = b.imageID
 
 	resp, err := b.client.ContainerCreate(
@@ -24,12 +29,11 @@ func (b *Builder) commit(hook func(b *Builder, id string) error) error {
 
 	if hook != nil {
 		if err := hook(b, resp.ID); err != nil {
-			fmt.Println(resp.ID, err)
 			return err
 		}
 	}
 
-	commitResp, err := b.client.ContainerCommit(context.Background(), resp.ID, types.ContainerCommitOptions{Config: b.config})
+	commitResp, err := b.client.ContainerCommit(context.Background(), resp.ID, types.ContainerCommitOptions{Config: b.config, Comment: cacheKey})
 	if err != nil {
 		return fmt.Errorf("Error during commit: %v", err)
 	}
