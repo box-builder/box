@@ -27,7 +27,7 @@ run %q[
   git clone https://github.com/mitchellh/go-mruby && \
   cd go-mruby && \
   cd /go/src/github.com/mitchellh/go-mruby && \
-  make && \
+  make &&
   cp libmruby.a /root
 ]
 
@@ -35,9 +35,14 @@ tag "erikh/box:prereqs"
 
 entrypoint "/go/bin/box"
 
+inside "/go/src" do
+  copy ".", "github.com/erikh/box"
+  # FIXME: target path should not be required
+  copy "dockerfile-example.rb", "/dockerfile-example.rb"
+end
+
 inside "/root" do
-  copy "example.rb", "example.rb"
-  run "go get -v github.com/erikh/box"
+  run "go install -v github.com/erikh/box"
 end
 
 run "rm -rf /go/src /go/pkg"
