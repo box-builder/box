@@ -140,19 +140,17 @@ func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 	b.config.AttachStdout = true
 	b.config.AttachStderr = true
 
-	var retried bool
+	idmap := map[string][]string{}
+	idlist := []string{}
 
-retry:
 	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), args[0].String())
 	if err != nil {
-		if retried {
-			return nil, createException(m, err.Error())
-		}
-
 		reader, err := b.client.ImagePull(context.Background(), args[0].String(), types.ImagePullOptions{})
 		if err != nil {
 			return nil, createException(m, err.Error())
 		}
+
+		fmt.Println()
 
 		buf := bufio.NewReader(reader)
 		for {
@@ -168,12 +166,35 @@ retry:
 				return nil, createException(m, err.Error())
 			}
 
-			fmt.Printf("%s %s %s\r", unpacked["id"], unpacked["status"], unpacked["progress"])
+			progress, ok := unpacked["progress"].(string)
+			if !ok {
+				progress = ""
+			}
+
+			status := unpacked["status"].(string)
+			id, ok := unpacked["id"].(string)
+			if !ok {
+				fmt.Printf("\x1b[%dA", len(idmap)+1)
+				fmt.Printf("\r\x1b[K%s\n", status)
+			} else {
+				fmt.Printf("\x1b[%dA", len(idmap))
+				if _, ok := idmap[id]; !ok {
+					idlist = append(idlist, id)
+				}
+
+				idmap[id] = []string{status, progress}
+			}
+
+			for _, id := range idlist {
+				fmt.Printf("\r\x1b[K%s %s %s\n", id, idmap[id][0], idmap[id][1])
+			}
 		}
 
-		retried = true
-
-		goto retry
+		// this will fallthrough to the assignment below
+		inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), args[0].String())
+		if err != nil {
+			return nil, createException(m, err.Error())
+		}
 	}
 
 	b.imageID = inspect.ID
