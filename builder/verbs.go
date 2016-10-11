@@ -363,11 +363,10 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 	fmt.Printf("+++ Copying: %q to %q\n", rel, target)
 
 	fn, err := tarPath(rel, target)
+	defer os.Remove(fn)
 	if err != nil {
-		os.Remove(fn)
 		return nil, createException(m, err.Error())
 	}
-	defer os.Remove(fn)
 
 	cacheKey, err = sumFile(fn)
 	if err != nil {
