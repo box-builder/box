@@ -3,8 +3,6 @@ package builder
 import (
 	"bufio"
 	"context"
-	"crypto/sha512"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -364,26 +362,17 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 
 	fmt.Printf("+++ Copying: %q to %q\n", rel, target)
 
-	fn, err := b.tarPath(rel, target)
+	fn, err := tarPath(rel, target)
 	if err != nil {
 		os.Remove(fn)
 		return nil, createException(m, err.Error())
 	}
 	defer os.Remove(fn)
 
-	f, err := os.Open(fn)
+	cacheKey, err = sumFile(fn)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
-
-	hash := sha512.New512_256()
-	_, err = io.Copy(hash, f)
-	if err != nil && err != io.EOF {
-		f.Close()
-		return nil, createException(m, err.Error())
-	}
-	cacheKey = fmt.Sprintf("box:copy %s", hex.EncodeToString(hash.Sum(nil)))
-	f.Close()
 
 	cached, err := b.consultCache(cacheKey)
 	if err != nil {
@@ -394,7 +383,7 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		return nil, nil
 	}
 
-	f, err = os.Open(fn)
+	f, err := os.Open(fn)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}

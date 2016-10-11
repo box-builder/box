@@ -3,6 +3,8 @@ package builder
 import (
 	"archive/tar"
 	"context"
+	"crypto/sha512"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -117,7 +119,7 @@ func (b *Builder) consultCache(cacheKey string) (bool, error) {
 	return false, nil
 }
 
-func (b *Builder) tarPath(rel, target string) (string, error) {
+func tarPath(rel, target string) (string, error) {
 	fi, err := os.Lstat(rel)
 	if err != nil {
 		return "", err
@@ -202,4 +204,22 @@ func (b *Builder) tarPath(rel, target string) (string, error) {
 	f.Close()
 
 	return f.Name(), nil
+}
+
+func sumFile(fn string) (string, error) {
+	f, err := os.Open(fn)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha512.New512_256()
+	_, err = io.Copy(hash, f)
+	if err != nil && err != io.EOF {
+		f.Close()
+		return "", err
+	}
+	cacheKey := fmt.Sprintf("box:copy %s", hex.EncodeToString(hash.Sum(nil)))
+	f.Close()
+
+	return cacheKey, nil
 }
