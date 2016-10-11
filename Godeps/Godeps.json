@@ -145,6 +145,10 @@
 		{
 			"ImportPath": "golang.org/x/sys/windows",
 			"Rev": "67f277b6fe017c42fc3b4a445edc999dd99edd58"
+		},
+		{
+			"ImportPath": "gopkg.in/check.v1",
+			"Rev": "4f90aeace3a26ad7021961c297b22c42160c7b25"
 		}
 	]
 }
