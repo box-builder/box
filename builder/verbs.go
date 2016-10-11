@@ -118,6 +118,8 @@ func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue)
 
 	b.entrypoint = stringArgs
 	b.config.Entrypoint = stringArgs
+	b.cmd = []string{}
+	b.config.Cmd = []string{}
 
 	if err := b.commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())

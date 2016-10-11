@@ -11,18 +11,13 @@ tag "erikh/box:prereqs"
 
 inside "/go/src" do
   copy ".", "github.com/erikh/box"
-  # FIXME: target path should not be required
-  copy "dockerfile-example.rb", "/dockerfile-example.rb"
 end
 
 inside "/go/src/github.com/erikh/box" do
   run "make"
 end
 
-entrypoint "/box"
-
-run "mv /go/bin/box /box"
-run "rm -r /usr/local /usr/lib /usr/share"
+cmd "cd /go/src/github.com/erikh/box && box"
 
 flatten
 tag "erikh/box:latest"

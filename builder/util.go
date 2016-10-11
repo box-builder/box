@@ -38,8 +38,7 @@ func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) (stri
 		}
 	}
 
-	b.config.Entrypoint = b.entrypoint
-	b.config.Cmd = b.cmd
+	b.resetConfig()
 
 	commitResp, err := b.client.ContainerCommit(context.Background(), id, types.ContainerCommitOptions{Config: b.config, Comment: cacheKey})
 	if err != nil {
