@@ -1,9 +1,13 @@
 package builder
 
 import (
+	"archive/tar"
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/docker/engine-api/types"
 	mruby "github.com/mitchellh/go-mruby"
@@ -111,4 +115,91 @@ func (b *Builder) consultCache(cacheKey string) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (b *Builder) tarPath(rel, target string) (string, error) {
+	fi, err := os.Lstat(rel)
+	if err != nil {
+		return "", err
+	}
+
+	f, err := ioutil.TempFile("", "box-copy.")
+	if err != nil {
+		return "", err
+	}
+
+	tw := tar.NewWriter(f)
+
+	if fi.IsDir() {
+		err := filepath.Walk(rel, func(path string, fi os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if fi.IsDir() {
+				return nil
+			}
+
+			fmt.Printf("--- Copy: %s -> %s\n", path, filepath.Join(target, path))
+
+			header, err := tar.FileInfoHeader(fi, filepath.Join(target, path))
+			if err != nil {
+				return err
+			}
+
+			header.Linkname = filepath.Join(target, path)
+			header.Name = filepath.Join(target, path)
+
+			if err := tw.WriteHeader(header); err != nil {
+				return err
+			}
+
+			f, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(tw, f)
+			if err != nil && err != io.EOF {
+				f.Close()
+				return err
+			}
+
+			f.Close()
+			return nil
+		})
+		if err != nil {
+			return "", err
+		}
+
+	} else {
+		header, err := tar.FileInfoHeader(fi, target)
+		if err != nil {
+			return "", err
+		}
+
+		header.Name = target
+		header.Linkname = target
+
+		if err := tw.WriteHeader(header); err != nil {
+			return "", err
+		}
+
+		f, err := os.Open(rel)
+		if err != nil {
+			return "", err
+		}
+		_, err = io.Copy(tw, f)
+		if err != nil && err != io.EOF {
+			f.Close()
+			return "", err
+		}
+		f.Close()
+	}
+
+	tw.Flush()
+	tw.Close()
+	f.Close()
+
+	return f.Name(), nil
 }

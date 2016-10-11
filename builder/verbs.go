@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"archive/tar"
 	"bufio"
 	"context"
 	"crypto/sha512"
@@ -365,95 +364,14 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 
 	fmt.Printf("+++ Copying: %q to %q\n", rel, target)
 
-	fi, err := os.Lstat(rel)
+	fn, err := b.tarPath(rel, target)
 	if err != nil {
+		os.Remove(fn)
 		return nil, createException(m, err.Error())
 	}
+	defer os.Remove(fn)
 
-	f, err := ioutil.TempFile("", "box-copy.")
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	defer func() {
-		f.Close()
-		os.Remove(f.Name())
-	}()
-
-	tw := tar.NewWriter(f)
-
-	if fi.IsDir() {
-		err := filepath.Walk(rel, func(path string, fi os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			if fi.IsDir() {
-				return nil
-			}
-
-			fmt.Printf("--- Copy: %s -> %s\n", path, filepath.Join(target, path))
-
-			header, err := tar.FileInfoHeader(fi, filepath.Join(target, path))
-			if err != nil {
-				return err
-			}
-
-			header.Linkname = filepath.Join(target, path)
-			header.Name = filepath.Join(target, path)
-
-			if err := tw.WriteHeader(header); err != nil {
-				return err
-			}
-
-			f, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-
-			_, err = io.Copy(tw, f)
-			if err != nil && err != io.EOF {
-				f.Close()
-				return err
-			}
-
-			f.Close()
-			return nil
-		})
-		if err != nil {
-			return nil, createException(m, err.Error())
-		}
-
-	} else {
-		header, err := tar.FileInfoHeader(fi, target)
-		if err != nil {
-			return nil, createException(m, err.Error())
-		}
-
-		header.Name = target
-		header.Linkname = target
-
-		if err := tw.WriteHeader(header); err != nil {
-			return nil, createException(m, err.Error())
-		}
-
-		f, err := os.Open(rel)
-		if err != nil {
-			return nil, createException(m, err.Error())
-		}
-		_, err = io.Copy(tw, f)
-		if err != nil && err != io.EOF {
-			f.Close()
-			return nil, createException(m, err.Error())
-		}
-		f.Close()
-	}
-
-	tw.Flush()
-	tw.Close()
-	f.Close()
-
-	f, err = os.Open(f.Name())
+	f, err := os.Open(fn)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -476,7 +394,7 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		return nil, nil
 	}
 
-	f, err = os.Open(f.Name())
+	f, err = os.Open(fn)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
