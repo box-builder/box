@@ -35,6 +35,8 @@ func NewBuilder() (*Builder, error) {
 		builder.mrb.TopSelf().SingletonClass().DefineMethod(name, def.mrubyFunc, def.argSpec)
 	}
 
+	builder.entrypoint = []string{"/bin/sh", "-c"}
+	builder.cmd = []string{"/bin/sh"}
 	builder.resetConfig()
 
 	return builder, nil

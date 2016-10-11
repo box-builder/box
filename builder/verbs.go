@@ -94,6 +94,13 @@ func tag(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 		return nil, createException(m, "tag call expects one argument!")
 	}
 
+	b.resetConfig()
+
+	err := b.commit(cacheKey, nil)
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
 	if err := b.client.ImageTag(context.Background(), b.config.Image, args[0].String()); err != nil {
 		return nil, createException(m, err.Error())
 	}

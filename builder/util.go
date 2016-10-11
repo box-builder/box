@@ -68,8 +68,8 @@ func createException(m *mruby.Mrb, msg string) mruby.Value {
 func (b *Builder) resetConfig() {
 	b.config.WorkingDir = "/"
 	b.config.User = "root"
-	b.config.Cmd = nil
-	b.config.Entrypoint = []string{"/bin/sh", "-c"}
+	b.config.Cmd = b.cmd
+	b.config.Entrypoint = b.entrypoint
 }
 
 func extractStringArgs(m *mruby.Mrb) []string {
