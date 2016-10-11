@@ -29,8 +29,12 @@ func NewBuilder() (*Builder, error) {
 	}
 
 	builder := &Builder{mrb: mruby.NewMrb(), client: client, config: &container.Config{}}
-	for name, def := range jumpTable {
-		builder.AddFunc(name, def.Func, def.ArgSpec)
+
+	for name, def := range verbJumpTable {
+		builder.AddFunc(name, def.verbFunc, def.argSpec)
+	}
+	for name, def := range mrubyJumpTable {
+		builder.mrb.TopSelf().SingletonClass().DefineMethod(name, def.mrubyFunc, def.argSpec)
 	}
 
 	builder.resetConfig()
@@ -47,7 +51,7 @@ func (b *Builder) ImageID() string {
 // AddFunc adds a function to the mruby dispatch as well as adding hooks around
 // the call to ensure containers are committed and intermediate layers are
 // cleared.
-func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
+func (b *Builder) AddFunc(name string, fn verbFunc, args mruby.ArgSpec) {
 	builderFunc := func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 		strArgs := extractStringArgs(m)
 		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")

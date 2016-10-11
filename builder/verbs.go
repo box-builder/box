@@ -14,12 +14,12 @@ import (
 
 // Definition is a jump table definition used for programming the DSL into the
 // mruby interpreter.
-type Definition struct {
-	Func    Func
-	ArgSpec mruby.ArgSpec
+type verbDefinition struct {
+	verbFunc verbFunc
+	argSpec  mruby.ArgSpec
 }
 
-var jumpTable = map[string]Definition{
+var verbJumpTable = map[string]verbDefinition{
 	"flatten":    {flatten, mruby.ArgsNone()},
 	"tag":        {tag, mruby.ArgsReq(1)},
 	"copy":       {copy, mruby.ArgsReq(2)},
@@ -32,8 +32,8 @@ var jumpTable = map[string]Definition{
 	"entrypoint": {entrypoint, mruby.ArgsAny()},
 }
 
-// Func is a builder DSL function used to interact with docker.
-type Func func(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
+// verbFunc is a builder DSL function used to interact with docker.
+type verbFunc func(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
 
 func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	id, err := b.createEmptyContainer()
