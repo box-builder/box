@@ -14,10 +14,14 @@ Here's an example of a dockerfile you can make with it:
 ```ruby
 from "golang"
 
-entrypoint "/go/bin/box"
-env "GOPATH" => "/go"
+packages = "build-essential g++ git wget curl ruby bison flex"
+
 run "apt-get update"
-run "apt-get install -y build-essential g++ git wget curl ruby bison flex"
+run "apt-get install -y #{packages}"
+
+tag "erikh/box:packages"
+
+env "GOPATH" => "/go"
 
 gopaths = [
   "github.com/docker/engine-api",
@@ -37,11 +41,30 @@ run %q[
   git clone https://github.com/mitchellh/go-mruby && \
   cd go-mruby && \
   cd /go/src/github.com/mitchellh/go-mruby && \
-  make && \
+  make &&
   cp libmruby.a /root
 ]
 
-inside "/root" do
-  run "go get -v github.com/erikh/box"
+tag "erikh/box:prereqs"
+
+entrypoint "/go/bin/box"
+
+inside "/go/src" do
+  copy ".", "github.com/erikh/box"
+  # FIXME: target path should not be required
+  copy "dockerfile-example.rb", "/dockerfile-example.rb"
 end
+
+inside "/root" do
+  run "go install -v github.com/erikh/box"
+end
+
+run "rm -rf /go/src /go/pkg"
+run "apt-get purge -y #{packages}"
+run "apt-get autoremove -y"
+run "apt-get clean -y"
+run "rm -rf /var/lib/apt"
+
+flatten
+tag "erikh/box:latest"
 ```
