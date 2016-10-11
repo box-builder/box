@@ -61,3 +61,54 @@ func createException(m *mruby.Mrb, msg string) mruby.Value {
 
 	return val
 }
+
+func (b *Builder) resetConfig() {
+	b.config.WorkingDir = "/"
+	b.config.User = "root"
+	b.config.Cmd = nil
+	b.config.Entrypoint = []string{"/bin/sh", "-c"}
+}
+
+func extractStringArgs(m *mruby.Mrb) []string {
+	args := m.GetArgs()
+	strArgs := []string{}
+	for _, arg := range args {
+		if arg.Type() != mruby.TypeProc {
+			strArgs = append(strArgs, arg.String())
+		}
+	}
+
+	return strArgs
+}
+
+func (b *Builder) consultCache(cacheKey string) (bool, error) {
+	if os.Getenv("NO_CACHE") == "" {
+		if b.imageID != "" {
+			images, err := b.client.ImageList(context.Background(), types.ImageListOptions{All: true})
+			if err != nil {
+				return false, err
+			}
+
+			for _, img := range images {
+				if img.ParentID == b.imageID {
+					inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), img.ID)
+					if err != nil {
+						return false, err
+					}
+
+					if inspect.Comment == cacheKey {
+						fmt.Printf("+++ Cache hit: using %q\n", img.ID)
+						b.imageID = img.ID
+						b.config = inspect.Config
+						b.entrypoint = inspect.Config.Entrypoint
+						b.cmd = inspect.Config.Cmd
+
+						return true, nil
+					}
+				}
+			}
+		}
+	}
+
+	return false, nil
+}

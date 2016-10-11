@@ -1,13 +1,10 @@
 package builder
 
 import (
-	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/container"
 	mruby "github.com/mitchellh/go-mruby"
 )
@@ -41,14 +38,6 @@ func NewBuilder() (*Builder, error) {
 	return builder, nil
 }
 
-func (b *Builder) resetConfig() {
-	// TODO make this inherit from teh base image
-	b.config.WorkingDir = "/"
-	b.config.User = "root"
-	b.config.Cmd = nil
-	b.config.Entrypoint = []string{"/bin/sh", "-c"}
-}
-
 // ImageID returns the latest known Image identifier that we committed. At the
 // end of the run this will be the golden docker image.
 func (b *Builder) ImageID() string {
@@ -60,47 +49,19 @@ func (b *Builder) ImageID() string {
 // cleared.
 func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 	builderFunc := func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-		args := m.GetArgs()
-		strArgs := []string{}
-		for _, arg := range args {
-			if arg.Type() != mruby.TypeProc {
-				strArgs = append(strArgs, arg.String())
-			}
-		}
-
+		strArgs := extractStringArgs(m)
 		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")
-		// comment
 		fmt.Printf("+++ Execute: %s %s\n", name, strings.Join(strArgs, ", "))
-
-		if os.Getenv("NO_CACHE") == "" {
-			if b.imageID != "" {
-				images, err := b.client.ImageList(context.Background(), types.ImageListOptions{All: true})
-				if err != nil {
-					return nil, createException(m, err.Error())
-				}
-
-				for _, img := range images {
-					if img.ParentID == b.imageID {
-						inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), img.ID)
-						if err != nil {
-							return nil, createException(m, err.Error())
-						}
-
-						if inspect.Comment == cacheKey {
-							fmt.Printf("+++ Cache hit: using %q\n", img.ID)
-							b.imageID = img.ID
-							b.config = inspect.Config
-							b.entrypoint = inspect.Config.Entrypoint
-							b.cmd = inspect.Config.Cmd
-
-							return nil, nil
-						}
-					}
-				}
-			}
+		cached, err := b.consultCache(cacheKey)
+		if err != nil {
+			return nil, createException(m, err.Error())
 		}
 
-		return fn(b, cacheKey, m, self)
+		if !cached {
+			return fn(b, cacheKey, m, self)
+		}
+
+		return nil, nil
 	}
 
 	b.mrb.TopSelf().SingletonClass().DefineMethod(name, builderFunc, args)
