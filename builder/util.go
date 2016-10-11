@@ -223,3 +223,35 @@ func sumFile(fn string) (string, error) {
 
 	return cacheKey, nil
 }
+
+func runHook(b *Builder, id string) (string, error) {
+	cearesp, err := b.client.ContainerAttach(context.Background(), id, types.ContainerAttachOptions{Stream: true, Stdout: true, Stderr: true})
+	if err != nil {
+		return "", fmt.Errorf("Could not attach to container: %v", err)
+	}
+
+	err = b.client.ContainerStart(context.Background(), id, types.ContainerStartOptions{})
+	if err != nil {
+		return "", fmt.Errorf("Could not start container: %v", err)
+	}
+
+	fmt.Println("------ BEGIN OUTPUT ------")
+
+	_, err = io.Copy(os.Stdout, cearesp.Reader)
+	if err != nil && err != io.EOF {
+		return "", err
+	}
+
+	fmt.Println("------ END OUTPUT ------")
+
+	stat, err := b.client.ContainerWait(context.Background(), id)
+	if err != nil {
+		return "", err
+	}
+
+	if stat != 0 {
+		return "", fmt.Errorf("Command exited with status %d for container %q", stat, id)
+	}
+
+	return "", nil
+}
