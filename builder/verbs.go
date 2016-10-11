@@ -4,7 +4,7 @@ import (
 	"archive/tar"
 	"bufio"
 	"context"
-	"crypto/md5"
+	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -380,7 +380,6 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		os.Remove(f.Name())
 	}()
 
-	//
 	tw := tar.NewWriter(f)
 
 	if fi.IsDir() {
@@ -393,7 +392,7 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 				return nil
 			}
 
-			fmt.Printf("--- COPY: %s -> %s\n", path, filepath.Join(target, path))
+			fmt.Printf("--- Copy: %s -> %s\n", path, filepath.Join(target, path))
 
 			header, err := tar.FileInfoHeader(fi, filepath.Join(target, path))
 			if err != nil {
@@ -459,9 +458,10 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		return nil, createException(m, err.Error())
 	}
 
-	hash := md5.New()
+	hash := sha512.New512_256()
 	_, err = io.Copy(hash, f)
 	if err != nil && err != io.EOF {
+		f.Close()
 		return nil, createException(m, err.Error())
 	}
 	cacheKey = fmt.Sprintf("box:copy %s", hex.EncodeToString(hash.Sum(nil)))
