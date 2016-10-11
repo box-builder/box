@@ -467,29 +467,13 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 	cacheKey = fmt.Sprintf("box:copy %s", hex.EncodeToString(hash.Sum(nil)))
 	f.Close()
 
-	if os.Getenv("NO_CACHE") == "" {
-		if b.imageID != "" {
-			images, err := b.client.ImageList(context.Background(), types.ImageListOptions{All: true})
-			if err != nil {
-				return nil, createException(m, err.Error())
-			}
+	cached, err := b.consultCache(cacheKey)
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
 
-			for _, img := range images {
-				if img.ParentID == b.imageID {
-					inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), img.ID)
-					if err != nil {
-						return nil, createException(m, err.Error())
-					}
-
-					if inspect.Comment == cacheKey {
-						fmt.Printf("+++ Cache hit: using %q\n", img.ID)
-						b.imageID = img.ID
-						b.config.Image = img.ID
-						return nil, nil
-					}
-				}
-			}
-		}
+	if cached {
+		return nil, nil
 	}
 
 	f, err = os.Open(f.Name())
