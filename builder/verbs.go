@@ -1,9 +1,7 @@
 package builder
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -38,18 +36,14 @@ var jumpTable = map[string]Definition{
 type Func func(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
 
 func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	cont, err := b.client.ContainerCreate(
-		context.Background(),
-		b.config,
-		nil,
-		nil,
-		"",
-	)
+	id, err := b.createEmptyContainer()
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	rc, err := b.client.ContainerExport(context.Background(), cont.ID)
+	defer b.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
+
+	rc, err := b.client.ContainerExport(context.Background(), id)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -73,24 +67,18 @@ func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 
 	b.config.Image = ""
 
-	cont2, err := b.client.ContainerCreate(
-		context.Background(),
-		b.config,
-		nil,
-		nil,
-		"",
-	)
+	id2, err := b.createEmptyContainer()
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	defer b.client.ContainerRemove(context.Background(), cont2.ID, types.ContainerRemoveOptions{})
+	defer b.client.ContainerRemove(context.Background(), id2, types.ContainerRemoveOptions{})
 
-	if err := b.client.CopyToContainer(context.Background(), cont2.ID, "/", f, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true}); err != nil {
+	if err := b.client.CopyToContainer(context.Background(), id2, "/", f, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true}); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	commitResp, err := b.client.ContainerCommit(context.Background(), cont2.ID, types.ContainerCommitOptions{Config: b.config})
+	commitResp, err := b.client.ContainerCommit(context.Background(), id2, types.ContainerCommitOptions{Config: b.config})
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -139,9 +127,6 @@ func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 	b.config.AttachStdout = true
 	b.config.AttachStderr = true
 
-	idmap := map[string][]string{}
-	idlist := []string{}
-
 	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), args[0].String())
 	if err != nil {
 		reader, err := b.client.ImagePull(context.Background(), args[0].String(), types.ImagePullOptions{})
@@ -149,44 +134,8 @@ func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 			return nil, createException(m, err.Error())
 		}
 
-		fmt.Println()
-
-		buf := bufio.NewReader(reader)
-		for {
-			line, err := buf.ReadBytes('\n')
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				return nil, createException(m, err.Error())
-			}
-
-			var unpacked map[string]interface{}
-			if err := json.Unmarshal(line, &unpacked); err != nil {
-				return nil, createException(m, err.Error())
-			}
-
-			progress, ok := unpacked["progress"].(string)
-			if !ok {
-				progress = ""
-			}
-
-			status := unpacked["status"].(string)
-			id, ok := unpacked["id"].(string)
-			if !ok {
-				fmt.Printf("\x1b[%dA", len(idmap)+1)
-				fmt.Printf("\r\x1b[K%s\n", status)
-			} else {
-				fmt.Printf("\x1b[%dA", len(idmap))
-				if _, ok := idmap[id]; !ok {
-					idlist = append(idlist, id)
-				}
-
-				idmap[id] = []string{status, progress}
-			}
-
-			for _, id := range idlist {
-				fmt.Printf("\r\x1b[K%s %s %s\n", id, idmap[id][0], idmap[id][1])
-			}
+		if err := printPull(reader); err != nil {
+			return nil, createException(m, err.Error())
 		}
 
 		// this will fallthrough to the assignment below

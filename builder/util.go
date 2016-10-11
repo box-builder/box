@@ -2,9 +2,11 @@ package builder
 
 import (
 	"archive/tar"
+	"bufio"
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -22,19 +24,13 @@ func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) (stri
 
 	b.config.Image = b.imageID
 
-	resp, err := b.client.ContainerCreate(
-		context.Background(),
-		b.config,
-		nil,
-		nil,
-		"",
-	)
+	id, err := b.createEmptyContainer()
 	if err != nil {
 		return err
 	}
 
 	if hook != nil {
-		tmp, err := hook(b, resp.ID)
+		tmp, err := hook(b, id)
 		if err != nil {
 			return err
 		}
@@ -44,14 +40,14 @@ func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) (stri
 		}
 	}
 
-	commitResp, err := b.client.ContainerCommit(context.Background(), resp.ID, types.ContainerCommitOptions{Config: b.config, Comment: cacheKey})
+	commitResp, err := b.client.ContainerCommit(context.Background(), id, types.ContainerCommitOptions{Config: b.config, Comment: cacheKey})
 	if err != nil {
 		return fmt.Errorf("Error during commit: %v", err)
 	}
 
-	err = b.client.ContainerRemove(context.Background(), resp.ID, types.ContainerRemoveOptions{})
+	err = b.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{})
 	if err != nil {
-		return fmt.Errorf("Could not remove intermediate container %q: %v", resp.ID, err)
+		return fmt.Errorf("Could not remove intermediate container %q: %v", id, err)
 	}
 
 	b.imageID = commitResp.ID
@@ -254,4 +250,63 @@ func runHook(b *Builder, id string) (string, error) {
 	}
 
 	return "", nil
+}
+
+func printPull(reader io.Reader) error {
+	idmap := map[string][]string{}
+	idlist := []string{}
+
+	fmt.Println()
+
+	buf := bufio.NewReader(reader)
+	for {
+		line, err := buf.ReadBytes('\n')
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		var unpacked map[string]interface{}
+		if err := json.Unmarshal(line, &unpacked); err != nil {
+			return err
+		}
+
+		progress, ok := unpacked["progress"].(string)
+		if !ok {
+			progress = ""
+		}
+
+		status := unpacked["status"].(string)
+		id, ok := unpacked["id"].(string)
+		if !ok {
+			fmt.Printf("\x1b[%dA", len(idmap)+1)
+			fmt.Printf("\r\x1b[K%s\n", status)
+		} else {
+			fmt.Printf("\x1b[%dA", len(idmap))
+			if _, ok := idmap[id]; !ok {
+				idlist = append(idlist, id)
+			}
+
+			idmap[id] = []string{status, progress}
+		}
+
+		for _, id := range idlist {
+			fmt.Printf("\r\x1b[K%s %s %s\n", id, idmap[id][0], idmap[id][1])
+		}
+	}
+
+	return nil
+}
+
+func (b *Builder) createEmptyContainer() (string, error) {
+	cont, err := b.client.ContainerCreate(
+		context.Background(),
+		b.config,
+		nil,
+		nil,
+		"",
+	)
+
+	return cont.ID, err
 }
