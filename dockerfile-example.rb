@@ -39,8 +39,8 @@ inside "/go/src" do
   copy "dockerfile-example.rb", "/dockerfile-example.rb"
 end
 
-inside "/root" do
-  run "go install -v github.com/erikh/box"
+inside "/go/src/github.com/erikh/box" do
+  run "make"
 end
 
 entrypoint "/box"
