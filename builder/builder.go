@@ -11,8 +11,6 @@ import (
 
 // Builder implements the builder core.
 type Builder struct {
-	imageID    string
-	lastID     string
 	mrb        *mruby.Mrb
 	client     *client.Client
 	config     *container.Config
@@ -45,7 +43,7 @@ func NewBuilder() (*Builder, error) {
 // ImageID returns the latest known Image identifier that we committed. At the
 // end of the run this will be the golden docker image.
 func (b *Builder) ImageID() string {
-	return b.imageID
+	return b.config.Image
 }
 
 // AddFunc adds a function to the mruby dispatch as well as adding hooks around

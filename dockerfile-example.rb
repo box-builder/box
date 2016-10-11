@@ -33,8 +33,6 @@ run %q[
 
 tag "erikh/box:prereqs"
 
-entrypoint "/go/bin/box"
-
 inside "/go/src" do
   copy ".", "github.com/erikh/box"
   # FIXME: target path should not be required
@@ -45,11 +43,10 @@ inside "/root" do
   run "go install -v github.com/erikh/box"
 end
 
-run "rm -rf /go/src /go/pkg"
-run "apt-get purge -y #{packages}"
-run "apt-get autoremove -y"
-run "apt-get clean -y"
-run "rm -rf /var/lib/apt"
+entrypoint "/box"
+
+run "mv /go/bin/box /box"
+run "rm -r /usr/local /usr/lib /usr/share"
 
 flatten
 tag "erikh/box:latest"

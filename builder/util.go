@@ -22,8 +22,6 @@ func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) (stri
 		cacheKey = ""
 	}
 
-	b.config.Image = b.imageID
-
 	id, err := b.createEmptyContainer()
 	if err != nil {
 		return err
@@ -40,6 +38,9 @@ func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) (stri
 		}
 	}
 
+	b.config.Entrypoint = b.entrypoint
+	b.config.Cmd = b.cmd
+
 	commitResp, err := b.client.ContainerCommit(context.Background(), id, types.ContainerCommitOptions{Config: b.config, Comment: cacheKey})
 	if err != nil {
 		return fmt.Errorf("Error during commit: %v", err)
@@ -50,7 +51,7 @@ func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) (stri
 		return fmt.Errorf("Could not remove intermediate container %q: %v", id, err)
 	}
 
-	b.imageID = commitResp.ID
+	b.config.Image = commitResp.ID
 
 	return nil
 }
@@ -85,14 +86,14 @@ func extractStringArgs(m *mruby.Mrb) []string {
 
 func (b *Builder) consultCache(cacheKey string) (bool, error) {
 	if os.Getenv("NO_CACHE") == "" {
-		if b.imageID != "" {
+		if b.config.Image != "" {
 			images, err := b.client.ImageList(context.Background(), types.ImageListOptions{All: true})
 			if err != nil {
 				return false, err
 			}
 
 			for _, img := range images {
-				if img.ParentID == b.imageID {
+				if img.ParentID == b.config.Image {
 					inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), img.ID)
 					if err != nil {
 						return false, err
@@ -100,10 +101,8 @@ func (b *Builder) consultCache(cacheKey string) (bool, error) {
 
 					if inspect.Comment == cacheKey {
 						fmt.Printf("+++ Cache hit: using %q\n", img.ID)
-						b.imageID = img.ID
 						b.config = inspect.Config
-						b.entrypoint = inspect.Config.Entrypoint
-						b.cmd = inspect.Config.Cmd
+						b.config.Image = img.ID
 
 						return true, nil
 					}

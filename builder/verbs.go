@@ -43,7 +43,7 @@ func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 
 	defer b.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
 
-	rc, err := b.client.ContainerExport(context.Background(), id)
+	rc, _, err := b.client.CopyFromContainer(context.Background(), id, "/")
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -83,8 +83,8 @@ func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 		return nil, createException(m, err.Error())
 	}
 
-	b.imageID = commitResp.ID
-	fmt.Printf("+++ Flattened Image: %s\n", b.imageID)
+	b.config.Image = commitResp.ID
+	fmt.Printf("+++ Flattened Image: %s\n", b.config.Image)
 	return nil, nil
 }
 
@@ -94,7 +94,7 @@ func tag(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 		return nil, createException(m, "tag call expects one argument!")
 	}
 
-	if err := b.client.ImageTag(context.Background(), b.imageID, args[0].String()); err != nil {
+	if err := b.client.ImageTag(context.Background(), b.config.Image, args[0].String()); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -122,7 +122,7 @@ func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue)
 func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	b.imageID = args[0].String()
+	b.config.Image = args[0].String()
 	b.config.Tty = true
 	b.config.AttachStdout = true
 	b.config.AttachStderr = true
@@ -145,13 +145,13 @@ func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		}
 	}
 
-	b.imageID = inspect.ID
+	b.config.Image = inspect.ID
 
-	return mruby.String(b.imageID), nil
+	return mruby.String(b.config.Image), nil
 }
 
 func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	if b.imageID == "" {
+	if b.config.Image == "" {
 		return nil, createException(m, "`from` must precede any `run` statements")
 	}
 
