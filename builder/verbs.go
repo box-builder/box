@@ -5,7 +5,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/md5"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -375,21 +375,13 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		return nil, createException(m, err.Error())
 	}
 
-	cacheChan := make(chan string, 1)
-
-	tw := tar.NewWriter(f)
-	tee := io.TeeReader(f, tw)
-	hash := md5.New()
-
-	go func() {
-		if _, err := io.Copy(hash, tee); err != nil {
-			// FIXME this sucks
-			fmt.Fprintf(os.Stderr, "Failed I/O operation calculating hash: %v", err)
-			os.Exit(1)
-		}
-
-		cacheChan <- base64.StdEncoding.EncodeToString(hash.Sum(nil))
+	defer func() {
+		f.Close()
+		os.Remove(f.Name())
 	}()
+
+	//
+	tw := tar.NewWriter(f)
 
 	if fi.IsDir() {
 		err := filepath.Walk(rel, func(path string, fi os.FileInfo, err error) error {
@@ -458,10 +450,22 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		f.Close()
 	}
 
+	tw.Flush()
 	tw.Close()
 	f.Close()
 
-	cacheKey = <-cacheChan
+	f, err = os.Open(f.Name())
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	hash := md5.New()
+	_, err = io.Copy(hash, f)
+	if err != nil && err != io.EOF {
+		return nil, createException(m, err.Error())
+	}
+	cacheKey = fmt.Sprintf("box:copy %s", hex.EncodeToString(hash.Sum(nil)))
+	f.Close()
 
 	if os.Getenv("NO_CACHE") == "" {
 		if b.imageID != "" {

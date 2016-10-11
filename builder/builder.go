@@ -69,6 +69,7 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 		}
 
 		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")
+		// comment
 		fmt.Printf("+++ Execute: %s %s\n", name, strings.Join(strArgs, ", "))
 
 		if os.Getenv("NO_CACHE") == "" {
@@ -88,7 +89,10 @@ func (b *Builder) AddFunc(name string, fn Func, args mruby.ArgSpec) {
 						if inspect.Comment == cacheKey {
 							fmt.Printf("+++ Cache hit: using %q\n", img.ID)
 							b.imageID = img.ID
-							b.config.Image = img.ID
+							b.config = inspect.Config
+							b.entrypoint = inspect.Config.Entrypoint
+							b.cmd = inspect.Config.Cmd
+
 							return nil, nil
 						}
 					}
