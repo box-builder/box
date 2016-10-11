@@ -4,6 +4,8 @@ import (
 	"archive/tar"
 	"bufio"
 	"context"
+	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -223,36 +225,36 @@ func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 		b.config.Cmd = b.cmd
 	}()
 
-	hook := func(b *Builder, id string) error {
+	hook := func(b *Builder, id string) (string, error) {
 		cearesp, err := b.client.ContainerAttach(context.Background(), id, types.ContainerAttachOptions{Stream: true, Stdout: true, Stderr: true})
 		if err != nil {
-			return fmt.Errorf("Could not attach to container: %v", err)
+			return "", fmt.Errorf("Could not attach to container: %v", err)
 		}
 
 		err = b.client.ContainerStart(context.Background(), id, types.ContainerStartOptions{})
 		if err != nil {
-			return fmt.Errorf("Could not start container: %v", err)
+			return "", fmt.Errorf("Could not start container: %v", err)
 		}
 
 		fmt.Println("------ BEGIN OUTPUT ------")
 
 		_, err = io.Copy(os.Stdout, cearesp.Reader)
 		if err != nil && err != io.EOF {
-			return err
+			return "", err
 		}
 
 		fmt.Println("------ END OUTPUT ------")
 
 		stat, err := b.client.ContainerWait(context.Background(), id)
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		if stat != 0 {
-			return fmt.Errorf("Command exited with status %d for container %q", stat, id)
+			return "", fmt.Errorf("Command exited with status %d for container %q", stat, id)
 		}
 
-		return nil
+		return "", nil
 	}
 
 	if err := b.commit(cacheKey, hook); err != nil {
@@ -347,8 +349,8 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		return nil, createException(m, "Did not receive the proper number of arguments in copy")
 	}
 
-	source := args[0].String()
-	target := args[1].String()
+	source := filepath.Clean(args[0].String())
+	target := filepath.Clean(args[1].String())
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -363,28 +365,31 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 
 	fmt.Printf("+++ Copying: %q to %q\n", rel, target)
 
-	errChan := make(chan error)
-
-	rd, wr := io.Pipe()
-	tw := tar.NewWriter(wr)
-
-	hook := func(b *Builder, id string) error {
-		dir := b.config.WorkingDir
-		if b.insideDir != "" {
-			dir = b.insideDir
-		}
-
-		return b.client.CopyToContainer(context.Background(), id, dir, rd, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
-	}
-
-	go func() {
-		errChan <- b.commit(cacheKey, hook)
-	}()
-
 	fi, err := os.Lstat(rel)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
+
+	f, err := ioutil.TempFile("", "box-copy.")
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	cacheChan := make(chan string, 1)
+
+	tw := tar.NewWriter(f)
+	tee := io.TeeReader(f, tw)
+	hash := md5.New()
+
+	go func() {
+		if _, err := io.Copy(hash, tee); err != nil {
+			// FIXME this sucks
+			fmt.Fprintf(os.Stderr, "Failed I/O operation calculating hash: %v", err)
+			os.Exit(1)
+		}
+
+		cacheChan <- base64.StdEncoding.EncodeToString(hash.Sum(nil))
+	}()
 
 	if fi.IsDir() {
 		err := filepath.Walk(rel, func(path string, fi os.FileInfo, err error) error {
@@ -396,16 +401,15 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 				return nil
 			}
 
-			fmt.Printf("--- COPY: %s\n", path)
+			fmt.Printf("--- COPY: %s -> %s\n", path, filepath.Join(target, path))
 
 			header, err := tar.FileInfoHeader(fi, filepath.Join(target, path))
 			if err != nil {
 				return err
 			}
 
-			// FIXME filepath.Rel these into shape
-			header.Name = filepath.Join(target, path)
 			header.Linkname = filepath.Join(target, path)
+			header.Name = filepath.Join(target, path)
 
 			if err := tw.WriteHeader(header); err != nil {
 				return err
@@ -415,6 +419,7 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 			if err != nil {
 				return err
 			}
+
 			_, err = io.Copy(tw, f)
 			if err != nil && err != io.EOF {
 				f.Close()
@@ -454,9 +459,51 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 	}
 
 	tw.Close()
-	wr.Close()
+	f.Close()
 
-	if err := <-errChan; err != nil {
+	cacheKey = <-cacheChan
+
+	if os.Getenv("NO_CACHE") == "" {
+		if b.imageID != "" {
+			images, err := b.client.ImageList(context.Background(), types.ImageListOptions{All: true})
+			if err != nil {
+				return nil, createException(m, err.Error())
+			}
+
+			for _, img := range images {
+				if img.ParentID == b.imageID {
+					inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), img.ID)
+					if err != nil {
+						return nil, createException(m, err.Error())
+					}
+
+					if inspect.Comment == cacheKey {
+						fmt.Printf("+++ Cache hit: using %q\n", img.ID)
+						b.imageID = img.ID
+						b.config.Image = img.ID
+						return nil, nil
+					}
+				}
+			}
+		}
+	}
+
+	f, err = os.Open(f.Name())
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	hook := func(b *Builder, id string) (string, error) {
+		defer f.Close()
+		dir := b.insideDir
+		if dir == "" {
+			dir = "/"
+		}
+
+		return "", b.client.CopyToContainer(context.Background(), id, dir, f, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+	}
+
+	if err := b.commit(cacheKey, hook); err != nil {
 		return nil, createException(m, err.Error())
 	}
 

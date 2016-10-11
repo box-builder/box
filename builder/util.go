@@ -9,7 +9,7 @@ import (
 	mruby "github.com/mitchellh/go-mruby"
 )
 
-func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) error) error {
+func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) (string, error)) error {
 	if os.Getenv("NO_CACHE") != "" {
 		cacheKey = ""
 	}
@@ -28,8 +28,13 @@ func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) error
 	}
 
 	if hook != nil {
-		if err := hook(b, resp.ID); err != nil {
+		tmp, err := hook(b, resp.ID)
+		if err != nil {
 			return err
+		}
+
+		if tmp != "" && os.Getenv("NO_CACHE") == "" {
+			cacheKey = tmp
 		}
 	}
 
