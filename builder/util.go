@@ -11,7 +11,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/docker/engine-api/types"
 	mruby "github.com/mitchellh/go-mruby"
@@ -27,7 +29,19 @@ func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) (stri
 		return err
 	}
 
-	defer b.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
+	signals := make(chan os.Signal)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		_, ok := <-signals
+		if ok {
+			b.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
+		}
+	}()
+
+	defer func() {
+		b.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
+		signal.Reset(syscall.SIGINT, syscall.SIGTERM)
+	}()
 
 	if hook != nil {
 		tmp, err := hook(b, id)
