@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	. "testing"
 
@@ -20,6 +21,7 @@ const copyPath = "testdata/copy"
 var _ = Suite(&builderSuite{})
 
 func TestBuilder(t *T) {
+	os.Setenv("NO_CACHE", "1")
 	TestingT(t)
 }
 
