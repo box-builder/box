@@ -37,6 +37,7 @@ func (bs *builderSuite) TestSamePull(c *C) {
 
 func (bs *builderSuite) TestCopy(c *C) {
 	b, err := NewBuilder()
+	c.Assert(err, IsNil)
 	testpath := filepath.Join(dockerfilePath, "test1.rb")
 
 	_, err = b.Run(fmt.Sprintf(`
@@ -81,4 +82,21 @@ copy "%s", "/test1.rb"
 	fmt.Println(string(content))
 
 	c.Assert(bytes.Equal(result, content), Equals, true)
+}
+
+func (bs *builderSuite) TestTag(c *C) {
+	b, err := NewBuilder()
+	c.Assert(err, IsNil)
+	_, err = b.Run(`
+from "debian"
+tag "test"
+`)
+
+	c.Assert(err, IsNil)
+	c.Assert(b.ImageID(), Not(Equals), "test")
+
+	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), "test")
+	c.Assert(err, IsNil)
+
+	c.Assert(inspect.RepoTags, DeepEquals, []string{"test:latest"})
 }
