@@ -100,3 +100,23 @@ tag "test"
 
 	c.Assert(inspect.RepoTags, DeepEquals, []string{"test:latest"})
 }
+
+func (bs *builderSuite) TestFlatten(c *C) {
+	b, err := NewBuilder()
+	c.Assert(err, IsNil)
+	_, err = b.Run(`
+from "debian"
+run "echo foo >bar"
+run "echo here is another layer >a_file"
+flatten
+tag "flattened"
+`)
+
+	c.Assert(err, IsNil)
+	c.Assert(b.ImageID(), Not(Equals), "flattened")
+
+	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+
+	c.Assert(len(inspect.RootFS.Layers), Equals, 1)
+}
