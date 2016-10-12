@@ -32,8 +32,8 @@ func (bs *builderSuite) TestCopy(c *C) {
 	testpath := filepath.Join(dockerfilePath, "test1.rb")
 
 	b, err := runBuilder(fmt.Sprintf(`
-from "debian"
-copy "%s", "/test1.rb"
+    from "debian"
+    copy "%s", "/test1.rb"
   `, testpath))
 
 	c.Assert(err, IsNil)
@@ -64,12 +64,12 @@ func (bs *builderSuite) TestTag(c *C) {
 
 func (bs *builderSuite) TestFlatten(c *C) {
 	b, err := runBuilder(`
-from "debian"
-run "echo foo >bar"
-run "echo here is another layer >a_file"
-flatten
-tag "flattened"
-`)
+    from "debian"
+    run "echo foo >bar"
+    run "echo here is another layer >a_file"
+    flatten
+    tag "flattened"
+  `)
 
 	c.Assert(err, IsNil)
 	c.Assert(b.ImageID(), Not(Equals), "flattened")
