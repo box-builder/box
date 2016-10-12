@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	. "testing"
 
+	"github.com/docker/engine-api/types/strslice"
+
 	. "gopkg.in/check.v1"
 )
 
@@ -80,4 +82,21 @@ func (bs *builderSuite) TestFlatten(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(len(inspect.RootFS.Layers), Equals, 1)
+}
+
+func (bs *builderSuite) TestEntrypoint(c *C) {
+	// the echo hi is to trigger a specific interaction problem with entrypoint
+	// and run where the entrypoint/cmd would not be overridden during commit
+	// time for run.
+	b, err := runBuilder(`
+    from "debian"
+    entrypoint "/bin/cat"
+    run "echo hi"
+  `)
+
+	c.Assert(err, IsNil)
+	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/cat"})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{})
 }
