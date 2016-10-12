@@ -118,6 +118,11 @@ func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue)
 
 	b.entrypoint = stringArgs
 	b.config.Entrypoint = stringArgs
+	// override the cmd when the entrypoint is set. this is a tough problem to
+	// solve in the right way. If cmd is set prior to this, we cannot be sure
+	// once we set the entrypoint that it is still valid, so we erase it.
+	// FIXME
+	// should install a new call which sets both at the same time.
 	b.cmd = []string{}
 	b.config.Cmd = []string{}
 

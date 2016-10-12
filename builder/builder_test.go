@@ -99,4 +99,30 @@ func (bs *builderSuite) TestEntrypoint(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/cat"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{})
+
+	// if cmd is set earlier than entrypoint, it is erased.
+	b, err = runBuilder(`
+    from "debian"
+    cmd "hi"
+    entrypoint "/bin/echo"
+  `)
+
+	c.Assert(err, IsNil)
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/echo"})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{})
+
+	// normal cmd usage.
+	b, err = runBuilder(`
+    from "debian"
+    entrypoint "/bin/echo"
+    cmd "hi"
+  `)
+
+	c.Assert(err, IsNil)
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/echo"})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
 }
