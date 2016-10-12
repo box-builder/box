@@ -65,8 +65,8 @@ func createException(m *mruby.Mrb, msg string) mruby.Value {
 }
 
 func (b *Builder) resetConfig() {
-	b.config.WorkingDir = "/"
-	b.config.User = "root"
+	b.config.WorkingDir = b.workdir
+	b.config.User = b.user
 	b.config.Cmd = b.cmd
 	b.config.Entrypoint = b.entrypoint
 }
@@ -101,6 +101,10 @@ func (b *Builder) consultCache(cacheKey string) (bool, error) {
 					if inspect.Comment == cacheKey {
 						fmt.Printf("+++ Cache hit: using %q\n", img.ID)
 						b.config = inspect.Config
+						b.user = b.config.User
+						b.workdir = b.config.WorkingDir
+						b.cmd = b.config.Cmd
+						b.entrypoint = b.config.Entrypoint
 						b.config.Image = img.ID
 
 						return true, nil

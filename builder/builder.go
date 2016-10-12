@@ -14,6 +14,8 @@ type Builder struct {
 	mrb        *mruby.Mrb
 	client     *client.Client
 	config     *container.Config
+	user       string
+	workdir    string
 	cmd        []string
 	entrypoint []string
 	insideDir  string
@@ -37,6 +39,8 @@ func NewBuilder() (*Builder, error) {
 
 	builder.entrypoint = []string{"/bin/sh", "-c"}
 	builder.cmd = []string{"/bin/sh"}
+	builder.user = "root"
+	builder.workdir = "/"
 	builder.resetConfig()
 
 	return builder, nil

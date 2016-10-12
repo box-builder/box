@@ -25,7 +25,9 @@ var verbJumpTable = map[string]verbDefinition{
 	"copy":       {copy, mruby.ArgsReq(2)},
 	"from":       {from, mruby.ArgsReq(1)},
 	"run":        {run, mruby.ArgsAny()},
+	"user":       {user, mruby.ArgsReq(1)},
 	"with_user":  {withUser, mruby.ArgsBlock() | mruby.ArgsReq(1)},
+	"workdir":    {workdir, mruby.ArgsReq(1)},
 	"inside":     {inside, mruby.ArgsBlock() | mruby.ArgsReq(1)},
 	"env":        {env, mruby.ArgsAny()},
 	"cmd":        {cmd, mruby.ArgsAny()},
@@ -34,6 +36,38 @@ var verbJumpTable = map[string]verbDefinition{
 
 // verbFunc is a builder DSL function used to interact with docker.
 type verbFunc func(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
+
+func workdir(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+	if len(args) != 1 {
+		return nil, createException(m, fmt.Sprintf("This call only accepts one argument; you provided %d.", len(args)))
+	}
+
+	b.workdir = args[0].String()
+	b.config.WorkingDir = args[0].String()
+
+	if err := b.commit(cacheKey, nil); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	return nil, nil
+}
+
+func user(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+	if len(args) != 1 {
+		return nil, createException(m, fmt.Sprintf("This call only accepts one argument; you provided %d.", len(args)))
+	}
+
+	b.user = args[0].String()
+	b.config.User = args[0].String()
+
+	if err := b.commit(cacheKey, nil); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	return nil, nil
+}
 
 func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	id, err := b.createEmptyContainer()
@@ -179,11 +213,7 @@ func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 	b.config.Cmd = stringArgs
 	b.config.WorkingDir = b.insideDir
 
-	defer func() {
-		b.resetConfig()
-		b.config.Entrypoint = b.entrypoint
-		b.config.Cmd = b.cmd
-	}()
+	defer b.resetConfig()
 
 	if err := b.commit(cacheKey, runHook); err != nil {
 		return nil, createException(m, err.Error())
@@ -197,7 +227,7 @@ func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (
 
 	b.config.User = args[0].String()
 	val, err := m.Yield(args[1], args[0])
-	b.config.User = ""
+	b.config.User = b.user
 
 	if err != nil {
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
@@ -209,9 +239,9 @@ func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (
 func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	b.insideDir = args[0].String()
+	b.config.WorkingDir = args[0].String()
 	val, err := m.Yield(args[1], args[0])
-	b.insideDir = ""
+	b.config.WorkingDir = b.workdir
 
 	if err != nil {
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
@@ -320,12 +350,7 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 
 	hook := func(b *Builder, id string) (string, error) {
 		defer f.Close()
-		dir := b.insideDir
-		if dir == "" {
-			dir = "/"
-		}
-
-		return "", b.client.CopyToContainer(context.Background(), id, dir, f, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+		return "", b.client.CopyToContainer(context.Background(), id, b.config.WorkingDir, f, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
 	}
 
 	if err := b.commit(cacheKey, hook); err != nil {
