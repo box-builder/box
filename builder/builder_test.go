@@ -89,7 +89,7 @@ func (bs *builderSuite) TestFlatten(c *C) {
 	c.Assert(len(inspect.RootFS.Layers), Not(Equals), 1)
 }
 
-func (bs *builderSuite) TestEntrypoint(c *C) {
+func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	// the echo hi is to trigger a specific interaction problem with entrypoint
 	// and run where the entrypoint/cmd would not be overridden during commit
 	// time for run.
@@ -129,5 +129,17 @@ func (bs *builderSuite) TestEntrypoint(c *C) {
 	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/echo"})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
+
+	// normal cmd usage.
+	b, err = runBuilder(`
+    from "debian"
+    cmd "hi"
+  `)
+
+	c.Assert(err, IsNil)
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/sh", "-c"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
 }
