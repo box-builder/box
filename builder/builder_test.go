@@ -71,6 +71,7 @@ func (bs *builderSuite) TestFlatten(c *C) {
     from "debian"
     run "echo foo >bar"
     run "echo here is another layer >a_file"
+    tag "notflattened"
     flatten
     tag "flattened"
   `)
@@ -82,6 +83,10 @@ func (bs *builderSuite) TestFlatten(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(len(inspect.RootFS.Layers), Equals, 1)
+
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), "notflattened")
+	c.Assert(err, IsNil)
+	c.Assert(len(inspect.RootFS.Layers), Not(Equals), 1)
 }
 
 func (bs *builderSuite) TestEntrypoint(c *C) {
