@@ -27,23 +27,30 @@ func TestBuilder(t *T) {
 	TestingT(t)
 }
 
-func (bs *builderSuite) TestSamePull(c *C) {
+func runBuilder(script string) (*Builder, error) {
 	b, err := NewBuilder()
-	c.Assert(err, IsNil)
+	if err != nil {
+		return nil, err
+	}
 
-	_, err = b.Run(`from "debian"`)
+	_, err = b.Run(script)
+	return b, err
+}
+
+func (bs *builderSuite) TestSamePull(c *C) {
+	_, err := runBuilder(`from "debian"`)
 	c.Assert(err, IsNil)
 }
 
 func (bs *builderSuite) TestCopy(c *C) {
-	b, err := NewBuilder()
-	c.Assert(err, IsNil)
 	testpath := filepath.Join(dockerfilePath, "test1.rb")
 
-	_, err = b.Run(fmt.Sprintf(`
+	b, err := runBuilder(fmt.Sprintf(`
 from "debian"
 copy "%s", "/test1.rb"
   `, testpath))
+
+	c.Assert(err, IsNil)
 
 	b.config.Cmd = []string{"cat /test1.rb"}
 	id, err := b.createEmptyContainer()
@@ -85,12 +92,10 @@ copy "%s", "/test1.rb"
 }
 
 func (bs *builderSuite) TestTag(c *C) {
-	b, err := NewBuilder()
-	c.Assert(err, IsNil)
-	_, err = b.Run(`
-from "debian"
-tag "test"
-`)
+	b, err := runBuilder(`
+    from "debian"
+    tag "test"
+  `)
 
 	c.Assert(err, IsNil)
 	c.Assert(b.ImageID(), Not(Equals), "test")
@@ -102,9 +107,7 @@ tag "test"
 }
 
 func (bs *builderSuite) TestFlatten(c *C) {
-	b, err := NewBuilder()
-	c.Assert(err, IsNil)
-	_, err = b.Run(`
+	b, err := runBuilder(`
 from "debian"
 run "echo foo >bar"
 run "echo here is another layer >a_file"
