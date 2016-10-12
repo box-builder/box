@@ -9,4 +9,5 @@ RUN cp /go/src/github.com/erikh/box/dind /dind
 RUN cd /go/src/github.com/erikh/box && \
     make
 
+WORKDIR /go/src/github.com/erikh/box
 ENTRYPOINT ["/dind"]

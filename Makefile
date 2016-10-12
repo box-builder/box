@@ -6,11 +6,10 @@ vendor:
 	cp vendor/github.com/mitchellh/go-mruby/libmruby.a .
 
 test:
-	dockerd -s vfs &
-	sleep 5
-	# replace this with the actual tests
-	docker info
-	killall dockerd
-	wait
+	docker build -t box .
+	docker run -it --privileged --rm -it box make docker-test
+
+docker-test:
+	bash docker-test.sh
 
 .PHONY: vendor
