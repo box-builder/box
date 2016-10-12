@@ -27,6 +27,8 @@ func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) (stri
 		return err
 	}
 
+	defer b.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
+
 	if hook != nil {
 		tmp, err := hook(b, id)
 		if err != nil {
@@ -45,6 +47,7 @@ func (b *Builder) commit(cacheKey string, hook func(b *Builder, id string) (stri
 		return fmt.Errorf("Error during commit: %v", err)
 	}
 
+	// try a clean remove first, otherwise the defer above will take over in a last-ditch attempt
 	err = b.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{})
 	if err != nil {
 		return fmt.Errorf("Could not remove intermediate container %q: %v", id, err)
