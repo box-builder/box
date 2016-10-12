@@ -211,7 +211,6 @@ func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 	b.resetConfig()
 	b.config.Entrypoint = []string{"/bin/sh", "-c"}
 	b.config.Cmd = stringArgs
-	b.config.WorkingDir = b.insideDir
 
 	defer b.resetConfig()
 
@@ -225,9 +224,12 @@ func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	b.config.User = args[0].String()
+	user := b.user
+	b.user = args[0].String()
+	b.resetConfig()
 	val, err := m.Yield(args[1], args[0])
-	b.config.User = b.user
+	b.user = user
+	b.resetConfig()
 
 	if err != nil {
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
@@ -239,9 +241,12 @@ func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (
 func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	b.config.WorkingDir = args[0].String()
+	workdir := b.workdir
+	b.workdir = args[0].String()
+	b.resetConfig()
 	val, err := m.Yield(args[1], args[0])
-	b.config.WorkingDir = b.workdir
+	b.workdir = workdir
+	b.resetConfig()
 
 	if err != nil {
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))

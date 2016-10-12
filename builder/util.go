@@ -136,10 +136,6 @@ func tarPath(rel, target string) (string, error) {
 				return err
 			}
 
-			if fi.IsDir() {
-				return nil
-			}
-
 			fmt.Printf("--- Copy: %s -> %s\n", path, filepath.Join(target, path))
 
 			header, err := tar.FileInfoHeader(fi, filepath.Join(target, path))
@@ -154,18 +150,20 @@ func tarPath(rel, target string) (string, error) {
 				return err
 			}
 
-			f, err := os.Open(path)
+			p, err := os.Open(path)
 			if err != nil {
 				return err
 			}
 
-			_, err = io.Copy(tw, f)
-			if err != nil && err != io.EOF {
-				f.Close()
-				return err
-			}
+			if header.Typeflag == tar.TypeReg {
+				_, err = io.Copy(tw, p)
+				if err != nil && err != io.EOF {
+					p.Close()
+					return err
+				}
 
-			f.Close()
+				p.Close()
+			}
 			return nil
 		})
 		if err != nil {
@@ -185,19 +183,18 @@ func tarPath(rel, target string) (string, error) {
 			return "", err
 		}
 
-		f, err := os.Open(rel)
+		p, err := os.Open(rel)
 		if err != nil {
 			return "", err
 		}
-		_, err = io.Copy(tw, f)
+		_, err = io.Copy(tw, p)
 		if err != nil && err != io.EOF {
-			f.Close()
+			p.Close()
 			return "", err
 		}
-		f.Close()
+		p.Close()
 	}
 
-	tw.Flush()
 	tw.Close()
 	f.Close()
 
