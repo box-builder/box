@@ -5,9 +5,12 @@ build instructions:
 * git clone https://github.com/erikh/box
 * To build on the host:
   * make
-* To build a docker image:
-  * docker build -t box .
-  * docker run -v /var/run/docker.sock:/var/run/docker.sock -i box < dockerfile-example.rb
+* To build a docker image (needed for test and release builds):
+  * make bootstrap
+* To run the tests:
+  * make test
+* To do a release build:
+  * make release
 
 Note that if you do not pass a filename over stdin, you will be prompted for
 input where you can type a script in.
