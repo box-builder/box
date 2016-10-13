@@ -4,3 +4,4 @@ services:
   - docker
 script:
   - "make bootstrap-test"
+
