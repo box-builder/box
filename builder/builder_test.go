@@ -277,6 +277,25 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.WorkingDir, Equals, "/")
 
+	// this file is used in the copy comparisons
+	content, err := ioutil.ReadFile("builder.go")
+	c.Assert(err, IsNil)
+
+	b, err = runBuilder(`
+    from "debian"
+    run "mkdir /test"
+    workdir "/test"
+    copy ".", "."
+  `)
+
+	c.Assert(err, IsNil)
+	result = readContainerFile(c, b, "/test/builder.go")
+	c.Assert(result, DeepEquals, content)
+
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.WorkingDir, Equals, "/test")
+
 	b, err = runBuilder(`
     from "debian"
     run "mkdir /test"
@@ -288,12 +307,42 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	c.Assert(err, IsNil)
 	result = readContainerFile(c, b, "/test/builder.go")
 
-	content, err := ioutil.ReadFile("builder.go")
-	c.Assert(err, IsNil)
-
 	c.Assert(result, DeepEquals, content)
 
 	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.WorkingDir, Equals, "/")
+}
+
+func (bs *builderSuite) TestUser(c *C) {
+	b, err := runBuilder(`
+    from "debian"
+    run "mkdir /test && chown nobody:nogroup /test"
+    user "nobody"
+    run "echo -n foo >/test/bar"
+  `)
+
+	c.Assert(err, IsNil)
+	result := readContainerFile(c, b, "/test/bar")
+	c.Assert(string(result), Equals, "foo")
+
+	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.User, Equals, "nobody")
+
+	b, err = runBuilder(`
+    from "debian"
+    run "mkdir /test && chown nobody:nogroup /test"
+    with_user "nobody" do
+      run "echo -n foo >/test/bar"
+    end
+  `)
+
+	c.Assert(err, IsNil)
+	result = readContainerFile(c, b, "/test/bar")
+	c.Assert(string(result), Equals, "foo")
+
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.User, Equals, "root")
 }
