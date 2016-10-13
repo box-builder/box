@@ -244,3 +244,56 @@ func (bs *builderSuite) TestRun(c *C) {
 	result = readContainerFile(c, b, "/test/bar")
 	c.Assert(string(result), Equals, "foo")
 }
+
+func (bs *builderSuite) TestWorkDirInside(c *C) {
+	b, err := runBuilder(`
+    from "debian"
+    run "mkdir /test"
+    workdir "/test"
+    run "echo -n foo >bar"
+  `)
+
+	c.Assert(err, IsNil)
+	result := readContainerFile(c, b, "/test/bar")
+	c.Assert(string(result), Equals, "foo")
+
+	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.WorkingDir, Equals, "/test")
+
+	b, err = runBuilder(`
+    from "debian"
+    run "mkdir /test"
+    inside "/test" do
+      run "echo -n foo >bar"
+    end
+  `)
+
+	c.Assert(err, IsNil)
+	result = readContainerFile(c, b, "/test/bar")
+	c.Assert(string(result), Equals, "foo")
+
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.WorkingDir, Equals, "/")
+
+	b, err = runBuilder(`
+    from "debian"
+    run "mkdir /test"
+    inside "/test" do
+      copy ".", "."
+    end
+  `)
+
+	c.Assert(err, IsNil)
+	result = readContainerFile(c, b, "/test/builder.go")
+
+	content, err := ioutil.ReadFile("builder.go")
+	c.Assert(err, IsNil)
+
+	c.Assert(result, DeepEquals, content)
+
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.WorkingDir, Equals, "/")
+}

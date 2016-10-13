@@ -278,11 +278,15 @@ func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (
 	b.user = args[0].String()
 	b.resetConfig()
 	val, err := m.Yield(args[1], args[0])
+	if err != nil {
+		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
+	}
+
 	b.user = user
 	b.resetConfig()
 
-	if err != nil {
-		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
+	if err := b.commit(cacheKey, nil); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	return val, nil
@@ -305,12 +309,17 @@ func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mr
 	workdir := b.workdir
 	b.workdir = args[0].String()
 	b.resetConfig()
+
 	val, err := m.Yield(args[1], args[0])
+	if err != nil {
+		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
+	}
+
 	b.workdir = workdir
 	b.resetConfig()
 
-	if err != nil {
-		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
+	if err := b.commit(cacheKey, nil); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	return val, nil
