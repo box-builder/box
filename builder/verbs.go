@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/docker/engine-api/types"
 	mruby "github.com/mitchellh/go-mruby"
@@ -51,6 +52,8 @@ func workdir(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 	if len(args) != 1 {
 		return nil, createException(m, fmt.Sprintf("This call only accepts one argument; you provided %d.", len(args)))
 	}
+
+	// FIXME must be absolute path, fix & test this.
 
 	b.workdir = args[0].String()
 	b.config.WorkingDir = args[0].String()
@@ -298,6 +301,7 @@ func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (
 func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
+	// FIXME must be absolute path, fix & test this.
 	workdir := b.workdir
 	b.workdir = args[0].String()
 	b.resetConfig()
@@ -395,8 +399,8 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		return nil, createException(m, "Did not receive the proper number of arguments in copy")
 	}
 
-	source := filepath.Clean(args[0].String())
-	target := filepath.Clean(args[1].String())
+	source := args[0].String()
+	target := args[1].String()
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -407,6 +411,14 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 	rel, err := filepath.Rel(wd, filepath.Join(wd, source))
 	if err != nil {
 		return nil, createException(m, err.Error())
+	}
+
+	target = filepath.Clean(filepath.Join(b.config.WorkingDir, target))
+
+	if strings.HasSuffix(target, "/") {
+		fmt.Println(rel)
+		target = filepath.Join(target, rel)
+		fmt.Println(target)
 	}
 
 	fmt.Printf("+++ Copying: %q to %q\n", rel, target)
@@ -438,7 +450,7 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 
 	hook := func(b *Builder, id string) (string, error) {
 		defer f.Close()
-		return "", b.client.CopyToContainer(context.Background(), id, b.config.WorkingDir, f, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+		return "", b.client.CopyToContainer(context.Background(), id, "/", f, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
 	}
 
 	if err := b.commit(cacheKey, hook); err != nil {

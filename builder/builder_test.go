@@ -46,9 +46,43 @@ func (bs *builderSuite) TestCopy(c *C) {
 
 	content, err := ioutil.ReadFile(testpath)
 	c.Assert(err, IsNil)
-	fmt.Println(string(content))
+	c.Assert(string(content), Not(Equals), "")
 
 	c.Assert(bytes.Equal(result, content), Equals, true)
+
+	b, err = runBuilder(`
+    from "debian"
+    copy "builder.go", "/"
+  `)
+
+	c.Assert(err, IsNil)
+	result = readContainerFile(c, b, "/builder.go")
+	content, err = ioutil.ReadFile("builder.go")
+	c.Assert(err, IsNil)
+	c.Assert(string(content), Not(Equals), "")
+
+	c.Assert(content, DeepEquals, result)
+
+	b, err = runBuilder(`
+    from "debian"
+    copy ".", "test"
+  `)
+
+	c.Assert(err, IsNil)
+
+	result = readContainerFile(c, b, "/test/builder.go")
+	c.Assert(content, DeepEquals, result)
+
+	b, err = runBuilder(`
+    from "debian"
+    workdir "/test"
+    copy ".", "test/"
+  `)
+
+	c.Assert(err, IsNil)
+
+	result = readContainerFile(c, b, "/test/test/builder.go")
+	c.Assert(content, DeepEquals, result)
 }
 
 func (bs *builderSuite) TestTag(c *C) {
