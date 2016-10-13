@@ -25,7 +25,10 @@ if getenv("RELEASE") == ""
 end
 
 copy ".", "/go/src/github.com/erikh/box"
-run "cd /go/src/github.com/erikh/box && make"
+
+if getenv("IGNORE_LIBMRUBY") == ""
+  run "cd /go/src/github.com/erikh/box && make"
+end
 
 if getenv("RELEASE") != ""
   run "mv /go/bin/box /box"

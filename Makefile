@@ -8,18 +8,22 @@ vendor:
 bootstrap:
 	docker build -t box-bootstrap .
 
-bootstrap-test: bootstrap
+bootstrap-image: bootstrap
 	docker run -v /var/run/docker.sock:/var/run/docker.sock -i box-bootstrap < build.rb
-	make test
+
+bootstrap-test: bootstrap-image
+	make run-test
  
 build:
 	go run main.go < build.rb
 
-test: build
+run-test:
 	docker run -it --privileged --rm -it box-test make docker-test
 
+test: build run-test
+
 release: build
-	docker run -it --privileged --rm -it box-test make docker-test
+	docker run -e RELEASE=1 -it --privileged --rm -it box-test make docker-test
 
 docker-test:
 	bash docker-test.sh
