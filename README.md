@@ -1,5 +1,7 @@
 box: a new type of builder for docker
 
+[![Build Status](https://travis-ci.org/erikh/box.svg?branch=master)](https://travis-ci.org/erikh/box)
+
 build instructions:
 
 * git clone https://github.com/erikh/box
