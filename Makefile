@@ -1,3 +1,5 @@
+PACKAGES := "./builder"
+
 all: vendor
 	go install -v .
 
@@ -26,6 +28,6 @@ release: build
 	docker run -e RELEASE=1 -it --privileged --rm -it box-test make docker-test
 
 docker-test:
-	bash docker-test.sh
+	bash docker-test.sh $(PACKAGES)
 
 .PHONY: vendor
