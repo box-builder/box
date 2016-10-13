@@ -17,6 +17,10 @@ build instructions:
 Note that if you do not pass a filename or content over stdin, you will be
 prompted for input where you can type a script in.
 
+There's no documentation right now, check out the comments in
+`builder/verbs.go` and `builder/funcs.go` for more information about the
+language.
+
 Here's an example of a dockerfile you can make with it:
 
 ```ruby
