@@ -83,6 +83,18 @@ func (bs *builderSuite) TestCopy(c *C) {
 
 	result = readContainerFile(c, b, "/test/test/builder.go")
 	c.Assert(content, DeepEquals, result)
+
+	b, err = runBuilder(`
+    from "debian"
+    inside "/test" do
+      copy ".", "test/"
+    end
+  `)
+
+	c.Assert(err, IsNil)
+
+	result = readContainerFile(c, b, "/test/test/builder.go")
+	c.Assert(content, DeepEquals, result)
 }
 
 func (bs *builderSuite) TestTag(c *C) {
