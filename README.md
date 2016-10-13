@@ -14,8 +14,8 @@ build instructions:
 * To do a release build:
   * make release
 
-Note that if you do not pass a filename over stdin, you will be prompted for
-input where you can type a script in.
+Note that if you do not pass a filename or content over stdin, you will be
+prompted for input where you can type a script in.
 
 Here's an example of a dockerfile you can make with it:
 
