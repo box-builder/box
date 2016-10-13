@@ -416,9 +416,7 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 	target = filepath.Clean(filepath.Join(b.config.WorkingDir, target))
 
 	if strings.HasSuffix(target, "/") {
-		fmt.Println(rel)
 		target = filepath.Join(target, rel)
-		fmt.Println(target)
 	}
 
 	fmt.Printf("+++ Copying: %q to %q\n", rel, target)

@@ -162,7 +162,6 @@ func tarPath(rel, target string) (string, error) {
 
 			header.Linkname = filepath.Join(target, path)
 			header.Name = filepath.Join(target, path)
-			fmt.Println(header.Name)
 
 			if err := tw.WriteHeader(header); err != nil {
 				return err
