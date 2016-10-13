@@ -143,3 +143,58 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/sh", "-c"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
 }
+
+func (bs *builderSuite) TestRun(c *C) {
+	b, err := runBuilder(`
+    from "debian"
+    run "echo -n foo >/bar"
+  `)
+
+	c.Assert(err, IsNil)
+	result := readContainerFile(c, b, "/bar")
+	c.Assert(string(result), Equals, "foo")
+
+	b, err = runBuilder(`
+    from "debian"
+    run "mkdir /test && chown nobody:nogroup /test"
+    with_user "nobody" do
+      run "echo -n foo >/test/bar"
+    end
+  `)
+
+	result = runContainerCommand(c, b, []string{"/usr/bin/stat -c %U /test/bar"})
+	c.Assert(string(result), Equals, "nobody\n")
+
+	b, err = runBuilder(`
+    from "debian"
+    run "mkdir /test && chown nobody:nogroup /test"
+    user "nobody"
+    run "echo -n foo >/test/bar"
+  `)
+
+	result = runContainerCommand(c, b, []string{"/usr/bin/stat -c %U /test/bar"})
+	c.Assert(string(result), Equals, "nobody\n")
+
+	b, err = runBuilder(`
+    from "debian"
+    run "mkdir /test"
+    inside "/test" do
+      run "echo -n foo >bar"
+    end
+  `)
+
+	c.Assert(err, IsNil)
+	result = readContainerFile(c, b, "/test/bar")
+	c.Assert(string(result), Equals, "foo")
+
+	b, err = runBuilder(`
+    from "debian"
+    run "mkdir /test"
+    workdir "/test"
+    run "echo -n foo >bar"
+  `)
+
+	c.Assert(err, IsNil)
+	result = readContainerFile(c, b, "/test/bar")
+	c.Assert(string(result), Equals, "foo")
+}

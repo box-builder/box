@@ -22,7 +22,11 @@ func runBuilder(script string) (*Builder, error) {
 }
 
 func readContainerFile(c *C, b *Builder, fn string) []byte {
-	b.config.Cmd = []string{"cat " + fn}
+	return runContainerCommand(c, b, []string{"cat " + fn})
+}
+
+func runContainerCommand(c *C, b *Builder, cmd []string) []byte {
+	b.config.Cmd = cmd
 	id, err := b.createEmptyContainer()
 	c.Assert(err, IsNil)
 	resp, err := b.client.ContainerAttach(context.Background(), id, types.ContainerAttachOptions{Stream: true, Stdout: true, Stdin: true})
