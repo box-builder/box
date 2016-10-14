@@ -346,3 +346,72 @@ func (bs *builderSuite) TestUser(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.User, Equals, "root")
 }
+
+func (bs *builderSuite) TestBuildCache(c *C) {
+	// enable and re-disable the cache when we exit.
+	os.Setenv("NO_CACHE", "")
+	defer os.Setenv("NO_CACHE", "1")
+	b, err := runBuilder(`
+    from "debian"
+    run "true"
+  `)
+
+	c.Assert(err, IsNil)
+
+	imageID := b.ImageID()
+
+	b, err = runBuilder(fmt.Sprintf(`
+    from "%s"
+    run "true"
+  `, imageID))
+
+	c.Assert(err, IsNil)
+
+	cached := b.ImageID()
+
+	b, err = runBuilder(fmt.Sprintf(`
+    from "%s"
+    run "true"
+  `, imageID))
+
+	c.Assert(err, IsNil)
+	c.Assert(cached, Equals, b.ImageID())
+
+	b, err = runBuilder(fmt.Sprintf(`
+    from "%s"
+    run "exit 0"
+  `, imageID))
+
+	c.Assert(err, IsNil)
+	c.Assert(cached, Not(Equals), b.ImageID())
+
+	b, err = runBuilder(fmt.Sprintf(`
+    from "%s"
+    copy ".", "."
+  `, imageID))
+
+	c.Assert(err, IsNil)
+
+	cached = b.ImageID()
+
+	b, err = runBuilder(fmt.Sprintf(`
+    from "%s"
+    copy ".", "."
+  `, imageID))
+
+	c.Assert(err, IsNil)
+	c.Assert(cached, Equals, b.ImageID())
+
+	f, err := os.Create("test")
+	c.Assert(err, IsNil)
+	defer os.Remove("test")
+	f.Close()
+
+	b, err = runBuilder(fmt.Sprintf(`
+    from "%s"
+    copy ".", "."
+  `, imageID))
+
+	c.Assert(err, IsNil)
+	c.Assert(cached, Not(Equals), b.ImageID())
+}
