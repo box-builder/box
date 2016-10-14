@@ -422,6 +422,13 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		return nil, createException(m, err.Error())
 	}
 
+	paths := filepath.SplitList(rel)
+	for _, path := range paths {
+		if path == ".." {
+			return nil, createException(m, fmt.Sprintf("Cannot use relative path %s because it may fall below the root build directory", source))
+		}
+	}
+
 	target = filepath.Clean(filepath.Join(b.config.WorkingDir, target))
 
 	if strings.HasSuffix(target, "/") {
