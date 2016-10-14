@@ -11,6 +11,16 @@ race between the operations.
 entrypoint and cmd. They each take a string array which is then propagated
 to the respective properties in the container's configuration.
 
+This command does not modify the entrypoint or cmd for `run` operations.
+
+Example:
+
+```ruby
+from "debian"
+# this sets the what will be run with `/bin/echo foo`
+set_exec entrypoint: ["/bin/echo"], cmd: "foo"
+```
+
 ## workdir
 
 workdir sets the WorkingDir in the docker environment. It sets this
@@ -18,12 +28,30 @@ throughout the image creation; all run/copy statements will respect this
 value. If you wish to break out or work within it further, look at the
 `inside` call.
 
+Example:
+
+```ruby
+from "debian"
+# each container that runs this image without the `-w` flag will start as
+# `/test` for the current working directory.
+workdir '/test'
+```
+
 ## user
 
 user sets the username this container will use by default. It also affects
 following run statements (but not copy, which always copies as root
 currently). If you wish to switch to a user temporarily, consider using
 `with_user`.
+
+Example:
+
+```ruby
+from "debian"
+# all containers started with this image will use user `foo`
+# %q[] just means, "quote this as a string without interpolation"
+user %q[foo]
+```
 
 ## flatten
 
@@ -36,20 +64,65 @@ NOTE: flattening will always bust the build cache.
 NOTE: flattening requires downloading the image and re-uploading it. This
 can take a lot of time over remote connections and is not advised.
 
+Example:
+
+```ruby
+from "debian"
+run "here's a layer"
+copy ".", "/test"
+flatten # image is shrunk to one layer here
+tag "erikh/test"
+```
+
 ## tag
 
 tag tags an image within the docker daemon, named after the string provided.
 It must be a valid tag name.
+
+Example:
+
+```ruby
+from "debian"
+run "true" # create a layer
+tag "erikh/true" # tag the latest image as "erikh/true"
+```
 
 ## entrypoint
 
 entrypoint sets the entrypoint for the image at runtime. It will not be
 used for run invocations. Note that setting this clears any previously set cmd.
 
+Example:
+
+```ruby
+from "debian"
+entrypoint "/bin/echo" # all `docker run` commands will be preceded by this
+cmd "foo"              # this will equate to `/bin/echo foo`
+```
+
 ## from
 
 from sets the initial image and if necessary, pulls it from the registry. It
 also sets the initial layer and must be called before several operations.
+
+Example:
+
+```ruby
+from "debian"
+```
+
+or other images with full tags:
+
+```ruby
+from "ceph/rbd:latest"
+```
+
+or fully qualified image IDs.
+
+```ruby
+# sha256s are longer than this normally.
+from "sha256:deadbeefcafebabeaddedbeef"
+```
 
 ## run
 
@@ -62,6 +135,45 @@ intended for the final image.
 Cache keys are generated based on the command name, so to be certain your
 command is run in the event of it hitting cache, run box with NO_CACHE=1.
 
+Examples:
+
+Create a file called `/bar` inside the container, then chown it to nobody. Run
+commands don't need a lot of `&&` because you can trivially flatten the layers.
+
+```ruby
+from "debian"
+run "echo foo >/bar"
+run "chown nobody:nogroup /bar"
+```
+
+Run in the context of a specific user or workdir. This allows us to finely
+control our run invocations and further processing after the container image
+has been run.
+
+```ruby
+from "debian"
+
+with_user "nobody" do # just the commands inside this block will run as `nobody`
+  run "echo foo >/tmp/bar"
+end
+
+# all commands from here on will run as `erikh`, overriden only by `with_user`
+# and other `user` calls.
+user "erikh"
+run "echo foo >/tmp/erikh-file"
+
+# set the workdir temporarily for the commands within the block.
+# this will create /tmp/another-file-in-tmp.
+inside "/tmp" do
+  run "echo foo >another-file-in-tmp"
+end
+
+# this behaves exactly like user, just setting the default cwd instead:
+# creates /tmp/yet-another-file
+workdir "/tmp"
+run "echo foo >yet-another-file"
+```
+
 ## with\_user
 
 `with_user`, when provided with a string username and block invokes commands
@@ -71,8 +183,10 @@ yet. It does not affect the final image.
 Example:
 
 ```ruby
+from "debian"
+
 with_user "erikh" do
-  run "vim +PluginInstall +qall"
+  run "vim +PluginInstall +qall" # runs as 'erikh'
 end
 ```
 
@@ -85,6 +199,8 @@ string. It does not affect the final image.
 Example:
 
 ```ruby
+from "debian"
+
 inside "/dev" do
   run "mknod webscale c 1 3"
 end
@@ -98,6 +214,8 @@ will set the environment in the image and future run invocations.
 Example:
 
 ```ruby
+from "debian"
+
 env "GOPATH" => "/go", "PATH" => "/usr/bin:/bin"
 env GOPATH: "/go", PATH: "/usr/bin:/bin" # equivalent if you prefer this syntax
 ```
@@ -110,6 +228,15 @@ you provide a command to `docker run`). It does not affect run invocations.
 
 Note that if you set this before entrypoint, it will be cleared.
 
+Example:
+
+```ruby
+from "debian"
+# entrypoint is `/bin/sh -c` by default, so we will just run whatever command
+# is thrown at us. This image will run `ls` in the workdir by default.
+cmd "ls"
+```
+
 ## copy
 
 copy copies files from the host to the container. It only works relative to
@@ -117,13 +244,15 @@ the current directory. The build cache is calculated by summing the tar
 result of edited files. Since mtime is also considered, changes to that will
 also bust the cache.
 
-NOTE: copy does not respect inside or workdir right now, this is a bug.
-
 NOTE: copy does not respect user permissions when the `user` or `with_user`
-modifiers are applied. This is also a bug, but a much harder to fix one.
+modifiers are applied. This will be fixed eventually.
 
 Example:
 
 ```ruby
-copy ".", "test"
+from "debian"
+
+# recursively copies everything the cwd to test, which is relative to the
+# workdir (`/` by default).
+copy ".", "/test"
 ```
