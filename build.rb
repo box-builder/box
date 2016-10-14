@@ -32,7 +32,7 @@ end
 
 if getenv("RELEASE") != ""
   run "mv /go/bin/box /box"
-  entrypoint "/box"
+  set_exec entrypoint: ["/box"], cmd: []
   run "apt-get purge -y #{packages.join(" ")}"
   run "apt-get autoclean"
   run "rm -rf /usr/local /go /var/cache/apt /var/lib/apt"
