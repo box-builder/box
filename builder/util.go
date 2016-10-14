@@ -354,3 +354,43 @@ func iterateRubyHash(arg *mruby.MrbValue, fn func(*mruby.MrbValue, *mruby.MrbVal
 
 	return nil
 }
+
+func (b *Builder) containerContent(fn string) ([]byte, error) {
+	id, err := b.createEmptyContainer()
+	if err != nil {
+		return nil, err
+	}
+
+	defer b.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
+
+	rc, _, err := b.client.CopyFromContainer(context.Background(), id, fn)
+	if err != nil {
+		return nil, err
+	}
+
+	tr := tar.NewReader(rc)
+	defer rc.Close()
+
+	var header *tar.Header
+
+	for {
+		header, err = tr.Next()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		if header.Name == filepath.Base(fn) {
+			break
+		}
+	}
+
+	if header == nil || header.Name != filepath.Base(fn) {
+		return nil, fmt.Errorf("Could not find %q in container", fn)
+	}
+
+	return ioutil.ReadAll(tr)
+}
