@@ -20,12 +20,12 @@ build:
 	go run main.go < build.rb
 
 run-test:
-	docker run -it --privileged --rm -it box-test make docker-test
+	docker run -it --privileged --rm -it box-test
 
 test: build run-test
 
 release: build
-	docker run -e RELEASE=1 -it --privileged --rm -it box-test make docker-test
+	docker run -e RELEASE=1 -it --privileged --rm -it box-test
 
 docker-test:
 	bash docker-test.sh $(PACKAGES)

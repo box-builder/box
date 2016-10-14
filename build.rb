@@ -40,6 +40,6 @@ if getenv("RELEASE") != ""
   tag "erikh/box:latest"
 else
   workdir "/go/src/github.com/erikh/box"
-  entrypoint "/dind"
+  set_exec entrypoint: ["/dind"], cmd: ["make", "docker-test"]
   tag "box-test"
 end
