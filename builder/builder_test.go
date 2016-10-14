@@ -23,13 +23,16 @@ const copyPath = "testdata/copy"
 var _ = Suite(&builderSuite{})
 
 func TestBuilder(t *T) {
-	os.Setenv("NO_CACHE", "1")
 	TestingT(t)
 }
 
-func (bs *builderSuite) TestSamePull(c *C) {
+func (bs *builderSuite) SetUpSuite(c *C) {
 	_, err := runBuilder(`from "debian"`)
 	c.Assert(err, IsNil)
+}
+
+func (bs *builderSuite) SetUpTest(c *C) {
+	os.Setenv("NO_CACHE", "1")
 }
 
 func (bs *builderSuite) TestCopy(c *C) {
@@ -384,9 +387,9 @@ func (bs *builderSuite) TestUser(c *C) {
 }
 
 func (bs *builderSuite) TestBuildCache(c *C) {
-	// enable and re-disable the cache when we exit.
+	// enable cache; will reset on next test run
 	os.Setenv("NO_CACHE", "")
-	defer os.Setenv("NO_CACHE", "1")
+
 	b, err := runBuilder(`
     from "debian"
     run "true"
