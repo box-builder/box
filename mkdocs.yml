@@ -1,0 +1,7 @@
+site_name: Box - Flexible Docker Builder
+theme: readthedocs
+repo_url: https://github.com/erikh/box
+pages:
+  - "Introduction": "index.md"
+  - "Verb Reference": "verbs.md"
+  - "Function Reference": "functions.md"

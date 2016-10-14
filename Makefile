@@ -3,6 +3,9 @@ PACKAGES := "./builder"
 all: vendor
 	go install -v .
 
+docs:
+	mkdocs gh-deploy --clean
+
 vendor:
 	cd vendor/github.com/mitchellh/go-mruby && make clean all
 	cp vendor/github.com/mitchellh/go-mruby/libmruby.a .
@@ -30,4 +33,4 @@ release: build
 docker-test:
 	bash docker-test.sh $(PACKAGES)
 
-.PHONY: vendor
+.PHONY: vendor docs
