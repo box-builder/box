@@ -451,3 +451,67 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(cached, Not(Equals), b.ImageID())
 }
+
+func (bs *builderSuite) TestSetExec(c *C) {
+	b, err := runBuilder(`
+    from "debian"
+    set_exec cmd: "quux"
+  `)
+	c.Assert(err, NotNil)
+
+	b, err = runBuilder(`
+    from "debian"
+    set_exec entrypoint: "quux"
+  `)
+	c.Assert(err, NotNil)
+
+	b, err = runBuilder(`
+    from "debian"
+    set_exec test: ["quux"]
+  `)
+	c.Assert(err, NotNil)
+
+	b, err = runBuilder(`
+    from "debian"
+    set_exec entrypoint: ["/bin/bash"]
+  `)
+	c.Assert(err, IsNil)
+
+	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/bash"})
+
+	b, err = runBuilder(`
+    from "debian"
+    set_exec cmd: ["/bin/bash"]
+  `)
+	c.Assert(err, IsNil)
+
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
+
+	b, err = runBuilder(`
+    from "debian"
+    cmd "exit 0"
+    set_exec entrypoint: ["/bin/bash", "-c"]
+  `)
+	c.Assert(err, IsNil)
+
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/bash", "-c"})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"exit 0"})
+
+	b, err = runBuilder(`
+    from "debian"
+    entrypoint "/bin/bash", "-c"
+    set_exec cmd: ["exit 0"]
+  `)
+	c.Assert(err, IsNil)
+
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/bash", "-c"})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"exit 0"})
+}
