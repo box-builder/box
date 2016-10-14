@@ -1,0 +1,44 @@
+{
+    "docs": [
+        {
+            "location": "/", 
+            "text": "Introduction\n\n\nBox is a small utility for the building of docker images. Through use of mruby,\nwe provide additional flexibility over the vanilla \ndocker build\n command by\nadding control structures and basic predicates. We also add new verbs that\nallow new actions, such as flattening and tagging images.\n\n\nGetting Box\n\n\nThat's complicated. You can either follow the \nDevelopment Instructions\n\nor you can pull \nerikh/box:latest\n for now. See \nInvocation\n for how to run it.\n\n\nInvocation\n\n\nThe commandline tool \nbox\n will either accept a file as a commandline argument:\n\n\n$ box myplan.rb\n\n\n\n\nOr from stdin:\n\n\n$ box \n myplan.rb\n\n\n\n\nThe current working directory that box runs in is very important, it is the\njumping-off point for most copy operations. If you run the \nerikh/box\n\ncontainer, you may wish to run it in this way:\n\n\n$ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest \n myplan.rb\n\n\n\n\nRunning without cache\n\n\nFor now, set \nNO_CACHE=1\n in your shell's environment (or docker's environment\nwith the \n-e\n switch to \ndocker run\n) which will trump the entire cache. Note\nthat parameterized statements and copy statements where the files have changed\non disk will also bust the cache.\n\n\nExample Box script\n\n\nThis is the box script we use to build box itself. It uses many of its\nfeatures.\n\n\nYou can find the latest version of it \nhere\n too.\n\n\nfrom \ngolang\n\n\npackages = %w[\n  build-essential\n  g++\n  git\n  wget\n  curl\n  ruby\n  bison\n  flex\n  iptables\n  psmisc\n]\n\nrun \napt-get update\n\nrun \napt-get install -y #{packages.join(\n \n)}\n\nenv \nGOPATH\n =\n \n/go\n\n\nif getenv(\nRELEASE\n) == \n\n  run \nwget https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz\n\n  run \ntar -xpf docker-1.12.1.tgz --strip-components=1 -C /usr/bin/\n\n  run \nrm docker-1.12.1.tgz\n\n  copy \ndind\n, \n/dind\n\nend\n\ncopy \n.\n, \n/go/src/github.com/erikh/box\n\n\nif getenv(\nIGNORE_LIBMRUBY\n) == \n\n  run \ncd /go/src/github.com/erikh/box \n make\n\nend\n\nif getenv(\nRELEASE\n) != \n\n  run \nmv /go/bin/box /box\n\n  set_exec entrypoint: [\n/box\n], cmd: []\n  run \napt-get purge -y #{packages.join(\n \n)}\n\n  run \napt-get autoclean\n\n  run \nrm -rf /usr/local /go /var/cache/apt /var/lib/apt\n\n  flatten\n  tag \nerikh/box:latest\n\nelse\n  workdir \n/go/src/github.com/erikh/box\n\n  set_exec entrypoint: [\n/dind\n], cmd: [\nmake\n, \ndocker-test\n]\n  tag \nbox-test\n\nend\n\n\n\n\nLearning Box's Language\n\n\nCaveats\n\n\nThings that box still needs to fix that are documentation worthy:\n\n\n\n\nSet \nNO_CACHE=1\n if you want to bypass the build cache. There is a ticket to\n  make this a command-line flag \nhere\n.\n\n\nCurrently we require a TTY and access to stdout to function.\n  \nThis issue\n was made to correct that.\n\n\n\n\nOf course, you can see \nall of our issues\n too.", 
+            "title": "Home"
+        }, 
+        {
+            "location": "/#introduction", 
+            "text": "Box is a small utility for the building of docker images. Through use of mruby,\nwe provide additional flexibility over the vanilla  docker build  command by\nadding control structures and basic predicates. We also add new verbs that\nallow new actions, such as flattening and tagging images.", 
+            "title": "Introduction"
+        }, 
+        {
+            "location": "/#getting-box", 
+            "text": "That's complicated. You can either follow the  Development Instructions \nor you can pull  erikh/box:latest  for now. See  Invocation  for how to run it.", 
+            "title": "Getting Box"
+        }, 
+        {
+            "location": "/#invocation", 
+            "text": "The commandline tool  box  will either accept a file as a commandline argument:  $ box myplan.rb  Or from stdin:  $ box   myplan.rb  The current working directory that box runs in is very important, it is the\njumping-off point for most copy operations. If you run the  erikh/box \ncontainer, you may wish to run it in this way:  $ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest   myplan.rb", 
+            "title": "Invocation"
+        }, 
+        {
+            "location": "/#running-without-cache", 
+            "text": "For now, set  NO_CACHE=1  in your shell's environment (or docker's environment\nwith the  -e  switch to  docker run ) which will trump the entire cache. Note\nthat parameterized statements and copy statements where the files have changed\non disk will also bust the cache.", 
+            "title": "Running without cache"
+        }, 
+        {
+            "location": "/#example-box-script", 
+            "text": "This is the box script we use to build box itself. It uses many of its\nfeatures.  You can find the latest version of it  here  too.  from  golang \n\npackages = %w[\n  build-essential\n  g++\n  git\n  wget\n  curl\n  ruby\n  bison\n  flex\n  iptables\n  psmisc\n]\n\nrun  apt-get update \nrun  apt-get install -y #{packages.join(   )} \nenv  GOPATH  =   /go \n\nif getenv( RELEASE ) ==  \n  run  wget https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz \n  run  tar -xpf docker-1.12.1.tgz --strip-components=1 -C /usr/bin/ \n  run  rm docker-1.12.1.tgz \n  copy  dind ,  /dind \nend\n\ncopy  . ,  /go/src/github.com/erikh/box \n\nif getenv( IGNORE_LIBMRUBY ) ==  \n  run  cd /go/src/github.com/erikh/box   make \nend\n\nif getenv( RELEASE ) !=  \n  run  mv /go/bin/box /box \n  set_exec entrypoint: [ /box ], cmd: []\n  run  apt-get purge -y #{packages.join(   )} \n  run  apt-get autoclean \n  run  rm -rf /usr/local /go /var/cache/apt /var/lib/apt \n  flatten\n  tag  erikh/box:latest \nelse\n  workdir  /go/src/github.com/erikh/box \n  set_exec entrypoint: [ /dind ], cmd: [ make ,  docker-test ]\n  tag  box-test \nend", 
+            "title": "Example Box script"
+        }, 
+        {
+            "location": "/#learning-boxs-language", 
+            "text": "", 
+            "title": "Learning Box's Language"
+        }, 
+        {
+            "location": "/#caveats", 
+            "text": "Things that box still needs to fix that are documentation worthy:   Set  NO_CACHE=1  if you want to bypass the build cache. There is a ticket to\n  make this a command-line flag  here .  Currently we require a TTY and access to stdout to function.\n   This issue  was made to correct that.   Of course, you can see  all of our issues  too.", 
+            "title": "Caveats"
+        }
+    ]
+}

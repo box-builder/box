@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  
+  <title>Box - Flexible Docker Builder</title>
+  
+
+  <link rel="shortcut icon" href="./img/favicon.ico">
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="./css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="./css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="./css/highlight.css">
+
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "None";
+    var mkdocs_page_input_path = "index.md";
+    var mkdocs_page_url = "/";
+  </script>
+  
+  <script src="./js/jquery-2.1.1.min.js"></script>
+  <script src="./js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="./js/highlight.pack.js"></script>
+  <script src="./js/theme.js"></script> 
+
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href="." class="icon icon-home"> Box - Flexible Docker Builder</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        <ul class="current">
+          
+            <li>
+    <li class="toctree-l1 current">
+        <a class="current" href=".">Home</a>
+        
+            <ul>
+            
+                <li class="toctree-l3"><a href="#introduction">Introduction</a></li>
+                
+                    <li><a class="toctree-l4" href="#getting-box">Getting Box</a></li>
+                
+                    <li><a class="toctree-l4" href="#invocation">Invocation</a></li>
+                
+                    <li><a class="toctree-l4" href="#example-box-script">Example Box script</a></li>
+                
+                    <li><a class="toctree-l4" href="#learning-boxs-language">Learning Box's Language</a></li>
+                
+                    <li><a class="toctree-l4" href="#caveats">Caveats</a></li>
+                
+            
+            </ul>
+        
+    </li>
+<li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href=".">Box - Flexible Docker Builder</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Home</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="introduction">Introduction</h1>
+<p>Box is a small utility for the building of docker images. Through use of mruby,
+we provide additional flexibility over the vanilla <code>docker build</code> command by
+adding control structures and basic predicates. We also add new verbs that
+allow new actions, such as flattening and tagging images.</p>
+<h2 id="getting-box">Getting Box</h2>
+<p>That's complicated. You can either follow the <a href="https://github.com/erikh/box/blob/master/README.md">Development Instructions</a>
+or you can pull <code>erikh/box:latest</code> for now. See <code>Invocation</code> for how to run it.</p>
+<h2 id="invocation">Invocation</h2>
+<p>The commandline tool <code>box</code> will either accept a file as a commandline argument:</p>
+<pre><code class="shell">$ box myplan.rb
+</code></pre>
+
+<p>Or from stdin:</p>
+<pre><code class="shell">$ box &lt; myplan.rb
+</code></pre>
+
+<p>The current working directory that box runs in is very important, it is the
+jumping-off point for most copy operations. If you run the <code>erikh/box</code>
+container, you may wish to run it in this way:</p>
+<pre><code class="shell">$ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest &lt; myplan.rb
+</code></pre>
+
+<h3 id="running-without-cache">Running without cache</h3>
+<p>For now, set <code>NO_CACHE=1</code> in your shell's environment (or docker's environment
+with the <code>-e</code> switch to <code>docker run</code>) which will trump the entire cache. Note
+that parameterized statements and copy statements where the files have changed
+on disk will also bust the cache.</p>
+<h2 id="example-box-script">Example Box script</h2>
+<p>This is the box script we use to build box itself. It uses many of its
+features.</p>
+<p>You can find the latest version of it <a href="https://github.com/erikh/box/blob/master/build.rb">here</a> too.</p>
+<pre><code class="ruby">from &quot;golang&quot;
+
+packages = %w[
+  build-essential
+  g++
+  git
+  wget
+  curl
+  ruby
+  bison
+  flex
+  iptables
+  psmisc
+]
+
+run &quot;apt-get update&quot;
+run &quot;apt-get install -y #{packages.join(&quot; &quot;)}&quot;
+env &quot;GOPATH&quot; =&gt; &quot;/go&quot;
+
+if getenv(&quot;RELEASE&quot;) == &quot;&quot;
+  run &quot;wget https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz&quot;
+  run &quot;tar -xpf docker-1.12.1.tgz --strip-components=1 -C /usr/bin/&quot;
+  run &quot;rm docker-1.12.1.tgz&quot;
+  copy &quot;dind&quot;, &quot;/dind&quot;
+end
+
+copy &quot;.&quot;, &quot;/go/src/github.com/erikh/box&quot;
+
+if getenv(&quot;IGNORE_LIBMRUBY&quot;) == &quot;&quot;
+  run &quot;cd /go/src/github.com/erikh/box &amp;&amp; make&quot;
+end
+
+if getenv(&quot;RELEASE&quot;) != &quot;&quot;
+  run &quot;mv /go/bin/box /box&quot;
+  set_exec entrypoint: [&quot;/box&quot;], cmd: []
+  run &quot;apt-get purge -y #{packages.join(&quot; &quot;)}&quot;
+  run &quot;apt-get autoclean&quot;
+  run &quot;rm -rf /usr/local /go /var/cache/apt /var/lib/apt&quot;
+  flatten
+  tag &quot;erikh/box:latest&quot;
+else
+  workdir &quot;/go/src/github.com/erikh/box&quot;
+  set_exec entrypoint: [&quot;/dind&quot;], cmd: [&quot;make&quot;, &quot;docker-test&quot;]
+  tag &quot;box-test&quot;
+end
+</code></pre>
+
+<h2 id="learning-boxs-language">Learning Box's Language</h2>
+<h2 id="caveats">Caveats</h2>
+<p>Things that box still needs to fix that are documentation worthy:</p>
+<ul>
+<li>Set <code>NO_CACHE=1</code> if you want to bypass the build cache. There is a ticket to
+  make this a command-line flag <a href="https://github.com/erikh/box/issues/9">here</a>.</li>
+<li>Currently we require a TTY and access to stdout to function.
+  <a href="https://github.com/erikh/box/issues/4">This issue</a> was made to correct that.</li>
+</ul>
+<p>Of course, you can see <a href="https://github.com/erikh/box/issues">all of our issues</a> too.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+	  
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+<div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+      
+      
+    </span>
+</div>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 0.15.3
+Build Date UTC : 2016-10-14 09:00:53.744029
+-->
