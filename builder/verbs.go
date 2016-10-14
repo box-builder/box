@@ -38,10 +38,63 @@ var verbJumpTable = map[string]verbDefinition{
 	"env":        {env, mruby.ArgsAny()},
 	"cmd":        {cmd, mruby.ArgsAny()},
 	"entrypoint": {entrypoint, mruby.ArgsAny()},
+	"set_exec":   {setExec, mruby.ArgsReq(1)},
 }
 
 // verbFunc is a builder DSL function used to interact with docker.
 type verbFunc func(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
+
+// set_exec sets both the entrypoint and cmd at the same time, allowing for no
+// race between the operations.
+//
+// set_exec takes a dictionary consisting of two known elements as symbols:
+// entrypoint and cmd. They each take a string array which is then propagated
+// to the respective properties in the container's configuration.
+func setExec(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+	if len(args) != 1 {
+		return nil, createException(m, fmt.Sprintf("This call only accepts one argument; you provided %d.", len(args)))
+	}
+
+	err := iterateRubyHash(args[0], func(key, value *mruby.MrbValue) error {
+		if value.Type() != mruby.TypeArray {
+			return fmt.Errorf("Value for key %q is not array, must be array", key.String())
+		}
+
+		strArgs := []string{}
+		a := value.Array()
+
+		for i := 0; i < a.Len(); i++ {
+			val, err := a.Get(i)
+			if err != nil {
+				return err
+			}
+			strArgs = append(strArgs, val.String())
+		}
+
+		switch key.String() {
+		case "entrypoint":
+			b.entrypoint = strArgs
+		case "cmd":
+			b.cmd = strArgs
+		default:
+			return fmt.Errorf("set_exec only accepts cmd and entrypoint as keys")
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	b.resetConfig()
+
+	if err := b.commit(cacheKey, nil); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	return nil, nil
+}
 
 // workdir sets the WorkingDir in the docker environment. It sets this
 // throughout the image creation; all run/copy statements will respect this
