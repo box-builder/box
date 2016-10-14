@@ -334,27 +334,17 @@ func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mr
 //
 func env(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
-	hash := args[0].Hash()
-
-	// mruby does not expose native maps, just ruby primitives, so we have to
-	// iterate through it with indexing functions instead of typical idioms.
-	keys, err := hash.Keys()
-	if err != nil {
-		return nil, createException(m, err.Error())
+	if len(args) != 1 {
+		return nil, createException(m, fmt.Sprintf("This call only accepts one argument; you provided %d.", len(args)))
 	}
 
-	for i := 0; i < keys.Array().Len(); i++ {
-		key, err := keys.Array().Get(i)
-		if err != nil {
-			return nil, createException(m, err.Error())
-		}
-
-		value, err := hash.Get(key)
-		if err != nil {
-			return nil, createException(m, err.Error())
-		}
-
+	err := iterateRubyHash(args[0], func(key, value *mruby.MrbValue) error {
 		b.config.Env = append(b.config.Env, fmt.Sprintf("%s=%s", key.String(), value.String()))
+		return nil
+	})
+
+	if err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	if err := b.commit(cacheKey, nil); err != nil {

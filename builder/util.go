@@ -325,3 +325,32 @@ func (b *Builder) createEmptyContainer() (string, error) {
 
 	return cont.ID, err
 }
+
+func iterateRubyHash(arg *mruby.MrbValue, fn func(*mruby.MrbValue, *mruby.MrbValue) error) error {
+	hash := arg.Hash()
+
+	// mruby does not expose native maps, just ruby primitives, so we have to
+	// iterate through it with indexing functions instead of typical idioms.
+	keys, err := hash.Keys()
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < keys.Array().Len(); i++ {
+		key, err := keys.Array().Get(i)
+		if err != nil {
+			return err
+		}
+
+		value, err := hash.Get(key)
+		if err != nil {
+			return err
+		}
+
+		if err := fn(key, value); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
