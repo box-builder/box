@@ -10,11 +10,30 @@ getenv retrieves a value from the building environment (passed in as string)
 and returns a string with the value. If no value exists, an empty string is
 returned.
 
+Example:
+
+```ruby
+# If you set IMAGE=ceph/rbd:latest in your environment, that would be pulled
+# via the `from` statement.
+from getenv("IMAGE")
+```
+
 ## read
 
 read takes a filename as string, reads it from the latest image in the
 evaluation and returns its data. Yields an error if the file does not exist
 or from has not been called.
+
+read returns a string which may then be manipulated with normal string
+manipulations in ruby.
+
+Example:
+
+```ruby
+from "debian"
+# this gets the first username in your passwd file inside the debian image
+user read("/etc/passwd").split("\n").first.split(":")[0]
+```
 
 ## getuid
 
@@ -23,9 +42,23 @@ the user. This works by reading the /etc/passwd file in the image.
 
 Yields an error if it cannot find the user or from has not been called.
 
+Example:
+
+```ruby
+from "debian"
+run "gpasswd -aG docker #{getuid("erikh")}"
+```
+
 ## getgid
 
 getgid, given a string group name provides an integer response with the GID
 of the group. This works by reading the /etc/group file in the image.
 
 Yields an error if it cannot find the group or from has not been called.
+
+Example:
+
+```ruby
+from "debian"
+run "usermod -G #{getgid("docker")} erikh"
+```
