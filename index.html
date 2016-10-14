@@ -56,24 +56,42 @@
           
             <li>
     <li class="toctree-l1 current">
-        <a class="current" href=".">Home</a>
+        <a class="current" href=".">Introduction</a>
         
             <ul>
             
-                <li class="toctree-l3"><a href="#introduction">Introduction</a></li>
+                <li class="toctree-l3"><a href="#getting-box">Getting Box</a></li>
                 
-                    <li><a class="toctree-l4" href="#getting-box">Getting Box</a></li>
+            
+                <li class="toctree-l3"><a href="#invocation">Invocation</a></li>
                 
-                    <li><a class="toctree-l4" href="#invocation">Invocation</a></li>
+                    <li><a class="toctree-l4" href="#running-without-cache">Running without cache</a></li>
                 
-                    <li><a class="toctree-l4" href="#example-box-script">Example Box script</a></li>
+            
+                <li class="toctree-l3"><a href="#making-box-scripts">Making Box scripts</a></li>
                 
-                    <li><a class="toctree-l4" href="#learning-boxs-language">Learning Box's Language</a></li>
+            
+                <li class="toctree-l3"><a href="#example-box-script">Example Box script</a></li>
                 
-                    <li><a class="toctree-l4" href="#caveats">Caveats</a></li>
+            
+                <li class="toctree-l3"><a href="#caveats">Caveats</a></li>
                 
             
             </ul>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="verbs/">Verb Reference</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="functions/">Function Reference</a>
         
     </li>
 <li>
@@ -100,8 +118,12 @@
     
       
     
-    <li>Home</li>
+    <li>Introduction</li>
     <li class="wy-breadcrumbs-aside">
+      
+        
+          <a href="https://github.com/erikh/box" class="icon icon-github"> Edit on GitHub</a>
+        
       
     </li>
   </ul>
@@ -110,8 +132,7 @@
           <div role="main">
             <div class="section">
               
-                <h1 id="introduction">Introduction</h1>
-<p>Box is a small utility for the building of docker images. Through use of mruby,
+                <p>Box is a small utility for the building of docker images. Through use of mruby,
 we provide additional flexibility over the vanilla <code>docker build</code> command by
 adding control structures and basic predicates. We also add new verbs that
 allow new actions, such as flattening and tagging images.</p>
@@ -127,7 +148,7 @@ or you can pull <code>erikh/box:latest</code> for now. See <code>Invocation</cod
 <pre><code class="shell">$ box &lt; myplan.rb
 </code></pre>
 
-<p>The current working directory that box runs in is very important, it is the
+<p>The current working directory that Box runs in is very important, it is the
 jumping-off point for most copy operations. If you run the <code>erikh/box</code>
 container, you may wish to run it in this way:</p>
 <pre><code class="shell">$ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest &lt; myplan.rb
@@ -138,8 +159,23 @@ container, you may wish to run it in this way:</p>
 with the <code>-e</code> switch to <code>docker run</code>) which will trump the entire cache. Note
 that parameterized statements and copy statements where the files have changed
 on disk will also bust the cache.</p>
+<h2 id="making-box-scripts">Making Box scripts</h2>
+<p>Box scripts are written in mruby, an embedded, smaller variant of ruby. If you
+are new to ruby, here is a tutorial that only <a href="https://github.com/jhotta/chef-fundamentals-ja/blob/master/slides/just-enough-ruby-for-chef/01_slide.md">covers the basics</a>.
+You will not need to be an advanced ruby user to leverage Box.</p>
+<p>Box script terms are either functions or verbs.</p>
+<p>Verbs typically create a layer and are meant to run at the top level of the
+script; they are not intended to return a sane value other than success/fail.
+Operations like <code>run</code> and <code>copy</code> fit into the "verb" category. These are very
+similar to the verbs you'd find in <code>docker build</code>.</p>
+<p>Functions are unique to Box and allow you to pass data both from the image into
+the build system and pass it to other calls, or just print it out for later
+use. Functions like <code>getuid</code> exist to retrieve the UID of a user as the
+container sees it, for the purposes of using it for future operations.</p>
+<p>Please take a look at our <a href="./verbs">verbs reference</a> and <a href="./functions">functions
+reference</a> for more information.</p>
 <h2 id="example-box-script">Example Box script</h2>
-<p>This is the box script we use to build box itself. It uses many of its
+<p>This is the Box script we use to build Box itself. It uses many of its
 features.</p>
 <p>You can find the latest version of it <a href="https://github.com/erikh/box/blob/master/build.rb">here</a> too.</p>
 <pre><code class="ruby">from &quot;golang&quot;
@@ -189,9 +225,8 @@ else
 end
 </code></pre>
 
-<h2 id="learning-boxs-language">Learning Box's Language</h2>
 <h2 id="caveats">Caveats</h2>
-<p>Things that box still needs to fix that are documentation worthy:</p>
+<p>Things that Box still needs to fix that are documentation worthy:</p>
 <ul>
 <li>Set <code>NO_CACHE=1</code> if you want to bypass the build cache. There is a ticket to
   make this a command-line flag <a href="https://github.com/erikh/box/issues/9">here</a>.</li>
@@ -203,6 +238,13 @@ end
             </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="verbs/" class="btn btn-neutral float-right" title="Verb Reference">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+    </div>
   
 
   <hr/>
@@ -225,7 +267,11 @@ end
 <div class="rst-versions" role="note" style="cursor: pointer">
     <span class="rst-current-version" data-toggle="rst-current-version">
       
+          <a href="https://github.com/erikh/box" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
+      
+      
+        <span style="margin-left: 15px"><a href="verbs/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>
@@ -235,5 +281,5 @@ end
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-10-14 09:00:53.744029
+Build Date UTC : 2016-10-14 09:37:42.924374
 -->

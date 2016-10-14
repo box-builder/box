@@ -2,12 +2,7 @@
     "docs": [
         {
             "location": "/", 
-            "text": "Introduction\n\n\nBox is a small utility for the building of docker images. Through use of mruby,\nwe provide additional flexibility over the vanilla \ndocker build\n command by\nadding control structures and basic predicates. We also add new verbs that\nallow new actions, such as flattening and tagging images.\n\n\nGetting Box\n\n\nThat's complicated. You can either follow the \nDevelopment Instructions\n\nor you can pull \nerikh/box:latest\n for now. See \nInvocation\n for how to run it.\n\n\nInvocation\n\n\nThe commandline tool \nbox\n will either accept a file as a commandline argument:\n\n\n$ box myplan.rb\n\n\n\n\nOr from stdin:\n\n\n$ box \n myplan.rb\n\n\n\n\nThe current working directory that box runs in is very important, it is the\njumping-off point for most copy operations. If you run the \nerikh/box\n\ncontainer, you may wish to run it in this way:\n\n\n$ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest \n myplan.rb\n\n\n\n\nRunning without cache\n\n\nFor now, set \nNO_CACHE=1\n in your shell's environment (or docker's environment\nwith the \n-e\n switch to \ndocker run\n) which will trump the entire cache. Note\nthat parameterized statements and copy statements where the files have changed\non disk will also bust the cache.\n\n\nExample Box script\n\n\nThis is the box script we use to build box itself. It uses many of its\nfeatures.\n\n\nYou can find the latest version of it \nhere\n too.\n\n\nfrom \ngolang\n\n\npackages = %w[\n  build-essential\n  g++\n  git\n  wget\n  curl\n  ruby\n  bison\n  flex\n  iptables\n  psmisc\n]\n\nrun \napt-get update\n\nrun \napt-get install -y #{packages.join(\n \n)}\n\nenv \nGOPATH\n =\n \n/go\n\n\nif getenv(\nRELEASE\n) == \n\n  run \nwget https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz\n\n  run \ntar -xpf docker-1.12.1.tgz --strip-components=1 -C /usr/bin/\n\n  run \nrm docker-1.12.1.tgz\n\n  copy \ndind\n, \n/dind\n\nend\n\ncopy \n.\n, \n/go/src/github.com/erikh/box\n\n\nif getenv(\nIGNORE_LIBMRUBY\n) == \n\n  run \ncd /go/src/github.com/erikh/box \n make\n\nend\n\nif getenv(\nRELEASE\n) != \n\n  run \nmv /go/bin/box /box\n\n  set_exec entrypoint: [\n/box\n], cmd: []\n  run \napt-get purge -y #{packages.join(\n \n)}\n\n  run \napt-get autoclean\n\n  run \nrm -rf /usr/local /go /var/cache/apt /var/lib/apt\n\n  flatten\n  tag \nerikh/box:latest\n\nelse\n  workdir \n/go/src/github.com/erikh/box\n\n  set_exec entrypoint: [\n/dind\n], cmd: [\nmake\n, \ndocker-test\n]\n  tag \nbox-test\n\nend\n\n\n\n\nLearning Box's Language\n\n\nCaveats\n\n\nThings that box still needs to fix that are documentation worthy:\n\n\n\n\nSet \nNO_CACHE=1\n if you want to bypass the build cache. There is a ticket to\n  make this a command-line flag \nhere\n.\n\n\nCurrently we require a TTY and access to stdout to function.\n  \nThis issue\n was made to correct that.\n\n\n\n\nOf course, you can see \nall of our issues\n too.", 
-            "title": "Home"
-        }, 
-        {
-            "location": "/#introduction", 
-            "text": "Box is a small utility for the building of docker images. Through use of mruby,\nwe provide additional flexibility over the vanilla  docker build  command by\nadding control structures and basic predicates. We also add new verbs that\nallow new actions, such as flattening and tagging images.", 
+            "text": "Box is a small utility for the building of docker images. Through use of mruby,\nwe provide additional flexibility over the vanilla \ndocker build\n command by\nadding control structures and basic predicates. We also add new verbs that\nallow new actions, such as flattening and tagging images.\n\n\nGetting Box\n\n\nThat's complicated. You can either follow the \nDevelopment Instructions\n\nor you can pull \nerikh/box:latest\n for now. See \nInvocation\n for how to run it.\n\n\nInvocation\n\n\nThe commandline tool \nbox\n will either accept a file as a commandline argument:\n\n\n$ box myplan.rb\n\n\n\n\nOr from stdin:\n\n\n$ box \n myplan.rb\n\n\n\n\nThe current working directory that Box runs in is very important, it is the\njumping-off point for most copy operations. If you run the \nerikh/box\n\ncontainer, you may wish to run it in this way:\n\n\n$ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest \n myplan.rb\n\n\n\n\nRunning without cache\n\n\nFor now, set \nNO_CACHE=1\n in your shell's environment (or docker's environment\nwith the \n-e\n switch to \ndocker run\n) which will trump the entire cache. Note\nthat parameterized statements and copy statements where the files have changed\non disk will also bust the cache.\n\n\nMaking Box scripts\n\n\nBox scripts are written in mruby, an embedded, smaller variant of ruby. If you\nare new to ruby, here is a tutorial that only \ncovers the basics\n.\nYou will not need to be an advanced ruby user to leverage Box.\n\n\nBox script terms are either functions or verbs.\n\n\nVerbs typically create a layer and are meant to run at the top level of the\nscript; they are not intended to return a sane value other than success/fail.\nOperations like \nrun\n and \ncopy\n fit into the \"verb\" category. These are very\nsimilar to the verbs you'd find in \ndocker build\n.\n\n\nFunctions are unique to Box and allow you to pass data both from the image into\nthe build system and pass it to other calls, or just print it out for later\nuse. Functions like \ngetuid\n exist to retrieve the UID of a user as the\ncontainer sees it, for the purposes of using it for future operations.\n\n\nPlease take a look at our \nverbs reference\n and \nfunctions\nreference\n for more information.\n\n\nExample Box script\n\n\nThis is the Box script we use to build Box itself. It uses many of its\nfeatures.\n\n\nYou can find the latest version of it \nhere\n too.\n\n\nfrom \ngolang\n\n\npackages = %w[\n  build-essential\n  g++\n  git\n  wget\n  curl\n  ruby\n  bison\n  flex\n  iptables\n  psmisc\n]\n\nrun \napt-get update\n\nrun \napt-get install -y #{packages.join(\n \n)}\n\nenv \nGOPATH\n =\n \n/go\n\n\nif getenv(\nRELEASE\n) == \n\n  run \nwget https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz\n\n  run \ntar -xpf docker-1.12.1.tgz --strip-components=1 -C /usr/bin/\n\n  run \nrm docker-1.12.1.tgz\n\n  copy \ndind\n, \n/dind\n\nend\n\ncopy \n.\n, \n/go/src/github.com/erikh/box\n\n\nif getenv(\nIGNORE_LIBMRUBY\n) == \n\n  run \ncd /go/src/github.com/erikh/box \n make\n\nend\n\nif getenv(\nRELEASE\n) != \n\n  run \nmv /go/bin/box /box\n\n  set_exec entrypoint: [\n/box\n], cmd: []\n  run \napt-get purge -y #{packages.join(\n \n)}\n\n  run \napt-get autoclean\n\n  run \nrm -rf /usr/local /go /var/cache/apt /var/lib/apt\n\n  flatten\n  tag \nerikh/box:latest\n\nelse\n  workdir \n/go/src/github.com/erikh/box\n\n  set_exec entrypoint: [\n/dind\n], cmd: [\nmake\n, \ndocker-test\n]\n  tag \nbox-test\n\nend\n\n\n\n\nCaveats\n\n\nThings that Box still needs to fix that are documentation worthy:\n\n\n\n\nSet \nNO_CACHE=1\n if you want to bypass the build cache. There is a ticket to\n  make this a command-line flag \nhere\n.\n\n\nCurrently we require a TTY and access to stdout to function.\n  \nThis issue\n was made to correct that.\n\n\n\n\nOf course, you can see \nall of our issues\n too.", 
             "title": "Introduction"
         }, 
         {
@@ -17,7 +12,7 @@
         }, 
         {
             "location": "/#invocation", 
-            "text": "The commandline tool  box  will either accept a file as a commandline argument:  $ box myplan.rb  Or from stdin:  $ box   myplan.rb  The current working directory that box runs in is very important, it is the\njumping-off point for most copy operations. If you run the  erikh/box \ncontainer, you may wish to run it in this way:  $ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest   myplan.rb", 
+            "text": "The commandline tool  box  will either accept a file as a commandline argument:  $ box myplan.rb  Or from stdin:  $ box   myplan.rb  The current working directory that Box runs in is very important, it is the\njumping-off point for most copy operations. If you run the  erikh/box \ncontainer, you may wish to run it in this way:  $ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest   myplan.rb", 
             "title": "Invocation"
         }, 
         {
@@ -26,19 +21,114 @@
             "title": "Running without cache"
         }, 
         {
+            "location": "/#making-box-scripts", 
+            "text": "Box scripts are written in mruby, an embedded, smaller variant of ruby. If you\nare new to ruby, here is a tutorial that only  covers the basics .\nYou will not need to be an advanced ruby user to leverage Box.  Box script terms are either functions or verbs.  Verbs typically create a layer and are meant to run at the top level of the\nscript; they are not intended to return a sane value other than success/fail.\nOperations like  run  and  copy  fit into the \"verb\" category. These are very\nsimilar to the verbs you'd find in  docker build .  Functions are unique to Box and allow you to pass data both from the image into\nthe build system and pass it to other calls, or just print it out for later\nuse. Functions like  getuid  exist to retrieve the UID of a user as the\ncontainer sees it, for the purposes of using it for future operations.  Please take a look at our  verbs reference  and  functions\nreference  for more information.", 
+            "title": "Making Box scripts"
+        }, 
+        {
             "location": "/#example-box-script", 
-            "text": "This is the box script we use to build box itself. It uses many of its\nfeatures.  You can find the latest version of it  here  too.  from  golang \n\npackages = %w[\n  build-essential\n  g++\n  git\n  wget\n  curl\n  ruby\n  bison\n  flex\n  iptables\n  psmisc\n]\n\nrun  apt-get update \nrun  apt-get install -y #{packages.join(   )} \nenv  GOPATH  =   /go \n\nif getenv( RELEASE ) ==  \n  run  wget https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz \n  run  tar -xpf docker-1.12.1.tgz --strip-components=1 -C /usr/bin/ \n  run  rm docker-1.12.1.tgz \n  copy  dind ,  /dind \nend\n\ncopy  . ,  /go/src/github.com/erikh/box \n\nif getenv( IGNORE_LIBMRUBY ) ==  \n  run  cd /go/src/github.com/erikh/box   make \nend\n\nif getenv( RELEASE ) !=  \n  run  mv /go/bin/box /box \n  set_exec entrypoint: [ /box ], cmd: []\n  run  apt-get purge -y #{packages.join(   )} \n  run  apt-get autoclean \n  run  rm -rf /usr/local /go /var/cache/apt /var/lib/apt \n  flatten\n  tag  erikh/box:latest \nelse\n  workdir  /go/src/github.com/erikh/box \n  set_exec entrypoint: [ /dind ], cmd: [ make ,  docker-test ]\n  tag  box-test \nend", 
+            "text": "This is the Box script we use to build Box itself. It uses many of its\nfeatures.  You can find the latest version of it  here  too.  from  golang \n\npackages = %w[\n  build-essential\n  g++\n  git\n  wget\n  curl\n  ruby\n  bison\n  flex\n  iptables\n  psmisc\n]\n\nrun  apt-get update \nrun  apt-get install -y #{packages.join(   )} \nenv  GOPATH  =   /go \n\nif getenv( RELEASE ) ==  \n  run  wget https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz \n  run  tar -xpf docker-1.12.1.tgz --strip-components=1 -C /usr/bin/ \n  run  rm docker-1.12.1.tgz \n  copy  dind ,  /dind \nend\n\ncopy  . ,  /go/src/github.com/erikh/box \n\nif getenv( IGNORE_LIBMRUBY ) ==  \n  run  cd /go/src/github.com/erikh/box   make \nend\n\nif getenv( RELEASE ) !=  \n  run  mv /go/bin/box /box \n  set_exec entrypoint: [ /box ], cmd: []\n  run  apt-get purge -y #{packages.join(   )} \n  run  apt-get autoclean \n  run  rm -rf /usr/local /go /var/cache/apt /var/lib/apt \n  flatten\n  tag  erikh/box:latest \nelse\n  workdir  /go/src/github.com/erikh/box \n  set_exec entrypoint: [ /dind ], cmd: [ make ,  docker-test ]\n  tag  box-test \nend", 
             "title": "Example Box script"
         }, 
         {
-            "location": "/#learning-boxs-language", 
-            "text": "", 
-            "title": "Learning Box's Language"
+            "location": "/#caveats", 
+            "text": "Things that Box still needs to fix that are documentation worthy:   Set  NO_CACHE=1  if you want to bypass the build cache. There is a ticket to\n  make this a command-line flag  here .  Currently we require a TTY and access to stdout to function.\n   This issue  was made to correct that.   Of course, you can see  all of our issues  too.", 
+            "title": "Caveats"
         }, 
         {
-            "location": "/#caveats", 
-            "text": "Things that box still needs to fix that are documentation worthy:   Set  NO_CACHE=1  if you want to bypass the build cache. There is a ticket to\n  make this a command-line flag  here .  Currently we require a TTY and access to stdout to function.\n   This issue  was made to correct that.   Of course, you can see  all of our issues  too.", 
-            "title": "Caveats"
+            "location": "/verbs/", 
+            "text": "Verbs take action on a container and usually create a layer. Some commands can\nbe used to move data into and out of containers, or set properties and run\ncommands.\n\n\nset_exec\n\n\nset_exec\n sets both the entrypoint and cmd at the same time, allowing for no\nrace between the operations.\n\n\nset_exec\n takes a dictionary consisting of two known elements as symbols:\nentrypoint and cmd. They each take a string array which is then propagated\nto the respective properties in the container's configuration.\n\n\nworkdir\n\n\nworkdir sets the WorkingDir in the docker environment. It sets this\nthroughout the image creation; all run/copy statements will respect this\nvalue. If you wish to break out or work within it further, look at the\n\ninside\n call.\n\n\nuser\n\n\nuser sets the username this container will use by default. It also affects\nfollowing run statements (but not copy, which always copies as root\ncurrently). If you wish to switch to a user temporarily, consider using\n\nwith_user\n.\n\n\nflatten\n\n\nflatten requires no argumemnts and flattens all layers and commits a new\nlayer. This is useful for reducing the size of images or making them easier\nto distribute.\n\n\nNOTE: flattening will always bust the build cache.\n\n\nNOTE: flattening requires downloading the image and re-uploading it. This\ncan take a lot of time over remote connections and is not advised.\n\n\ntag\n\n\ntag tags an image within the docker daemon, named after the string provided.\nIt must be a valid tag name.\n\n\nentrypoint\n\n\nentrypoint sets the entrypoint for the image at runtime. It will not be\nused for run invocations. Note that setting this clears any previously set cmd.\n\n\nfrom\n\n\nfrom sets the initial image and if necessary, pulls it from the registry. It\nalso sets the initial layer and must be called before several operations.\n\n\nrun\n\n\nrun runs a command and saves the layer.\n\n\nIt respects user and workdir, but not entrypoint and command. It does this\nso it can respect the values provided in the script instead of what was\nintended for the final image.\n\n\nCache keys are generated based on the command name, so to be certain your\ncommand is run in the event of it hitting cache, run box with NO_CACHE=1.\n\n\nwith_user\n\n\nwith_user\n, when provided with a string username and block invokes commands\nwithin the user's login context. Unfortunately, copy does not respect this\nyet. It does not affect the final image.\n\n\nExample:\n\n\nwith_user \nerikh\n do\n  run \nvim +PluginInstall +qall\n\nend\n\n\n\n\ninside\n\n\ninside, when provided with a directory name string and block, invokes\ncommands within the context of the working directory being set to the\nstring. It does not affect the final image.\n\n\nExample:\n\n\ninside \n/dev\n do\n  run \nmknod webscale c 1 3\n\nend\n\n\n\n\nenv\n\n\nenv, when provided with a hash of string =\n string key/value combinations,\nwill set the environment in the image and future run invocations.\n\n\nExample:\n\n\nenv \nGOPATH\n =\n \n/go\n, \nPATH\n =\n \n/usr/bin:/bin\n\nenv GOPATH: \n/go\n, PATH: \n/usr/bin:/bin\n # equivalent if you prefer this syntax\n\n\n\n\ncmd\n\n\ncmd, when provided with a string will set the docker image's Cmd property,\nwhich are the arguments that follow the entrypoint (and are overridden when\nyou provide a command to \ndocker run\n). It does not affect run invocations.\n\n\nNote that if you set this before entrypoint, it will be cleared.\n\n\ncopy\n\n\ncopy copies files from the host to the container. It only works relative to\nthe current directory. The build cache is calculated by summing the tar\nresult of edited files. Since mtime is also considered, changes to that will\nalso bust the cache.\n\n\nNOTE: copy does not respect inside or workdir right now, this is a bug.\n\n\nNOTE: copy does not respect user permissions when the \nuser\n or \nwith_user\n\nmodifiers are applied. This is also a bug, but a much harder to fix one.\n\n\nExample:\n\n\ncopy \n.\n, \ntest", 
+            "title": "Verb Reference"
+        }, 
+        {
+            "location": "/verbs/#set95exec", 
+            "text": "set_exec  sets both the entrypoint and cmd at the same time, allowing for no\nrace between the operations.  set_exec  takes a dictionary consisting of two known elements as symbols:\nentrypoint and cmd. They each take a string array which is then propagated\nto the respective properties in the container's configuration.", 
+            "title": "set_exec"
+        }, 
+        {
+            "location": "/verbs/#workdir", 
+            "text": "workdir sets the WorkingDir in the docker environment. It sets this\nthroughout the image creation; all run/copy statements will respect this\nvalue. If you wish to break out or work within it further, look at the inside  call.", 
+            "title": "workdir"
+        }, 
+        {
+            "location": "/verbs/#user", 
+            "text": "user sets the username this container will use by default. It also affects\nfollowing run statements (but not copy, which always copies as root\ncurrently). If you wish to switch to a user temporarily, consider using with_user .", 
+            "title": "user"
+        }, 
+        {
+            "location": "/verbs/#flatten", 
+            "text": "flatten requires no argumemnts and flattens all layers and commits a new\nlayer. This is useful for reducing the size of images or making them easier\nto distribute.  NOTE: flattening will always bust the build cache.  NOTE: flattening requires downloading the image and re-uploading it. This\ncan take a lot of time over remote connections and is not advised.", 
+            "title": "flatten"
+        }, 
+        {
+            "location": "/verbs/#tag", 
+            "text": "tag tags an image within the docker daemon, named after the string provided.\nIt must be a valid tag name.", 
+            "title": "tag"
+        }, 
+        {
+            "location": "/verbs/#entrypoint", 
+            "text": "entrypoint sets the entrypoint for the image at runtime. It will not be\nused for run invocations. Note that setting this clears any previously set cmd.", 
+            "title": "entrypoint"
+        }, 
+        {
+            "location": "/verbs/#from", 
+            "text": "from sets the initial image and if necessary, pulls it from the registry. It\nalso sets the initial layer and must be called before several operations.", 
+            "title": "from"
+        }, 
+        {
+            "location": "/verbs/#run", 
+            "text": "run runs a command and saves the layer.  It respects user and workdir, but not entrypoint and command. It does this\nso it can respect the values provided in the script instead of what was\nintended for the final image.  Cache keys are generated based on the command name, so to be certain your\ncommand is run in the event of it hitting cache, run box with NO_CACHE=1.", 
+            "title": "run"
+        }, 
+        {
+            "location": "/verbs/#with95user", 
+            "text": "with_user , when provided with a string username and block invokes commands\nwithin the user's login context. Unfortunately, copy does not respect this\nyet. It does not affect the final image.  Example:  with_user  erikh  do\n  run  vim +PluginInstall +qall \nend", 
+            "title": "with_user"
+        }, 
+        {
+            "location": "/verbs/#inside", 
+            "text": "inside, when provided with a directory name string and block, invokes\ncommands within the context of the working directory being set to the\nstring. It does not affect the final image.  Example:  inside  /dev  do\n  run  mknod webscale c 1 3 \nend", 
+            "title": "inside"
+        }, 
+        {
+            "location": "/verbs/#env", 
+            "text": "env, when provided with a hash of string =  string key/value combinations,\nwill set the environment in the image and future run invocations.  Example:  env  GOPATH  =   /go ,  PATH  =   /usr/bin:/bin \nenv GOPATH:  /go , PATH:  /usr/bin:/bin  # equivalent if you prefer this syntax", 
+            "title": "env"
+        }, 
+        {
+            "location": "/verbs/#cmd", 
+            "text": "cmd, when provided with a string will set the docker image's Cmd property,\nwhich are the arguments that follow the entrypoint (and are overridden when\nyou provide a command to  docker run ). It does not affect run invocations.  Note that if you set this before entrypoint, it will be cleared.", 
+            "title": "cmd"
+        }, 
+        {
+            "location": "/verbs/#copy", 
+            "text": "copy copies files from the host to the container. It only works relative to\nthe current directory. The build cache is calculated by summing the tar\nresult of edited files. Since mtime is also considered, changes to that will\nalso bust the cache.  NOTE: copy does not respect inside or workdir right now, this is a bug.  NOTE: copy does not respect user permissions when the  user  or  with_user \nmodifiers are applied. This is also a bug, but a much harder to fix one.  Example:  copy  . ,  test", 
+            "title": "copy"
+        }, 
+        {
+            "location": "/functions/", 
+            "text": "Functions in Box provide a data-passing mechanism for build instructions. For\nexample, you may wish to read the contents of a file from the container into\nyour build for further processing; the \nread\n function allows that.\n\n\nThese are the functions supported by Box.\n\n\ngetenv\n\n\ngetenv retrieves a value from the building environment (passed in as string)\nand returns a string with the value. If no value exists, an empty string is\nreturned.\n\n\nread\n\n\nread takes a filename as string, reads it from the latest image in the\nevaluation and returns its data. Yields an error if the file does not exist\nor from has not been called.\n\n\ngetuid\n\n\ngetuid, given a string username provides an integer response with the UID of\nthe user. This works by reading the /etc/passwd file in the image.\n\n\nYields an error if it cannot find the user or from has not been called.\n\n\ngetgid\n\n\ngetgid, given a string group name provides an integer response with the GID\nof the group. This works by reading the /etc/group file in the image.\n\n\nYields an error if it cannot find the group or from has not been called.", 
+            "title": "Function Reference"
+        }, 
+        {
+            "location": "/functions/#getenv", 
+            "text": "getenv retrieves a value from the building environment (passed in as string)\nand returns a string with the value. If no value exists, an empty string is\nreturned.", 
+            "title": "getenv"
+        }, 
+        {
+            "location": "/functions/#read", 
+            "text": "read takes a filename as string, reads it from the latest image in the\nevaluation and returns its data. Yields an error if the file does not exist\nor from has not been called.", 
+            "title": "read"
+        }, 
+        {
+            "location": "/functions/#getuid", 
+            "text": "getuid, given a string username provides an integer response with the UID of\nthe user. This works by reading the /etc/passwd file in the image.  Yields an error if it cannot find the user or from has not been called.", 
+            "title": "getuid"
+        }, 
+        {
+            "location": "/functions/#getgid", 
+            "text": "getgid, given a string group name provides an integer response with the GID\nof the group. This works by reading the /etc/group file in the image.  Yields an error if it cannot find the group or from has not been called.", 
+            "title": "getgid"
         }
     ]
 }
