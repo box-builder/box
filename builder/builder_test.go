@@ -562,3 +562,47 @@ func (bs *builderSuite) TestEnv(c *C) {
 
 	c.Assert(count, Equals, 2)
 }
+
+func (bs *builderSuite) TestReaderFuncs(c *C) {
+	b, err := runBuilder(`
+    from "debian"
+    run "echo -n #{getuid("root")} > /uid"
+    run "echo -n #{getgid("nogroup")} > /gid"
+    run "echo -n '#{read("/etc/passwd")}' > /passwd"
+  `)
+	c.Assert(err, IsNil)
+
+	content, err := b.containerContent("/uid")
+	c.Assert(err, IsNil)
+	c.Assert(string(content), Equals, "0")
+
+	content, err = b.containerContent("/gid")
+	c.Assert(err, IsNil)
+	c.Assert(string(content), Equals, "65534")
+
+	content, err = b.containerContent("/passwd")
+	c.Assert(err, IsNil)
+
+	origContent, err := b.containerContent("/etc/passwd")
+	c.Assert(err, IsNil)
+
+	c.Assert(content, DeepEquals, origContent)
+
+	b, err = runBuilder(`
+    from "debian"
+    puts read("/nonexistent")
+  `)
+	c.Assert(err, NotNil)
+
+	b, err = runBuilder(`
+    from "debian"
+    puts getuid("quux")
+  `)
+	c.Assert(err, NotNil)
+
+	b, err = runBuilder(`
+    from "debian"
+    puts getgid("quux")
+  `)
+	c.Assert(err, NotNil)
+}
