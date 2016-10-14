@@ -518,3 +518,47 @@ func (bs *builderSuite) TestSetExec(c *C) {
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/bash", "-c"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"exit 0"})
 }
+
+func (bs *builderSuite) TestEnv(c *C) {
+	b, err := runBuilder(`
+    from "debian"
+    env GOPATH: "/go"
+  `)
+	c.Assert(err, IsNil)
+
+	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+
+	found := false
+
+	for _, str := range inspect.Config.Env {
+		if str == "GOPATH=/go" {
+			found = true
+		}
+	}
+
+	c.Assert(found, Equals, true)
+
+	b, err = runBuilder(`
+    from "debian"
+    env "GOPATH" => "/go", "PATH" => "/usr/local"
+  `)
+	c.Assert(err, IsNil)
+
+	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	c.Assert(err, IsNil)
+
+	count := 0
+
+	for _, str := range inspect.Config.Env {
+		switch str {
+		case "GOPATH=/go":
+			count++
+		case "PATH=/usr/local":
+			count++
+		default:
+		}
+	}
+
+	c.Assert(count, Equals, 2)
+}
