@@ -209,7 +209,7 @@ func tag(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	if err := standardCheck(b, args, 1); err != nil {
+	if err := checkImage(b); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -381,7 +381,7 @@ func env(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 func cmd(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	if err := standardCheck(b, args, 1); err != nil {
+	if err := checkImage(b); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
