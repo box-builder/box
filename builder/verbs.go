@@ -213,10 +213,7 @@ func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue)
 		return nil, createException(m, err.Error())
 	}
 
-	stringArgs := []string{}
-	for _, arg := range args {
-		stringArgs = append(stringArgs, arg.String())
-	}
+	stringArgs := extractStringArgs(m)
 
 	b.entrypoint = stringArgs
 	b.config.Entrypoint = stringArgs
@@ -277,10 +274,7 @@ func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 		return nil, createException(m, err.Error())
 	}
 
-	stringArgs := []string{}
-	for _, arg := range args {
-		stringArgs = append(stringArgs, arg.String())
-	}
+	stringArgs := extractStringArgs(m)
 
 	b.resetConfig()
 	b.config.Entrypoint = []string{"/bin/sh", "-c"}
@@ -385,10 +379,7 @@ func cmd(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 		return nil, createException(m, err.Error())
 	}
 
-	stringArgs := []string{}
-	for _, arg := range args {
-		stringArgs = append(stringArgs, arg.String())
-	}
+	stringArgs := extractStringArgs(m)
 
 	b.cmd = stringArgs
 	b.config.Cmd = stringArgs
