@@ -126,7 +126,7 @@ from "sha256:deadbeefcafebabeaddedbeef"
 
 ## run
 
-run runs a command and saves the layer.
+run runs a command provided as a string, and saves the layer.
 
 It respects user and workdir, but not entrypoint and command. It does this
 so it can respect the values provided in the script instead of what was
@@ -139,6 +139,8 @@ Examples:
 
 Create a file called `/bar` inside the container, then chown it to nobody. Run
 commands don't need a lot of `&&` because you can trivially flatten the layers.
+
+Run does not accept the exec-form from docker's RUN equivalent. 
 
 ```ruby
 from "debian"
