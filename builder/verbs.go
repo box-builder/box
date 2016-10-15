@@ -2,6 +2,9 @@ package builder
 
 /*
   verbs.go is a collection of the verbs used to manipulate docker images and tags.
+
+  Please refer to https://erikh.github.io/box/verbs/ for documentation on each
+  of the verbs.
 */
 
 import (
@@ -11,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/docker/engine-api/types"
@@ -44,12 +48,6 @@ var verbJumpTable = map[string]verbDefinition{
 // verbFunc is a builder DSL function used to interact with docker.
 type verbFunc func(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
 
-// set_exec sets both the entrypoint and cmd at the same time, allowing for no
-// race between the operations.
-//
-// set_exec takes a dictionary consisting of two known elements as symbols:
-// entrypoint and cmd. They each take a string array which is then propagated
-// to the respective properties in the container's configuration.
 func setExec(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 	if len(args) != 1 {
@@ -96,10 +94,6 @@ func setExec(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 	return nil, nil
 }
 
-// workdir sets the WorkingDir in the docker environment. It sets this
-// throughout the image creation; all run/copy statements will respect this
-// value. If you wish to break out or work within it further, look at the
-// `inside` call.
 func workdir(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 	if len(args) != 1 {
@@ -118,10 +112,6 @@ func workdir(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 	return nil, nil
 }
 
-// user sets the username this container will use by default. It also affects
-// following run statements (but not copy, which always copies as root
-// currently). If you wish to switch to a user temporarily, consider using
-// `with_user`.
 func user(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 	if len(args) != 1 {
@@ -138,15 +128,6 @@ func user(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 	return nil, nil
 }
 
-// flatten requires no argumemnts and flattens all layers and commits a new
-// layer. This is useful for reducing the size of images or making them easier
-// to distribute.
-//
-// NOTE: flattening will always bust the build cache.
-//
-// NOTE: flattening requires downloading the image and re-uploading it. This
-// can take a lot of time over remote connections and is not advised.
-//
 func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	id, err := b.createEmptyContainer()
 	if err != nil {
@@ -200,8 +181,6 @@ func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 	return nil, nil
 }
 
-// tag tags an image within the docker daemon, named after the string provided.
-// It must be a valid tag name.
 func tag(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 	if len(args) != 1 {
@@ -224,8 +203,6 @@ func tag(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 	return nil, nil
 }
 
-// entrypoint sets the entrypoint for the image at runtime. It will not be
-// used for run invocations. Note that setting this clears any previously set cmd.
 func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	stringArgs := []string{}
 	for _, arg := range m.GetArgs() {
@@ -249,8 +226,6 @@ func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue)
 	return nil, nil
 }
 
-// from sets the initial image and if necessary, pulls it from the registry. It
-// also sets the initial layer and must be called before several operations.
 func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
@@ -282,15 +257,6 @@ func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 	return mruby.String(b.config.Image), nil
 }
 
-// run runs a command and saves the layer.
-//
-// It respects user and workdir, but not entrypoint and command. It does this
-// so it can respect the values provided in the script instead of what was
-// intended for the final image.
-//
-// Cache keys are generated based on the command name, so to be certain your
-// command is run in the event of it hitting cache, run box with NO_CACHE=1.
-//
 func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if b.config.Image == "" {
 		return nil, createException(m, "`from` must precede any `run` statements")
@@ -314,16 +280,6 @@ func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 	return nil, nil
 }
 
-// with_user, when provided with a string username and block invokes commands
-// within the user's login context. Unfortunately, copy does not respect this
-// yet. It does not affect the final image.
-//
-// Example:
-//
-//    with_user "erikh" do
-//      run "vim +PluginInstall +qall"
-//    end
-//
 func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
@@ -345,16 +301,6 @@ func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (
 	return val, nil
 }
 
-// inside, when provided with a directory name string and block, invokes
-// commands within the context of the working directory being set to the
-// string. It does not affect the final image.
-//
-// Example:
-//
-//    inside "/dev" do
-//      run "mknod webscale c 1 3"
-//    end
-//
 func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
@@ -378,13 +324,6 @@ func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mr
 	return val, nil
 }
 
-// env, when provided with a hash of string => string key/value combinations,
-// will set the environment in the image and future run invocations.
-//
-// Example:
-//
-//    env "GOPATH" => "/go"
-//
 func env(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 	if len(args) != 1 {
@@ -407,11 +346,6 @@ func env(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 	return nil, nil
 }
 
-// cmd, when provided with a string will set the docker image's Cmd property,
-// which are the arguments that follow the entrypoint (and are overridden when
-// you provide a command to `docker run`). It does not affect run invocations.
-//
-// Note that if you set this before entrypoint, it will be cleared.
 func cmd(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
@@ -430,29 +364,37 @@ func cmd(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 	return nil, nil
 }
 
-// Copy copies files from the host to the container. It only works relative to
-// the current directory. The build cache is calculated by summing the tar
-// result of edited files. Since mtime is also considered, changes to that will
-// also bust the cache.
-//
-// NOTE: copy does not respect inside or workdir right now, this is a bug.
-//
-// NOTE: copy does not respect user permissions when the `user` or `with_user`
-// modifiers are applied. This is also a bug, but a much harder to fix one.
-//
-// Example:
-//
-//    copy ".", "test"
-//
 func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	if len(args) != 2 {
+	if len(args) < 2 || len(args) > 3 {
 		return nil, createException(m, "Did not receive the proper number of arguments in copy")
 	}
 
 	source := args[0].String()
 	target := args[1].String()
+
+	var uid, gid int
+
+	if len(args) == 3 {
+		err := iterateRubyHash(args[2], func(key, value *mruby.MrbValue) error {
+			var err error
+			switch key.String() {
+			case "uid":
+				uid, err = strconv.Atoi(value.String())
+			case "gid":
+				gid, err = strconv.Atoi(value.String())
+			default:
+				return fmt.Errorf("Key %q is not valid in copy permissions hash", key.String())
+			}
+
+			return err
+		})
+
+		if err != nil {
+			return nil, createException(m, err.Error())
+		}
+	}
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -478,9 +420,9 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		target = filepath.Join(target, rel)
 	}
 
-	fmt.Printf("+++ Copying: %q to %q\n", rel, target)
+	fmt.Printf("+++ Copying: %q to %q with uid %d and gid %d\n", rel, target, uid, gid)
 
-	fn, err := tarPath(rel, target)
+	fn, err := tarPath(rel, target, uid, gid)
 	defer os.Remove(fn)
 	if err != nil {
 		return nil, createException(m, err.Error())

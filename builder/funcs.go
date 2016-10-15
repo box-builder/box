@@ -4,6 +4,9 @@ package builder
   funcs.go provides functions for use within box build operations that do *not*
   commit a layer or otherwise directly influence the build. They are intended to
   be used as gathering functions for predicates and templating.
+
+  Please refer to https://erikh.github.io/box/functions/ for documentation on
+  how each function operates.
 */
 
 import (
@@ -42,9 +45,6 @@ func getenv(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.
 	return mruby.String(os.Getenv(args[0].String())), nil
 }
 
-// read takes a filename as string, reads it from the latest image in the
-// evaluation and returns its data. Yields an error if the file does not exist
-// or from has not been called.
 func read(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
@@ -64,10 +64,6 @@ func read(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 	return mruby.String(string(content)), nil
 }
 
-// getuid, given a string username provides an integer response with the UID of
-// the user. This works by reading the /etc/passwd file in the image.
-//
-// Yields an error if it cannot find the user or from has not been called.
 func getuid(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
@@ -97,10 +93,6 @@ func getuid(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.
 	return nil, createException(m, fmt.Sprintf("Could not find user %q", user))
 }
 
-// getgid, given a string group name provides an integer response with the GID
-// of the group. This works by reading the /etc/group file in the image.
-//
-// Yields an error if it cannot find the group or from has not been called.
 func getgid(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
