@@ -6,7 +6,7 @@ all: vendor
 docs:
 	mkdocs gh-deploy --clean
 
-vendor:
+libmruby.a:
 	cd vendor/github.com/mitchellh/go-mruby && make clean all
 	cp vendor/github.com/mitchellh/go-mruby/libmruby.a .
 
@@ -19,7 +19,7 @@ bootstrap-image: bootstrap
 bootstrap-test: bootstrap-image
 	make run-test
  
-build:
+build: libmruby.a
 	go run main.go < build.rb
 
 run-test:
