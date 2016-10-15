@@ -37,9 +37,9 @@ var funcJumpTable = map[string]funcDefinition{
 // returned.
 func getenv(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
-	if len(args) != 1 {
-		fmt.Printf("Invalid arg count in getenv: %d, must be 1", len(args))
-		os.Exit(1)
+
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	return mruby.String(os.Getenv(args[0].String())), nil
@@ -48,12 +48,8 @@ func getenv(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.
 func read(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	if len(args) != 1 {
-		return nil, createException(m, fmt.Sprintf("Expected 1 arg, got %d", len(args)))
-	}
-
-	if b.ImageID() == "" {
-		return nil, createException(m, "from has not been called, no image can be used to get the UID")
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	content, err := b.containerContent(args[0].String())
@@ -67,12 +63,8 @@ func read(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 func getuid(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	if len(args) != 1 {
-		return nil, createException(m, fmt.Sprintf("Expected 1 arg, got %d", len(args)))
-	}
-
-	if b.ImageID() == "" {
-		return nil, createException(m, "from has not been called, no image can be used to get the UID")
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	content, err := b.containerContent("/etc/passwd")
@@ -96,12 +88,8 @@ func getuid(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.
 func getgid(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	if len(args) != 1 {
-		return nil, createException(m, fmt.Sprintf("Expected 1 arg, got %d", len(args)))
-	}
-
-	if b.ImageID() == "" {
-		return nil, createException(m, "from has not been called, no image can be used to get the UID")
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	content, err := b.containerContent("/etc/group")

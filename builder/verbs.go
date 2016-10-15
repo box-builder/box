@@ -14,7 +14,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/docker/engine-api/types"
@@ -50,8 +49,9 @@ type verbFunc func(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbVal
 
 func setExec(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
-	if len(args) != 1 {
-		return nil, createException(m, fmt.Sprintf("This call only accepts one argument; you provided %d.", len(args)))
+
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	err := iterateRubyHash(args[0], func(key, value *mruby.MrbValue) error {
@@ -96,8 +96,9 @@ func setExec(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 
 func workdir(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
-	if len(args) != 1 {
-		return nil, createException(m, fmt.Sprintf("This call only accepts one argument; you provided %d.", len(args)))
+
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	// FIXME must be absolute path, fix & test this.
@@ -114,8 +115,9 @@ func workdir(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 
 func user(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
-	if len(args) != 1 {
-		return nil, createException(m, fmt.Sprintf("This call only accepts one argument; you provided %d.", len(args)))
+
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	b.user = args[0].String()
@@ -183,8 +185,9 @@ func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 
 func tag(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
-	if len(args) != 1 {
-		return nil, createException(m, "tag call expects one argument!")
+
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	b.resetConfig()
@@ -204,8 +207,14 @@ func tag(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 }
 
 func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
 	stringArgs := []string{}
-	for _, arg := range m.GetArgs() {
+	for _, arg := range args {
 		stringArgs = append(stringArgs, arg.String())
 	}
 
@@ -228,6 +237,10 @@ func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue)
 
 func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
+
+	if err := checkArgs(args, 1); err != nil {
+		return nil, createException(m, err.Error())
+	}
 
 	b.config.Image = args[0].String()
 	b.config.Tty = true
@@ -258,12 +271,14 @@ func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 }
 
 func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	if b.config.Image == "" {
-		return nil, createException(m, "`from` must precede any `run` statements")
+	args := m.GetArgs()
+
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	stringArgs := []string{}
-	for _, arg := range m.GetArgs() {
+	for _, arg := range args {
 		stringArgs = append(stringArgs, arg.String())
 	}
 
@@ -282,6 +297,14 @@ func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 
 func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
+
+	if err := standardCheck(b, args, 2); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	if args[1].Type() != mruby.TypeProc {
+		return nil, createException(m, fmt.Sprintf("Arg %q was not block!", args[1].String()))
+	}
 
 	user := b.user
 	b.user = args[0].String()
@@ -303,6 +326,14 @@ func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (
 
 func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
+
+	if err := standardCheck(b, args, 2); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	if args[1].Type() != mruby.TypeProc {
+		return nil, createException(m, fmt.Sprintf("Arg %q was not block!", args[1].String()))
+	}
 
 	// FIXME must be absolute path, fix & test this.
 	workdir := b.workdir
@@ -326,8 +357,9 @@ func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mr
 
 func env(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
-	if len(args) != 1 {
-		return nil, createException(m, fmt.Sprintf("This call only accepts one argument; you provided %d.", len(args)))
+
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	err := iterateRubyHash(args[0], func(key, value *mruby.MrbValue) error {
@@ -349,6 +381,10 @@ func env(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 func cmd(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
 	stringArgs := []string{}
 	for _, arg := range args {
 		stringArgs = append(stringArgs, arg.String())
@@ -367,34 +403,12 @@ func cmd(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()
 
-	if len(args) < 2 || len(args) > 3 {
-		return nil, createException(m, "Did not receive the proper number of arguments in copy")
+	if err := standardCheck(b, args, 2); err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	source := args[0].String()
 	target := args[1].String()
-
-	var uid, gid int
-
-	if len(args) == 3 {
-		err := iterateRubyHash(args[2], func(key, value *mruby.MrbValue) error {
-			var err error
-			switch key.String() {
-			case "uid":
-				uid, err = strconv.Atoi(value.String())
-			case "gid":
-				gid, err = strconv.Atoi(value.String())
-			default:
-				return fmt.Errorf("Key %q is not valid in copy permissions hash", key.String())
-			}
-
-			return err
-		})
-
-		if err != nil {
-			return nil, createException(m, err.Error())
-		}
-	}
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -420,9 +434,9 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		target = filepath.Join(target, rel)
 	}
 
-	fmt.Printf("+++ Copying: %q to %q with uid %d and gid %d\n", rel, target, uid, gid)
+	fmt.Printf("+++ Copying: %q to %q\n", rel, target)
 
-	fn, err := tarPath(rel, target, uid, gid)
+	fn, err := tarPath(rel, target)
 	defer os.Remove(fn)
 	if err != nil {
 		return nil, createException(m, err.Error())
