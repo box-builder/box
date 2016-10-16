@@ -1,6 +1,6 @@
 PACKAGES := "./builder"
 
-all: vendor
+all: libmruby.a 
 	go install -v .
 
 docs:
