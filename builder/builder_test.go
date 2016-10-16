@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	. "testing"
 
+	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types/strslice"
 
 	. "gopkg.in/check.v1"
@@ -20,6 +21,8 @@ const basePath = "testdata"
 const dockerfilePath = "testdata/dockerfiles"
 const copyPath = "testdata/copy"
 
+var dockerClient *client.Client
+
 var _ = Suite(&builderSuite{})
 
 func TestBuilder(t *T) {
@@ -27,7 +30,12 @@ func TestBuilder(t *T) {
 }
 
 func (bs *builderSuite) SetUpSuite(c *C) {
-	_, err := runBuilder(`from "debian"`)
+	var err error
+
+	dockerClient, err = client.NewEnvClient()
+	c.Assert(err, IsNil)
+
+	_, err = runBuilder(`from "debian"`)
 	c.Assert(err, IsNil)
 }
 
@@ -143,9 +151,9 @@ func (bs *builderSuite) TestTag(c *C) {
   `)
 
 	c.Assert(err, IsNil)
-	c.Assert(b.ImageID(), Not(Equals), "test")
+	c.Assert(b.exec.Config().Image, Not(Equals), "test")
 
-	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), "test")
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "test")
 	c.Assert(err, IsNil)
 
 	c.Assert(inspect.RepoTags, DeepEquals, []string{"test:latest"})
@@ -162,14 +170,14 @@ func (bs *builderSuite) TestFlatten(c *C) {
   `)
 
 	c.Assert(err, IsNil)
-	c.Assert(b.ImageID(), Not(Equals), "flattened")
+	c.Assert(b.exec.Config().Image, Not(Equals), "flattened")
 
-	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 
 	c.Assert(len(inspect.RootFS.Layers), Equals, 1)
 
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), "notflattened")
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), "notflattened")
 	c.Assert(err, IsNil)
 	c.Assert(len(inspect.RootFS.Layers), Not(Equals), 1)
 }
@@ -185,7 +193,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
   `)
 
 	c.Assert(err, IsNil)
-	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/cat"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{})
@@ -198,7 +206,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
   `)
 
 	c.Assert(err, IsNil)
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/echo"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{})
@@ -211,7 +219,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
   `)
 
 	c.Assert(err, IsNil)
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/echo"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
@@ -223,9 +231,9 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
   `)
 
 	c.Assert(err, IsNil)
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
-	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/sh", "-c"})
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
 }
 
@@ -247,7 +255,7 @@ func (bs *builderSuite) TestRun(c *C) {
     end
   `)
 
-	result = runContainerCommand(c, b, []string{"/usr/bin/stat -c %U /test/bar"})
+	result = runContainerCommand(c, b, []string{"/bin/sh", "-c", "/usr/bin/stat -c %U /test/bar"})
 	c.Assert(string(result), Equals, "nobody\n")
 
 	b, err = runBuilder(`
@@ -257,7 +265,7 @@ func (bs *builderSuite) TestRun(c *C) {
     run "echo -n foo >/test/bar"
   `)
 
-	result = runContainerCommand(c, b, []string{"/usr/bin/stat -c %U /test/bar"})
+	result = runContainerCommand(c, b, []string{"/bin/sh", "-c", "/usr/bin/stat -c %U /test/bar"})
 	c.Assert(string(result), Equals, "nobody\n")
 
 	b, err = runBuilder(`
@@ -296,7 +304,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	result := readContainerFile(c, b, "/test/bar")
 	c.Assert(string(result), Equals, "foo")
 
-	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.WorkingDir, Equals, "/test")
 
@@ -312,7 +320,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	result = readContainerFile(c, b, "/test/bar")
 	c.Assert(string(result), Equals, "foo")
 
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.WorkingDir, Equals, "/")
 
@@ -331,7 +339,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	result = readContainerFile(c, b, "/test/builder.go")
 	c.Assert(result, DeepEquals, content)
 
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.WorkingDir, Equals, "/test")
 
@@ -348,7 +356,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 
 	c.Assert(result, DeepEquals, content)
 
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.WorkingDir, Equals, "/")
 }
@@ -365,7 +373,7 @@ func (bs *builderSuite) TestUser(c *C) {
 	result := readContainerFile(c, b, "/test/bar")
 	c.Assert(string(result), Equals, "foo")
 
-	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.User, Equals, "nobody")
 
@@ -381,7 +389,7 @@ func (bs *builderSuite) TestUser(c *C) {
 	result = readContainerFile(c, b, "/test/bar")
 	c.Assert(string(result), Equals, "foo")
 
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.User, Equals, "root")
 }
@@ -397,7 +405,8 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 
 	c.Assert(err, IsNil)
 
-	imageID := b.ImageID()
+	imageID, err := getParent(b, b.exec.Config().Image)
+	c.Assert(err, IsNil)
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
@@ -406,7 +415,8 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 
 	c.Assert(err, IsNil)
 
-	cached := b.ImageID()
+	cached, err := getParent(b, b.exec.Config().Image)
+	c.Assert(err, IsNil)
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
@@ -414,7 +424,9 @@ func (bs *builderSuite) TestBuildCache(c *C) {
   `, imageID))
 
 	c.Assert(err, IsNil)
-	c.Assert(cached, Equals, b.ImageID())
+	parent, err := getParent(b, b.exec.Config().Image)
+	c.Assert(err, IsNil)
+	c.Assert(cached, Equals, parent)
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
@@ -422,7 +434,9 @@ func (bs *builderSuite) TestBuildCache(c *C) {
   `, imageID))
 
 	c.Assert(err, IsNil)
-	c.Assert(cached, Not(Equals), b.ImageID())
+	parent, err = getParent(b, b.exec.Config().Image)
+	c.Assert(err, IsNil)
+	c.Assert(cached, Not(Equals), parent)
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
@@ -431,7 +445,8 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 
 	c.Assert(err, IsNil)
 
-	cached = b.ImageID()
+	cached, err = getParent(b, b.exec.Config().Image)
+	c.Assert(err, IsNil)
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
@@ -439,7 +454,9 @@ func (bs *builderSuite) TestBuildCache(c *C) {
   `, imageID))
 
 	c.Assert(err, IsNil)
-	c.Assert(cached, Equals, b.ImageID())
+	parent, err = getParent(b, b.exec.Config().Image)
+	c.Assert(err, IsNil)
+	c.Assert(cached, Equals, parent)
 
 	f, err := os.Create("test")
 	c.Assert(err, IsNil)
@@ -452,7 +469,9 @@ func (bs *builderSuite) TestBuildCache(c *C) {
   `, imageID))
 
 	c.Assert(err, IsNil)
-	c.Assert(cached, Not(Equals), b.ImageID())
+	parent, err = getParent(b, b.exec.Config().Image)
+	c.Assert(err, IsNil)
+	c.Assert(cached, Not(Equals), parent)
 }
 
 func (bs *builderSuite) TestSetExec(c *C) {
@@ -480,7 +499,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
   `)
 	c.Assert(err, IsNil)
 
-	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/bash"})
 
@@ -490,7 +509,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
   `)
 	c.Assert(err, IsNil)
 
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
 
@@ -501,7 +520,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
   `)
 	c.Assert(err, IsNil)
 
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/bash", "-c"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"exit 0"})
@@ -513,7 +532,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
   `)
 	c.Assert(err, IsNil)
 
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/bash", "-c"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"exit 0"})
@@ -526,7 +545,7 @@ func (bs *builderSuite) TestEnv(c *C) {
   `)
 	c.Assert(err, IsNil)
 
-	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 
 	found := false
@@ -545,7 +564,7 @@ func (bs *builderSuite) TestEnv(c *C) {
   `)
 	c.Assert(err, IsNil)
 
-	inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), b.ImageID())
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 
 	count := 0
@@ -572,18 +591,18 @@ func (bs *builderSuite) TestReaderFuncs(c *C) {
   `)
 	c.Assert(err, IsNil)
 
-	content, err := b.containerContent("/uid")
+	content, err := b.exec.CopyOneFileFromContainer("/uid")
 	c.Assert(err, IsNil)
 	c.Assert(string(content), Equals, "0")
 
-	content, err = b.containerContent("/gid")
+	content, err = b.exec.CopyOneFileFromContainer("/gid")
 	c.Assert(err, IsNil)
 	c.Assert(string(content), Equals, "65534")
 
-	content, err = b.containerContent("/passwd")
+	content, err = b.exec.CopyOneFileFromContainer("/passwd")
 	c.Assert(err, IsNil)
 
-	origContent, err := b.containerContent("/etc/passwd")
+	origContent, err := b.exec.CopyOneFileFromContainer("/etc/passwd")
 	c.Assert(err, IsNil)
 
 	c.Assert(content, DeepEquals, origContent)
