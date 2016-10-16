@@ -52,7 +52,7 @@ func read(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 		return nil, createException(m, err.Error())
 	}
 
-	content, err := b.containerContent(args[0].String())
+	content, err := b.exec.CopyOneFileFromContainer(args[0].String())
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -67,7 +67,7 @@ func getuid(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.
 		return nil, createException(m, err.Error())
 	}
 
-	content, err := b.containerContent("/etc/passwd")
+	content, err := b.exec.CopyOneFileFromContainer("/etc/passwd")
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -92,7 +92,7 @@ func getgid(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.
 		return nil, createException(m, err.Error())
 	}
 
-	content, err := b.containerContent("/etc/group")
+	content, err := b.exec.CopyOneFileFromContainer("/etc/group")
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}

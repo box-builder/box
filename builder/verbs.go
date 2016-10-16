@@ -8,7 +8,6 @@ package builder
 */
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,7 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/engine-api/types"
+	"github.com/erikh/box/builder/tar"
 	mruby "github.com/mitchellh/go-mruby"
 )
 
@@ -72,9 +71,9 @@ func setExec(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 
 		switch key.String() {
 		case "entrypoint":
-			b.entrypoint = strArgs
+			b.exec.Config().Entrypoint = strArgs
 		case "cmd":
-			b.cmd = strArgs
+			b.exec.Config().Cmd = strArgs
 		default:
 			return fmt.Errorf("set_exec only accepts cmd and entrypoint as keys")
 		}
@@ -85,9 +84,7 @@ func setExec(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 		return nil, createException(m, err.Error())
 	}
 
-	b.resetConfig()
-
-	if err := b.commit(cacheKey, nil); err != nil {
+	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -103,10 +100,9 @@ func workdir(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 
 	// FIXME must be absolute path, fix & test this.
 
-	b.workdir = args[0].String()
-	b.config.WorkingDir = args[0].String()
+	b.exec.Config().WorkDir = args[0].String()
 
-	if err := b.commit(cacheKey, nil); err != nil {
+	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -120,10 +116,9 @@ func user(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		return nil, createException(m, err.Error())
 	}
 
-	b.user = args[0].String()
-	b.config.User = args[0].String()
+	b.exec.Config().User = args[0].String()
 
-	if err := b.commit(cacheKey, nil); err != nil {
+	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -131,14 +126,14 @@ func user(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 }
 
 func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	id, err := b.createEmptyContainer()
+	id, err := b.exec.Create()
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	defer b.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
+	defer b.exec.Destroy(id)
 
-	rc, _, err := b.client.CopyFromContainer(context.Background(), id, "/")
+	rc, err := b.exec.CopyFromContainer(id, "/")
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -160,26 +155,23 @@ func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 		return nil, createException(m, err.Error())
 	}
 
-	b.config.Image = ""
+	defer f.Close()
 
-	id2, err := b.createEmptyContainer()
-	if err != nil {
+	b.exec.Config().Image = ""
+
+	hook := func(id string) (string, error) {
+		if err := b.exec.CopyToContainer(id, "/", f); err != nil {
+			return "", err
+		}
+
+		return "", nil
+	}
+
+	if err := b.exec.Commit("flatten", hook); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	defer b.client.ContainerRemove(context.Background(), id2, types.ContainerRemoveOptions{})
-
-	if err := b.client.CopyToContainer(context.Background(), id2, "/", f, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true}); err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	commitResp, err := b.client.ContainerCommit(context.Background(), id2, types.ContainerCommitOptions{Config: b.config})
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	b.config.Image = commitResp.ID
-	fmt.Printf("+++ Flattened Image: %s\n", b.config.Image)
+	fmt.Printf("+++ Flattened Image: %s\n", b.exec.Config().Image)
 	return nil, nil
 }
 
@@ -190,18 +182,18 @@ func tag(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 		return nil, createException(m, err.Error())
 	}
 
-	b.resetConfig()
+	name := args[0].String()
 
-	err := b.commit(cacheKey, nil)
+	err := b.exec.Commit(cacheKey, nil)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	if err := b.client.ImageTag(context.Background(), b.config.Image, args[0].String()); err != nil {
+	if err := b.exec.Tag(name); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	fmt.Printf("+++ Tagged: %q\n", args[0].String())
+	fmt.Printf("+++ Tagged: %q\n", name)
 
 	return nil, nil
 }
@@ -213,17 +205,13 @@ func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue)
 
 	stringArgs := extractStringArgs(m)
 
-	b.entrypoint = stringArgs
-	b.config.Entrypoint = stringArgs
+	b.exec.Config().Entrypoint = stringArgs
 	// override the cmd when the entrypoint is set. this is a tough problem to
 	// solve in the right way. If cmd is set prior to this, we cannot be sure
 	// once we set the entrypoint that it is still valid, so we erase it.
-	// FIXME
-	// should install a new call which sets both at the same time.
-	b.cmd = []string{}
-	b.config.Cmd = []string{}
+	b.exec.Config().Cmd = []string{}
 
-	if err := b.commit(cacheKey, nil); err != nil {
+	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -237,32 +225,14 @@ func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		return nil, createException(m, err.Error())
 	}
 
-	b.config.Image = args[0].String()
-	b.config.Tty = true
-	b.config.AttachStdout = true
-	b.config.AttachStderr = true
-
-	inspect, _, err := b.client.ImageInspectWithRaw(context.Background(), args[0].String())
+	id, err := b.exec.Fetch(args[0].String())
 	if err != nil {
-		reader, err := b.client.ImagePull(context.Background(), args[0].String(), types.ImagePullOptions{})
-		if err != nil {
-			return nil, createException(m, err.Error())
-		}
-
-		if err := printPull(reader); err != nil {
-			return nil, createException(m, err.Error())
-		}
-
-		// this will fallthrough to the assignment below
-		inspect, _, err = b.client.ImageInspectWithRaw(context.Background(), args[0].String())
-		if err != nil {
-			return nil, createException(m, err.Error())
-		}
+		return nil, createException(m, err.Error())
 	}
 
-	b.config.Image = inspect.ID
+	b.exec.Config().Image = id
 
-	return mruby.String(b.config.Image), nil
+	return mruby.String(id), nil
 }
 
 func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
@@ -274,13 +244,18 @@ func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 
 	stringArgs := extractStringArgs(m)
 
-	b.resetConfig()
-	b.config.Entrypoint = []string{"/bin/sh", "-c"}
-	b.config.Cmd = stringArgs
+	entrypoint := b.exec.Config().Entrypoint
+	cmd := b.exec.Config().Cmd
 
-	defer b.resetConfig()
+	b.exec.Config().Entrypoint = []string{"/bin/sh", "-c"}
+	b.exec.Config().Cmd = stringArgs
 
-	if err := b.commit(cacheKey, runHook); err != nil {
+	defer func() {
+		b.exec.Config().Entrypoint = entrypoint
+		b.exec.Config().Cmd = cmd
+	}()
+
+	if err := b.exec.Commit(cacheKey, b.exec.RunHook); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -298,18 +273,17 @@ func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (
 		return nil, createException(m, fmt.Sprintf("Arg %q was not block!", args[1].String()))
 	}
 
-	user := b.user
-	b.user = args[0].String()
-	b.resetConfig()
+	user := b.exec.Config().User
+	b.exec.Config().User = args[0].String()
+
 	val, err := m.Yield(args[1], args[0])
 	if err != nil {
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
 	}
 
-	b.user = user
-	b.resetConfig()
+	b.exec.Config().User = user
 
-	if err := b.commit(cacheKey, nil); err != nil {
+	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -328,19 +302,17 @@ func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mr
 	}
 
 	// FIXME must be absolute path, fix & test this.
-	workdir := b.workdir
-	b.workdir = args[0].String()
-	b.resetConfig()
+	workdir := b.exec.Config().WorkDir
+	b.exec.Config().WorkDir = args[0].String()
 
 	val, err := m.Yield(args[1], args[0])
 	if err != nil {
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
 	}
 
-	b.workdir = workdir
-	b.resetConfig()
+	b.exec.Config().WorkDir = workdir
 
-	if err := b.commit(cacheKey, nil); err != nil {
+	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -355,7 +327,7 @@ func env(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 	}
 
 	err := iterateRubyHash(args[0], func(key, value *mruby.MrbValue) error {
-		b.config.Env = append(b.config.Env, fmt.Sprintf("%s=%s", key.String(), value.String()))
+		b.exec.Config().Env = append(b.exec.Config().Env, fmt.Sprintf("%s=%s", key.String(), value.String()))
 		return nil
 	})
 
@@ -363,7 +335,7 @@ func env(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 		return nil, createException(m, err.Error())
 	}
 
-	if err := b.commit(cacheKey, nil); err != nil {
+	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -377,10 +349,9 @@ func cmd(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 
 	stringArgs := extractStringArgs(m)
 
-	b.cmd = stringArgs
-	b.config.Cmd = stringArgs
+	b.exec.Config().Cmd = stringArgs
 
-	if err := b.commit(cacheKey, nil); err != nil {
+	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -415,7 +386,7 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		}
 	}
 
-	target = filepath.Clean(filepath.Join(b.config.WorkingDir, target))
+	target = filepath.Clean(filepath.Join(b.exec.Config().WorkDir, target))
 
 	if strings.HasSuffix(target, "/") {
 		target = filepath.Join(target, rel)
@@ -423,18 +394,18 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 
 	fmt.Printf("+++ Copying: %q to %q\n", rel, target)
 
-	fn, err := tarPath(rel, target)
+	fn, err := tar.Archive(rel, target)
 	defer os.Remove(fn)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	cacheKey, err = sumFile(fn)
+	cacheKey, err = tar.SumFile(fn)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	cached, err := b.consultCache(cacheKey)
+	cached, err := b.exec.CheckCache(cacheKey)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -448,12 +419,12 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		return nil, createException(m, err.Error())
 	}
 
-	hook := func(b *Builder, id string) (string, error) {
+	hook := func(id string) (string, error) {
 		defer f.Close()
-		return "", b.client.CopyToContainer(context.Background(), id, "/", f, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+		return "", b.exec.CopyToContainer(id, "/", f)
 	}
 
-	if err := b.commit(cacheKey, hook); err != nil {
+	if err := b.exec.Commit(cacheKey, hook); err != nil {
 		return nil, createException(m, err.Error())
 	}
 

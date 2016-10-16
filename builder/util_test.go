@@ -22,17 +22,17 @@ func runBuilder(script string) (*Builder, error) {
 }
 
 func readContainerFile(c *C, b *Builder, fn string) []byte {
-	return runContainerCommand(c, b, []string{"cat " + fn})
+	return runContainerCommand(c, b, []string{"cat", fn})
 }
 
 func runContainerCommand(c *C, b *Builder, cmd []string) []byte {
-	b.config.Cmd = cmd
-	id, err := b.createEmptyContainer()
+	b.exec.Config().Cmd = cmd
+	id, err := b.exec.Create()
 	c.Assert(err, IsNil)
-	resp, err := b.client.ContainerAttach(context.Background(), id, types.ContainerAttachOptions{Stream: true, Stdout: true, Stdin: true})
+	resp, err := dockerClient.ContainerAttach(context.Background(), id, types.ContainerAttachOptions{Stream: true, Stdout: true, Stdin: true})
 	c.Assert(err, IsNil)
 
-	err = b.client.ContainerStart(context.Background(), id, types.ContainerStartOptions{})
+	err = dockerClient.ContainerStart(context.Background(), id, types.ContainerStartOptions{})
 	c.Assert(err, IsNil)
 
 	buf := new(bytes.Buffer)
@@ -54,9 +54,14 @@ func runContainerCommand(c *C, b *Builder, cmd []string) []byte {
 		result = append(result, inner...)
 	}
 
-	status, err := b.client.ContainerWait(context.Background(), id)
+	status, err := dockerClient.ContainerWait(context.Background(), id)
 	c.Assert(err, IsNil)
 	c.Assert(status, Equals, 0)
 
 	return result
+}
+
+func getParent(b *Builder, img string) (string, error) {
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), img)
+	return inspect.Parent, err
 }
