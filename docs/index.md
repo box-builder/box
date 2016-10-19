@@ -60,10 +60,35 @@ reference](/functions) for more information.
 
 ## Example Box script
 
-This is the Box script we use to build Box itself. It uses many of its
-features.
+Here's a basic example that downloads the newest (1.7.3) version of golang with
+curl and unpacks it. If you set an environment variable called
+`GO_VERSION`, it will use that version instead.
 
-You can find the latest version of it [here](https://github.com/erikh/box/blob/master/build.rb) too.
+```ruby
+from "debian"
+
+run "apt-get update"
+run "apt-get install curl -y"
+
+go_version = getenv("GO_VERSION")
+
+if go_version.empty?
+  go_version = "1.7.3"
+end
+
+url = "https://storage.googleapis.com/golang/go#{go_version}.linux-amd64.tar.gz"
+
+run "curl -sSL '#{url}' | tar -xvz -C /usr/local"
+```
+
+## Example Box script (advanced version)
+
+This is the Box script we use to build Box itself. It uses many of its
+features. Be sure to check the [verbs](https://erikh.github.io/box/verbs/) to
+refer to different constructs used in the file.
+
+You can find the latest version of it
+[here](https://github.com/erikh/box/blob/master/build.rb) too.
 
 ```ruby
 from "golang"
