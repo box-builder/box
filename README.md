@@ -11,8 +11,13 @@ build instructions:
   * make
 * To build a docker image (needed for test and release builds):
   * make bootstrap
-* To run the tests:
+* To run the tests without a dev environment configured:
+  * make bootstrap-test
+* If you have a dev environment:
   * make test
+    * note that if you are building both on the hosts and in the test
+      containers, `IGNORE_LIBMRUBY=1` may be of interest to you if you get
+      linking errors.
 * To do a release build:
   * make release
 
