@@ -46,6 +46,11 @@ func (d *Docker) ImageID() string {
 	return d.config.Image
 }
 
+// UseCache determines if the cache should be considered or not.
+func (d *Docker) UseCache(arg bool) {
+	d.useCache = arg
+}
+
 // LoadConfig loads the configuration into the executor.
 func (d *Docker) LoadConfig(c *config.Config) error {
 	d.config = c
@@ -113,26 +118,28 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 // there was a match. If there was an error consulting the cache, it will be
 // returned as the second argument.
 func (d *Docker) CheckCache(cacheKey string) (bool, error) {
-	if d.useCache {
-		if d.config.Image != "" {
-			images, err := d.client.ImageList(context.Background(), types.ImageListOptions{All: true})
-			if err != nil {
-				return false, err
-			}
+	if !d.useCache {
+		return false, nil
+	}
 
-			for _, img := range images {
-				if img.ParentID == d.config.Image {
-					inspect, _, err := d.client.ImageInspectWithRaw(context.Background(), img.ID)
-					if err != nil {
-						return false, err
-					}
+	if d.config.Image != "" {
+		images, err := d.client.ImageList(context.Background(), types.ImageListOptions{All: true})
+		if err != nil {
+			return false, err
+		}
 
-					if inspect.Comment == cacheKey {
-						fmt.Printf("+++ Cache hit: using %q\n", img.ID)
-						d.config.FromDocker(inspect.Config)
-						d.config.Image = img.ID
-						return true, nil
-					}
+		for _, img := range images {
+			if img.ParentID == d.config.Image {
+				inspect, _, err := d.client.ImageInspectWithRaw(context.Background(), img.ID)
+				if err != nil {
+					return false, err
+				}
+
+				if inspect.Comment == cacheKey {
+					fmt.Printf("+++ Cache hit: using %q\n", img.ID)
+					d.config.FromDocker(inspect.Config)
+					d.config.Image = img.ID
+					return true, nil
 				}
 			}
 		}

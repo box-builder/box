@@ -42,6 +42,10 @@ func main() {
 	app.HideHelp = true
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
+			Name:  "no-cache, n",
+			Usage: "Disable the build cache",
+		},
+		cli.BoolFlag{
 			Name:  "help, h",
 			Usage: "Show the help",
 		},
@@ -71,6 +75,10 @@ func main() {
 		if err != nil {
 			fmt.Printf("!!! Error: %v\n", err.Error())
 			os.Exit(2)
+		}
+
+		if ctx.Bool("no-cache") {
+			b.SetCache(false)
 		}
 
 		response, err := b.Run(string(content))

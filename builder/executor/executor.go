@@ -53,4 +53,7 @@ type Executor interface {
 	// RunHook is used to manage run invocations, and is processed by the run
 	// statement. A command is provided.
 	RunHook(string) (string, error)
+
+	// UseCache determines if the cache should be considered or not.
+	UseCache(bool)
 }

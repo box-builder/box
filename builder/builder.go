@@ -53,6 +53,7 @@ func NewBuilder() (*Builder, error) {
 // (NO_CACHE) is non-empty.
 func (b *Builder) SetCache(useCache bool) {
 	b.useCache = useCache
+	b.exec.UseCache(useCache)
 }
 
 // ImageID returns the latest known Image identifier that we committed. At the
