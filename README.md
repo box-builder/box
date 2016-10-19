@@ -17,7 +17,7 @@ build instructions:
   * make test
     * note that if you are building both on the hosts and in the test
       containers, `IGNORE_LIBMRUBY=1` may be of interest to you if you get
-      linking errors.
+      linking errors or GC panics.
 * To do a release build:
   * make release
 
