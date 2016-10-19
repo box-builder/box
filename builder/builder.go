@@ -66,7 +66,8 @@ func (b *Builder) ImageID() string {
 // cleared.
 func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
 	builderFunc := func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-		strArgs := extractStringArgs(m)
+		args := m.GetArgs()
+		strArgs := extractStringArgs(args)
 		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")
 		fmt.Printf("+++ Execute: %s %s\n", name, strings.Join(strArgs, ", "))
 		cached, err := b.exec.CheckCache(cacheKey)
@@ -75,7 +76,7 @@ func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
 		}
 
 		if !cached {
-			return fn(b, cacheKey, m, self)
+			return fn(b, cacheKey, args, m, self)
 		}
 
 		return nil, nil

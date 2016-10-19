@@ -44,11 +44,9 @@ var verbJumpTable = map[string]verbDefinition{
 }
 
 // verbFunc is a builder DSL function used to interact with docker.
-type verbFunc func(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
+type verbFunc func(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
 
-func setExec(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	args := m.GetArgs()
-
+func setExec(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := standardCheck(b, args, 1); err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -91,9 +89,7 @@ func setExec(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 	return nil, nil
 }
 
-func workdir(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	args := m.GetArgs()
-
+func workdir(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := standardCheck(b, args, 1); err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -109,9 +105,7 @@ func workdir(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 	return nil, nil
 }
 
-func user(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	args := m.GetArgs()
-
+func user(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := standardCheck(b, args, 1); err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -125,7 +119,7 @@ func user(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 	return nil, nil
 }
 
-func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	id, err := b.exec.Create()
 	if err != nil {
 		return nil, createException(m, err.Error())
@@ -175,9 +169,7 @@ func flatten(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (m
 	return nil, nil
 }
 
-func tag(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	args := m.GetArgs()
-
+func tag(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := standardCheck(b, args, 1); err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -198,12 +190,12 @@ func tag(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 	return nil, nil
 }
 
-func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func entrypoint(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := checkImage(b); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	stringArgs := extractStringArgs(m)
+	stringArgs := extractStringArgs(args)
 
 	b.exec.Config().Entrypoint = stringArgs
 	// override the cmd when the entrypoint is set. this is a tough problem to
@@ -218,9 +210,7 @@ func entrypoint(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue)
 	return nil, nil
 }
 
-func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	args := m.GetArgs()
-
+func from(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := checkArgs(args, 1); err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -235,14 +225,12 @@ func from(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 	return mruby.String(id), nil
 }
 
-func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	args := m.GetArgs()
-
+func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := standardCheck(b, args, 1); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	stringArgs := extractStringArgs(m)
+	stringArgs := extractStringArgs(args)
 
 	entrypoint := b.exec.Config().Entrypoint
 	cmd := b.exec.Config().Cmd
@@ -262,9 +250,7 @@ func run(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 	return nil, nil
 }
 
-func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	args := m.GetArgs()
-
+func withUser(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := standardCheck(b, args, 2); err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -290,9 +276,7 @@ func withUser(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (
 	return val, nil
 }
 
-func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	args := m.GetArgs()
-
+func inside(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := standardCheck(b, args, 2); err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -319,9 +303,7 @@ func inside(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mr
 	return val, nil
 }
 
-func env(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	args := m.GetArgs()
-
+func env(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := standardCheck(b, args, 1); err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -342,12 +324,12 @@ func env(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 	return nil, nil
 }
 
-func cmd(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func cmd(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := checkImage(b); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	stringArgs := extractStringArgs(m)
+	stringArgs := extractStringArgs(args)
 
 	b.exec.Config().Cmd = stringArgs
 
@@ -358,9 +340,7 @@ func cmd(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby
 	return nil, nil
 }
 
-func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	args := m.GetArgs()
-
+func copy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := standardCheck(b, args, 2); err != nil {
 		return nil, createException(m, err.Error())
 	}
