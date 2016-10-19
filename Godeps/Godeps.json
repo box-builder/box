@@ -131,6 +131,11 @@
 			"Rev": "26ebd6ab634d07528b0dba6e07820c6a9c5d38ba"
 		},
 		{
+			"ImportPath": "github.com/urfave/cli",
+			"Comment": "v1.18.0-69-g55f715e",
+			"Rev": "55f715e28c46073d0e217e2ce8eb46b0b45e3db6"
+		},
+		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "f4b625ec9b21d620bb5ce57f2dfc3e08ca97fce6"
 		},

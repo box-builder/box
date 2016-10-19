@@ -5,44 +5,95 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/erikh/box/builder"
+	"github.com/urfave/cli"
+)
+
+var (
+	// Version is the version of the application
+	Version = "0.0.1"
+	// Name is the name of the application
+	Name = "box"
+	// Email is my email
+	Email = "github@hollensbe.org"
+	// Usage is the title of the application
+	Usage = "Flexible Docker Builder"
+	// Author is me
+	Author = "Erik Hollensbe"
+
+	// Copyright is the copyright, generated automatically for each year.
+	Copyright = fmt.Sprintf("(C) %d %s - Licensed under MIT license", time.Now().Year(), Author)
+	// UsageText is the description of how to use the program.
+	UsageText = "box [options] filename (if omitted, pass the file contents into stdin)"
 )
 
 func main() {
-	b, err := builder.NewBuilder()
-	if err != nil {
-		panic(err)
-	}
-	defer b.Close()
+	app := cli.NewApp()
 
-	var content []byte
-
-	if len(os.Args) == 2 {
-		content, err = ioutil.ReadFile(os.Args[1])
-	} else {
-		content, err = ioutil.ReadAll(os.Stdin)
+	app.Name = Name
+	app.Email = Email
+	app.Version = Version
+	app.Usage = Usage
+	app.Author = Author
+	app.Copyright = Copyright
+	app.UsageText = UsageText
+	app.HideHelp = true
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "help, h",
+			Usage: "Show the help",
+		},
 	}
-	if err != nil {
-		fmt.Printf("!!! Error: %v", err.Error())
-		os.Exit(2)
+
+	app.Action = func(ctx *cli.Context) {
+		if ctx.Bool("help") {
+			cli.ShowAppHelp(ctx)
+			os.Exit(0)
+		}
+
+		args := ctx.Args()
+
+		b, err := builder.NewBuilder()
+		if err != nil {
+			panic(err)
+		}
+		defer b.Close()
+
+		var content []byte
+
+		if len(args) == 1 {
+			content, err = ioutil.ReadFile(args[0])
+		} else {
+			content, err = ioutil.ReadAll(os.Stdin)
+		}
+		if err != nil {
+			fmt.Printf("!!! Error: %v\n", err.Error())
+			os.Exit(2)
+		}
+
+		response, err := b.Run(string(content))
+		if err != nil {
+			fmt.Printf("!!! Error: %v\n", err.Error())
+			os.Exit(1)
+		}
+
+		if response.String() != "" {
+			fmt.Printf("+++ Eval Response: %v\n", response)
+		}
+
+		id := b.ImageID()
+
+		if strings.Contains(id, ":") {
+			id = strings.SplitN(id, ":", 2)[1]
+		}
+
+		fmt.Printf("+++ Finish: %v\n", id)
 	}
 
-	response, err := b.Run(string(content))
-	if err != nil {
-		fmt.Printf("!!! Error: %v\n", err.Error())
+	if err := app.Run(os.Args); err != nil {
+		fmt.Fprintf(os.Stderr, "!!! Error: %v\n", err)
 		os.Exit(1)
 	}
-
-	if response.String() != "" {
-		fmt.Printf("+++ Eval Response: %v\n", response)
-	}
-
-	id := b.ImageID()
-
-	if strings.Contains(id, ":") {
-		id = strings.SplitN(id, ":", 2)[1]
-	}
-
-	fmt.Printf("+++ Finish: %v\n", id)
 }
