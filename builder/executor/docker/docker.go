@@ -21,21 +21,23 @@ import (
 
 // Docker implements an executor that talks to docker to achieve its goals.
 type Docker struct {
-	client *client.Client
-	config *config.Config
+	client   *client.Client
+	config   *config.Config
+	useCache bool
 }
 
 // NewDocker constructs a new docker instance, for executing against docker
 // engines.
-func NewDocker() (*Docker, error) {
+func NewDocker(useCache bool) (*Docker, error) {
 	client, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
 	}
 
 	return &Docker{
-		client: client,
-		config: config.NewConfig(),
+		useCache: useCache,
+		client:   client,
+		config:   config.NewConfig(),
 	}, nil
 }
 
@@ -57,7 +59,7 @@ func (d *Docker) Config() *config.Config {
 
 // Commit commits an entry to the layer list.
 func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
-	if os.Getenv("NO_CACHE") != "" {
+	if !d.useCache {
 		cacheKey = ""
 	}
 
@@ -86,7 +88,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 			return err
 		}
 
-		if tmp != "" && os.Getenv("NO_CACHE") == "" {
+		if tmp != "" && d.useCache {
 			cacheKey = tmp
 		}
 	}
@@ -111,7 +113,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 // there was a match. If there was an error consulting the cache, it will be
 // returned as the second argument.
 func (d *Docker) CheckCache(cacheKey string) (bool, error) {
-	if os.Getenv("NO_CACHE") == "" {
+	if d.useCache {
 		if d.config.Image != "" {
 			images, err := d.client.ImageList(context.Background(), types.ImageListOptions{All: true})
 			if err != nil {

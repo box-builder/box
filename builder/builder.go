@@ -2,6 +2,7 @@ package builder
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/erikh/box/builder/executor"
@@ -11,18 +12,25 @@ import (
 
 // Builder implements the builder core.
 type Builder struct {
-	mrb  *mruby.Mrb
-	exec executor.Executor
+	useCache bool
+	mrb      *mruby.Mrb
+	exec     executor.Executor
 }
 
 // NewBuilder creates a new builder. Returns error on docker or mruby issues.
 func NewBuilder() (*Builder, error) {
-	exec, err := NewExecutor("docker")
+	useCache := os.Getenv("NO_CACHE") == ""
+
+	exec, err := NewExecutor("docker", useCache)
 	if err != nil {
 		return nil, err
 	}
 
-	builder := &Builder{mrb: mruby.NewMrb(), exec: exec}
+	builder := &Builder{
+		useCache: useCache,
+		mrb:      mruby.NewMrb(),
+		exec:     exec,
+	}
 
 	for name, def := range verbJumpTable {
 		builder.AddVerb(name, def.verbFunc, def.argSpec)
@@ -38,6 +46,13 @@ func NewBuilder() (*Builder, error) {
 	}
 
 	return builder, nil
+}
+
+// SetCache sets the caching strategy for builds. Turn on to use caching, off
+// to not. The default is set to whether or not the environment variable
+// (NO_CACHE) is non-empty.
+func (b *Builder) SetCache(useCache bool) {
+	b.useCache = useCache
 }
 
 // ImageID returns the latest known Image identifier that we committed. At the
@@ -96,10 +111,10 @@ func (b *Builder) Close() error {
 }
 
 // NewExecutor returns a valid executor for the given name, or error.
-func NewExecutor(name string) (executor.Executor, error) {
+func NewExecutor(name string, useCache bool) (executor.Executor, error) {
 	switch name {
 	case "docker":
-		return docker.NewDocker()
+		return docker.NewDocker(useCache)
 	}
 
 	return nil, fmt.Errorf("Executor %q not found", name)
