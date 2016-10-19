@@ -244,7 +244,7 @@ from &quot;sha256:deadbeefcafebabeaddedbeef&quot;
 </code></pre>
 
 <h2 id="run">run</h2>
-<p>run runs a command and saves the layer.</p>
+<p>run runs a command provided as a string, and saves the layer.</p>
 <p>It respects user and workdir, but not entrypoint and command. It does this
 so it can respect the values provided in the script instead of what was
 intended for the final image.</p>
@@ -253,6 +253,7 @@ command is run in the event of it hitting cache, run box with NO_CACHE=1.</p>
 <p>Examples:</p>
 <p>Create a file called <code>/bar</code> inside the container, then chown it to nobody. Run
 commands don't need a lot of <code>&amp;&amp;</code> because you can trivially flatten the layers.</p>
+<p>Run does not accept the exec-form from docker's RUN equivalent. </p>
 <pre><code class="ruby">from &quot;debian&quot;
 run &quot;echo foo &gt;/bar&quot;
 run &quot;chown nobody:nogroup /bar&quot;

@@ -74,6 +74,9 @@
                 <li class="toctree-l3"><a href="#example-box-script">Example Box script</a></li>
                 
             
+                <li class="toctree-l3"><a href="#example-box-script-advanced-version">Example Box script (advanced version)</a></li>
+                
+            
                 <li class="toctree-l3"><a href="#caveats">Caveats</a></li>
                 
             
@@ -175,9 +178,31 @@ container sees it, for the purposes of using it for future operations.</p>
 <p>Please take a look at our <a href="./verbs">verbs reference</a> and <a href="./functions">functions
 reference</a> for more information.</p>
 <h2 id="example-box-script">Example Box script</h2>
+<p>Here's a basic example that downloads the newest (1.7.3) version of golang with
+curl and unpacks it. If you set an environment variable called
+<code>GO_VERSION</code>, it will use that version instead.</p>
+<pre><code class="ruby">from &quot;debian&quot;
+
+run &quot;apt-get update&quot;
+run &quot;apt-get install curl -y&quot;
+
+go_version = getenv(&quot;GO_VERSION&quot;)
+
+if go_version.empty?
+  go_version = &quot;1.7.3&quot;
+end
+
+url = &quot;https://storage.googleapis.com/golang/go#{go_version}.linux-amd64.tar.gz&quot;
+
+run &quot;curl -sSL '#{url}' | tar -xvz -C /usr/local&quot;
+</code></pre>
+
+<h2 id="example-box-script-advanced-version">Example Box script (advanced version)</h2>
 <p>This is the Box script we use to build Box itself. It uses many of its
-features.</p>
-<p>You can find the latest version of it <a href="https://github.com/erikh/box/blob/master/build.rb">here</a> too.</p>
+features. Be sure to check the <a href="https://erikh.github.io/box/verbs/">verbs</a> to
+refer to different constructs used in the file.</p>
+<p>You can find the latest version of it
+<a href="https://github.com/erikh/box/blob/master/build.rb">here</a> too.</p>
 <pre><code class="ruby">from &quot;golang&quot;
 
 packages = %w[
@@ -281,5 +306,5 @@ end
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-10-14 20:31:51.261334
+Build Date UTC : 2016-10-19 21:48:19.022839
 -->
