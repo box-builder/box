@@ -3,6 +3,9 @@ PACKAGES := "./builder"
 all: libmruby.a 
 	go install -v .
 
+clean:
+	rm -f libmruby.a box
+
 docs:
 	mkdocs gh-deploy --clean
 
