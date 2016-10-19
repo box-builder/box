@@ -405,13 +405,15 @@ func copy(b *Builder, cacheKey string, m *mruby.Mrb, self *mruby.MrbValue) (mrub
 		return nil, createException(m, err.Error())
 	}
 
-	cached, err := b.exec.CheckCache(cacheKey)
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
+	if b.useCache {
+		cached, err := b.exec.CheckCache(cacheKey)
+		if err != nil {
+			return nil, createException(m, err.Error())
+		}
 
-	if cached {
-		return nil, nil
+		if cached {
+			return nil, nil
+		}
 	}
 
 	f, err := os.Open(fn)

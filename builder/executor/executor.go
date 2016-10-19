@@ -38,11 +38,19 @@ type Executor interface {
 	// CopyOneFileFromContainer copies a file from the container and returns its content.
 	CopyOneFileFromContainer(string) ([]byte, error)
 
+	// Create a container. Returns the container ID.
 	Create() (string, error)
+
+	// Destroy a container by ID.
 	Destroy(string) error
 
+	// Tag the current layer. Takes a tag name as argument.
 	Tag(string) error
+
+	// Pull an image. Takes a name and returns an image ID+error.
 	Fetch(string) (string, error)
 
+	// RunHook is used to manage run invocations, and is processed by the run
+	// statement. A command is provided.
 	RunHook(string) (string, error)
 }
