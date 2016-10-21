@@ -65,16 +65,16 @@
             
                 <li class="toctree-l3"><a href="#invocation">Invocation</a></li>
                 
-                    <li><a class="toctree-l4" href="#running-without-cache">Running without cache</a></li>
+            
+                <li class="toctree-l3"><a href="#making-box-scripts">Making Box Scripts</a></li>
                 
             
-                <li class="toctree-l3"><a href="#making-box-scripts">Making Box scripts</a></li>
+                <li class="toctree-l3"><a href="#example-box-script">Example Box Script</a></li>
+                
+                    <li><a class="toctree-l4" href="#the-build-cache">The Build Cache</a></li>
                 
             
-                <li class="toctree-l3"><a href="#example-box-script">Example Box script</a></li>
-                
-            
-                <li class="toctree-l3"><a href="#example-box-script-advanced-version">Example Box script (advanced version)</a></li>
+                <li class="toctree-l3"><a href="#example-box-script-advanced-version">Example Box Script (advanced version)</a></li>
                 
             
                 <li class="toctree-l3"><a href="#caveats">Caveats</a></li>
@@ -157,12 +157,11 @@ container, you may wish to run it in this way:</p>
 <pre><code class="shell">$ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest &lt; myplan.rb
 </code></pre>
 
-<h3 id="running-without-cache">Running without cache</h3>
-<p>For now, set <code>NO_CACHE=1</code> in your shell's environment (or docker's environment
-with the <code>-e</code> switch to <code>docker run</code>) which will trump the entire cache. Note
-that parameterized statements and copy statements where the files have changed
-on disk will also bust the cache.</p>
-<h2 id="making-box-scripts">Making Box scripts</h2>
+<p>For additional flags and functionality, see the help:</p>
+<pre><code class="shell">$ box --help
+</code></pre>
+
+<h2 id="making-box-scripts">Making Box Scripts</h2>
 <p>Box scripts are written in mruby, an embedded, smaller variant of ruby. If you
 are new to ruby, here is a tutorial that only <a href="https://github.com/jhotta/chef-fundamentals-ja/blob/master/slides/just-enough-ruby-for-chef/01_slide.md">covers the basics</a>.
 You will not need to be an advanced ruby user to leverage Box.</p>
@@ -177,7 +176,7 @@ use. Functions like <code>getuid</code> exist to retrieve the UID of a user as t
 container sees it, for the purposes of using it for future operations.</p>
 <p>Please take a look at our <a href="./verbs">verbs reference</a> and <a href="./functions">functions
 reference</a> for more information.</p>
-<h2 id="example-box-script">Example Box script</h2>
+<h2 id="example-box-script">Example Box Script</h2>
 <p>Here's a basic example that downloads the newest (1.7.3) version of golang with
 curl and unpacks it. If you set an environment variable called
 <code>GO_VERSION</code>, it will use that version instead.</p>
@@ -197,7 +196,16 @@ url = &quot;https://storage.googleapis.com/golang/go#{go_version}.linux-amd64.ta
 run &quot;curl -sSL '#{url}' | tar -xvz -C /usr/local&quot;
 </code></pre>
 
-<h2 id="example-box-script-advanced-version">Example Box script (advanced version)</h2>
+<h3 id="the-build-cache">The Build Cache</h3>
+<p>The build cache is enabled by default. It is not an exact cache but constructs
+the layer graph in a non-standard way using docker's image Comment field,
+populating it with sums and command instructions in a very similar way that
+<code>docker build</code> does.</p>
+<p>If you find the behavior surprising, you can turn it off:</p>
+<pre><code>$ box --no-cache myplan.rb
+</code></pre>
+
+<h2 id="example-box-script-advanced-version">Example Box Script (advanced version)</h2>
 <p>This is the Box script we use to build Box itself. It uses many of its
 features. Be sure to check the <a href="https://erikh.github.io/box/verbs/">verbs</a> to
 refer to different constructs used in the file.</p>
@@ -251,14 +259,7 @@ end
 </code></pre>
 
 <h2 id="caveats">Caveats</h2>
-<p>Things that Box still needs to fix that are documentation worthy:</p>
-<ul>
-<li>Set <code>NO_CACHE=1</code> if you want to bypass the build cache. There is a ticket to
-  make this a command-line flag <a href="https://github.com/erikh/box/issues/9">here</a>.</li>
-<li>Currently we require a TTY and access to stdout to function.
-  <a href="https://github.com/erikh/box/issues/4">This issue</a> was made to correct that.</li>
-</ul>
-<p>Of course, you can see <a href="https://github.com/erikh/box/issues">all of our issues</a> too.</p>
+<p>You can see <a href="https://github.com/erikh/box/issues">all of our issues</a> here.</p>
               
             </div>
           </div>
@@ -306,5 +307,5 @@ end
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-10-19 21:48:19.022839
+Build Date UTC : 2016-10-21 06:16:54.611445
 -->

@@ -167,7 +167,7 @@ to the respective properties in the container's configuration.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
 # this sets the what will be run with `/bin/echo foo`
-set_exec entrypoint: [&quot;/bin/echo&quot;], cmd: &quot;foo&quot;
+set_exec entrypoint: [&quot;/bin/echo&quot;], cmd: [&quot;foo&quot;]
 </code></pre>
 
 <h2 id="workdir">workdir</h2>
@@ -203,7 +203,8 @@ to distribute.</p>
 can take a lot of time over remote connections and is not advised.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
-run &quot;here's a layer&quot;
+# create some layers
+run &quot;true&quot;
 copy &quot;.&quot;, &quot;/test&quot;
 flatten # image is shrunk to one layer here
 tag &quot;erikh/test&quot;
@@ -253,7 +254,8 @@ command is run in the event of it hitting cache, run box with NO_CACHE=1.</p>
 <p>Examples:</p>
 <p>Create a file called <code>/bar</code> inside the container, then chown it to nobody. Run
 commands don't need a lot of <code>&amp;&amp;</code> because you can trivially flatten the layers.</p>
-<p>Run does not accept the exec-form from docker's RUN equivalent. </p>
+<p>Run does not accept the exec-form from docker's RUN equivalent. Everything RUN
+processes goes through <code>/bin/sh -c</code>.</p>
 <pre><code class="ruby">from &quot;debian&quot;
 run &quot;echo foo &gt;/bar&quot;
 run &quot;chown nobody:nogroup /bar&quot;
@@ -267,6 +269,9 @@ has been run.</p>
 with_user &quot;nobody&quot; do # just the commands inside this block will run as `nobody`
   run &quot;echo foo &gt;/tmp/bar&quot;
 end
+
+# notice how we are still root
+run &quot;useradd -s /bin/sh -m -d /home/erikh erikh&quot;
 
 # all commands from here on will run as `erikh`, overriden only by `with_user`
 # and other `user` calls.
@@ -292,8 +297,8 @@ yet. It does not affect the final image.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
 
-with_user &quot;erikh&quot; do
-  run &quot;vim +PluginInstall +qall&quot; # runs as 'erikh'
+with_user &quot;nobody&quot; do
+  run &quot;whoami&quot; # i am nobody!
 end
 </code></pre>
 
@@ -342,7 +347,7 @@ modifiers are applied. This will be fixed eventually.</p>
 <pre><code class="ruby">from &quot;debian&quot;
 
 # recursively copies everything the cwd to test, which is relative to the
-# workdir (`/` by default).
+# workdir inside the container (`/` by default).
 copy &quot;.&quot;, &quot;/test&quot;
 </code></pre>
               

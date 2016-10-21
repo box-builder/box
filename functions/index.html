@@ -150,7 +150,7 @@ manipulations in ruby.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
 # this gets the first username in your passwd file inside the debian image
-user read(&quot;/etc/passwd&quot;).split(&quot;\n&quot;).first.split(&quot;:&quot;)[0]
+run &quot;echo #{read(&quot;/etc/passwd&quot;).split(&quot;\n&quot;).first.split(&quot;:&quot;)[0]}&quot;
 </code></pre>
 
 <h2 id="getuid">getuid</h2>
@@ -159,7 +159,8 @@ the user. This works by reading the /etc/passwd file in the image.</p>
 <p>Yields an error if it cannot find the user or from has not been called.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
-run &quot;gpasswd -aG docker #{getuid(&quot;erikh&quot;)}&quot;
+run &quot;useradd -m -d /home/erikh -s /bin/sh erikh&quot;
+run &quot;id #{getuid(&quot;erikh&quot;)}&quot;
 </code></pre>
 
 <h2 id="getgid">getgid</h2>
@@ -168,7 +169,8 @@ of the group. This works by reading the /etc/group file in the image.</p>
 <p>Yields an error if it cannot find the group or from has not been called.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
-run &quot;usermod -G #{getgid(&quot;docker&quot;)} erikh&quot;
+run &quot;groupadd cabal&quot;
+run &quot;getent group #{getgid(&quot;cabal&quot;)}&quot;
 </code></pre>
               
             </div>
