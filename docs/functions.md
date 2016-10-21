@@ -32,7 +32,7 @@ Example:
 ```ruby
 from "debian"
 # this gets the first username in your passwd file inside the debian image
-user read("/etc/passwd").split("\n").first.split(":")[0]
+run "echo #{read("/etc/passwd").split("\n").first.split(":")[0]}"
 ```
 
 ## getuid
@@ -46,7 +46,8 @@ Example:
 
 ```ruby
 from "debian"
-run "gpasswd -aG docker #{getuid("erikh")}"
+run "useradd -m -d /home/erikh -s /bin/sh erikh"
+run "id #{getuid("erikh")}"
 ```
 
 ## getgid
@@ -60,5 +61,6 @@ Example:
 
 ```ruby
 from "debian"
-run "usermod -G #{getgid("docker")} erikh"
+run "groupadd cabal"
+run "getent group #{getgid("cabal")}"
 ```

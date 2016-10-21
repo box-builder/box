@@ -18,7 +18,7 @@ Example:
 ```ruby
 from "debian"
 # this sets the what will be run with `/bin/echo foo`
-set_exec entrypoint: ["/bin/echo"], cmd: "foo"
+set_exec entrypoint: ["/bin/echo"], cmd: ["foo"]
 ```
 
 ## workdir
@@ -68,7 +68,8 @@ Example:
 
 ```ruby
 from "debian"
-run "here's a layer"
+# create some layers
+run "true"
 copy ".", "/test"
 flatten # image is shrunk to one layer here
 tag "erikh/test"
@@ -140,7 +141,8 @@ Examples:
 Create a file called `/bar` inside the container, then chown it to nobody. Run
 commands don't need a lot of `&&` because you can trivially flatten the layers.
 
-Run does not accept the exec-form from docker's RUN equivalent. 
+Run does not accept the exec-form from docker's RUN equivalent. Everything RUN
+processes goes through `/bin/sh -c`.
 
 ```ruby
 from "debian"
@@ -158,6 +160,9 @@ from "debian"
 with_user "nobody" do # just the commands inside this block will run as `nobody`
   run "echo foo >/tmp/bar"
 end
+
+# notice how we are still root
+run "useradd -s /bin/sh -m -d /home/erikh erikh"
 
 # all commands from here on will run as `erikh`, overriden only by `with_user`
 # and other `user` calls.
@@ -187,8 +192,8 @@ Example:
 ```ruby
 from "debian"
 
-with_user "erikh" do
-  run "vim +PluginInstall +qall" # runs as 'erikh'
+with_user "nobody" do
+  run "whoami" # i am nobody!
 end
 ```
 
@@ -255,6 +260,6 @@ Example:
 from "debian"
 
 # recursively copies everything the cwd to test, which is relative to the
-# workdir (`/` by default).
+# workdir inside the container (`/` by default).
 copy ".", "/test"
 ```

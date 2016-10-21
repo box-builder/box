@@ -30,14 +30,13 @@ container, you may wish to run it in this way:
 $ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest < myplan.rb
 ```
 
-### Running without cache
+For additional flags and functionality, see the help:
 
-For now, set `NO_CACHE=1` in your shell's environment (or docker's environment
-with the `-e` switch to `docker run`) which will trump the entire cache. Note
-that parameterized statements and copy statements where the files have changed
-on disk will also bust the cache.
+```shell
+$ box --help
+```
 
-## Making Box scripts
+## Making Box Scripts
 
 Box scripts are written in mruby, an embedded, smaller variant of ruby. If you
 are new to ruby, here is a tutorial that only [covers the basics](https://github.com/jhotta/chef-fundamentals-ja/blob/master/slides/just-enough-ruby-for-chef/01_slide.md).
@@ -58,7 +57,7 @@ container sees it, for the purposes of using it for future operations.
 Please take a look at our [verbs reference](/verbs) and [functions
 reference](/functions) for more information.
 
-## Example Box script
+## Example Box Script
 
 Here's a basic example that downloads the newest (1.7.3) version of golang with
 curl and unpacks it. If you set an environment variable called
@@ -81,7 +80,21 @@ url = "https://storage.googleapis.com/golang/go#{go_version}.linux-amd64.tar.gz"
 run "curl -sSL '#{url}' | tar -xvz -C /usr/local"
 ```
 
-## Example Box script (advanced version)
+### The Build Cache
+
+The build cache is enabled by default. It is not an exact cache but constructs
+the layer graph in a non-standard way using docker's image Comment field,
+populating it with sums and command instructions in a very similar way that
+`docker build` does.
+
+If you find the behavior surprising, you can turn it off:
+
+```
+$ box --no-cache myplan.rb
+```
+
+
+## Example Box Script (advanced version)
 
 This is the Box script we use to build Box itself. It uses many of its
 features. Be sure to check the [verbs](https://erikh.github.io/box/verbs/) to
@@ -140,11 +153,4 @@ end
 
 ## Caveats
 
-Things that Box still needs to fix that are documentation worthy:
-
-* Set `NO_CACHE=1` if you want to bypass the build cache. There is a ticket to
-  make this a command-line flag [here](https://github.com/erikh/box/issues/9).
-* Currently we require a TTY and access to stdout to function.
-  [This issue](https://github.com/erikh/box/issues/4) was made to correct that.
-
-Of course, you can see [all of our issues](https://github.com/erikh/box/issues) too.
+You can see [all of our issues](https://github.com/erikh/box/issues) here.
