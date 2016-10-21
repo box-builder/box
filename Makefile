@@ -1,17 +1,14 @@
 PACKAGES := "./builder"
 
-all: libmruby.a 
+all:
+	cd vendor/github.com/mitchellh/go-mruby && make
 	go install -v .
 
 clean:
-	rm -f libmruby.a box
+	cd vendor/github.com/mitchellh/go-mruby && make clean
 
 docs:
 	mkdocs gh-deploy --clean
-
-libmruby.a:
-	cd vendor/github.com/mitchellh/go-mruby && make clean all
-	cp vendor/github.com/mitchellh/go-mruby/libmruby.a .
 
 bootstrap:
 	docker build -t box-bootstrap .
@@ -22,7 +19,7 @@ bootstrap-image: bootstrap
 bootstrap-test: bootstrap-image
 	make run-test
  
-build: libmruby.a
+build:
 	go run main.go < build.rb
 
 run-test:

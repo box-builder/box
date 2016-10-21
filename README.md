@@ -37,6 +37,7 @@ get everything you need out of it.
 
 ## Development Instructions
 
+* **Requires**: compiler, bison, flex
 * `go get -d https://github.com/erikh/box && cd $GOPATH/src/github.com/erikh/box`
 * To build on the host:
   * `make`
