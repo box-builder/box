@@ -1,7 +1,7 @@
 PACKAGES := "./builder"
 
 all:
-	cd vendor/github.com/mitchellh/go-mruby && make
+	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell readlink -f mruby_config.rb) make
 	go install -v .
 
 clean:
