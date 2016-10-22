@@ -1,4 +1,4 @@
-site_name: Box - Flexible Docker Builder
+site_name: Box - A Next-Generation Builder for Docker Images
 theme: readthedocs
 repo_url: https://github.com/erikh/box
 pages:
