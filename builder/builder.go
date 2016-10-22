@@ -1,6 +1,8 @@
 package builder
 
 import (
+	"crypto/sha512"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
@@ -70,6 +72,9 @@ func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
 		args := m.GetArgs()
 		strArgs := extractStringArgs(args)
 		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")
+		sum := sha512.Sum512_256([]byte(cacheKey))
+		cacheKey = base64.StdEncoding.EncodeToString([]byte(sum[:]))
+
 		fmt.Printf("+++ Execute: %s %s\n", name, strings.Join(strArgs, ", "))
 		cached, err := b.exec.CheckCache(cacheKey)
 		if err != nil {
