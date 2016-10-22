@@ -27,7 +27,7 @@ end
 copy ".", "/go/src/github.com/erikh/box"
 
 if getenv("IGNORE_LIBMRUBY") == ""
-  run "cd /go/src/github.com/erikh/box && make"
+  run "cd /go/src/github.com/erikh/box && make clean all"
 end
 
 if getenv("RELEASE") != ""
