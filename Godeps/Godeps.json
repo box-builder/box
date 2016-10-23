@@ -122,6 +122,14 @@
 			"Rev": "f2145db703495b2e525c59662db69a7344b00bb8"
 		},
 		{
+			"ImportPath": "github.com/kless/term",
+			"Rev": "c8064aa880de646c634b193608ec79a41c823951"
+		},
+		{
+			"ImportPath": "github.com/kless/term/sys",
+			"Rev": "c8064aa880de646c634b193608ec79a41c823951"
+		},
+		{
 			"ImportPath": "github.com/mitchellh/go-mruby",
 			"Rev": "3c8903cd3f058f4a92305ca825687727ac295957"
 		},
