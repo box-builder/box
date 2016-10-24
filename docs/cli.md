@@ -15,7 +15,7 @@ this won't re-pull any pulled images.
 
 Example:
 
-```shell
+```bash
 $ box -n plan.rb
 ```
 
@@ -27,12 +27,13 @@ restricts certain operations in builds for teams or unprivileged scenarios.
 
 Example:
 
-```shell
+```bash
 $ cat >plan.rb <<EOF
 from 'debian'
 tag 'mydebian'
 EOF
-$ box -o tag plan.rb # boom - missing keyword or function from ruby
+# boom - missing keyword or function from ruby
+$ box -o tag plan.rb
 ```
 
 ## --tag (-t)
@@ -43,7 +44,7 @@ non-zero to indicate the tag failed.
 
 Example:
 
-```shell
+```bash
 # starts a build with debian and retags the result as 'mydebian'
 echo "from 'debian'" | box -t mydebian
 ```

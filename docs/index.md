@@ -12,13 +12,13 @@ or you can pull `erikh/box:latest` for now. See `Invocation` for how to run it.
 
 The commandline tool `box` will either accept a file as a commandline argument:
 
-```shell
+```bash
 $ box myplan.rb
 ```
 
 Or from stdin:
 
-```shell
+```bash
 $ box < myplan.rb
 ```
 
@@ -26,13 +26,13 @@ The current working directory that Box runs in is very important, it is the
 jumping-off point for most copy operations. If you run the `erikh/box`
 container, you may wish to run it in this way:
 
-```shell
+```bash
 $ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest < myplan.rb
 ```
 
 For additional flags and functionality, see the help:
 
-```shell
+```bash
 $ box --help
 ```
 
