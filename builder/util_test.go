@@ -8,11 +8,13 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/engine-api/types"
+	"github.com/kless/term"
 )
 
 func runBuilder(script string) (*Builder, error) {
-	b, err := NewBuilder()
+	b, err := NewBuilder(term.IsTerminal(0))
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +39,14 @@ func runContainerCommand(c *C, b *Builder, cmd []string) []byte {
 
 	buf := new(bytes.Buffer)
 
-	n, err := io.Copy(buf, resp.Reader)
+	var n int64
+
+	if term.IsTerminal(0) {
+		n, err = io.Copy(buf, resp.Reader)
+	} else {
+		n, err = stdcopy.StdCopy(buf, buf, resp.Reader)
+	}
+
 	c.Assert(err, IsNil)
 	c.Assert(n, Not(Equals), 0)
 

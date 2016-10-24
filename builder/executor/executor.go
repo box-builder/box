@@ -56,4 +56,7 @@ type Executor interface {
 
 	// UseCache determines if the cache should be considered or not.
 	UseCache(bool)
+
+	// UseTTY determines whether or not to allow docker to use a TTY for both run and pull operations.
+	UseTTY(bool)
 }

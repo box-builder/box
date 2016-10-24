@@ -20,10 +20,10 @@ type Builder struct {
 }
 
 // NewBuilder creates a new builder. Returns error on docker or mruby issues.
-func NewBuilder() (*Builder, error) {
+func NewBuilder(tty bool) (*Builder, error) {
 	useCache := os.Getenv("NO_CACHE") == ""
 
-	exec, err := NewExecutor("docker", useCache)
+	exec, err := NewExecutor("docker", useCache, tty)
 	if err != nil {
 		return nil, err
 	}
@@ -118,10 +118,10 @@ func (b *Builder) Close() error {
 }
 
 // NewExecutor returns a valid executor for the given name, or error.
-func NewExecutor(name string, useCache bool) (executor.Executor, error) {
+func NewExecutor(name string, useCache, tty bool) (executor.Executor, error) {
 	switch name {
 	case "docker":
-		return docker.NewDocker(useCache)
+		return docker.NewDocker(useCache, tty)
 	}
 
 	return nil, fmt.Errorf("Executor %q not found", name)

@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/builder/config"
@@ -24,17 +25,19 @@ type Docker struct {
 	client   *client.Client
 	config   *config.Config
 	useCache bool
+	tty      bool
 }
 
 // NewDocker constructs a new docker instance, for executing against docker
 // engines.
-func NewDocker(useCache bool) (*Docker, error) {
+func NewDocker(useCache, tty bool) (*Docker, error) {
 	client, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
 	}
 
 	return &Docker{
+		tty:      tty,
 		useCache: useCache,
 		client:   client,
 		config:   config.NewConfig(),
@@ -49,6 +52,12 @@ func (d *Docker) ImageID() string {
 // UseCache determines if the cache should be considered or not.
 func (d *Docker) UseCache(arg bool) {
 	d.useCache = arg
+}
+
+// UseTTY determines whether or not to allow docker to use a TTY for both run
+// and pull operations.
+func (d *Docker) UseTTY(arg bool) {
+	d.tty = arg
 }
 
 // LoadConfig loads the configuration into the executor.
@@ -98,7 +107,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 		}
 	}
 
-	commitResp, err := d.client.ContainerCommit(context.Background(), id, types.ContainerCommitOptions{Config: d.config.ToDocker(), Comment: cacheKey})
+	commitResp, err := d.client.ContainerCommit(context.Background(), id, types.ContainerCommitOptions{Config: d.config.ToDocker(d.tty), Comment: cacheKey})
 	if err != nil {
 		return fmt.Errorf("Error during commit: %v", err)
 	}
@@ -194,7 +203,7 @@ func (d *Docker) CopyOneFileFromContainer(fn string) ([]byte, error) {
 func (d *Docker) Create() (string, error) {
 	cont, err := d.client.ContainerCreate(
 		context.Background(),
-		d.config.ToDocker(),
+		d.config.ToDocker(d.tty),
 		nil,
 		nil,
 		"",
@@ -235,8 +244,18 @@ func (d *Docker) Fetch(name string) (string, error) {
 			return "", err
 		}
 
-		if err := printPull(reader); err != nil {
-			return "", err
+		if !d.tty {
+			fmt.Printf("+++ Pulling %q...", name)
+			os.Stdout.Sync()
+			_, err := ioutil.ReadAll(reader)
+			if err != nil {
+				return "", err
+			}
+			fmt.Println("done.")
+		} else {
+			if err := printPull(reader); err != nil {
+				return "", err
+			}
 		}
 
 		// this will fallthrough to the assignment below
@@ -256,6 +275,12 @@ func (d *Docker) RunHook(id string) (string, error) {
 		return "", fmt.Errorf("Could not attach to container: %v", err)
 	}
 
+	if !d.tty {
+		cearesp.CloseWrite()
+	}
+
+	defer cearesp.Close()
+
 	err = d.client.ContainerStart(context.Background(), id, types.ContainerStartOptions{})
 	if err != nil {
 		return "", fmt.Errorf("Could not start container: %v", err)
@@ -263,9 +288,16 @@ func (d *Docker) RunHook(id string) (string, error) {
 
 	fmt.Println("------ BEGIN OUTPUT ------")
 
-	_, err = io.Copy(os.Stdout, cearesp.Reader)
-	if err != nil && err != io.EOF {
-		return "", err
+	if !d.tty {
+		_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, cearesp.Reader)
+		if err != nil && err != io.EOF {
+			return "", err
+		}
+	} else {
+		_, err = io.Copy(os.Stdout, cearesp.Reader)
+		if err != nil && err != io.EOF {
+			return "", err
+		}
 	}
 
 	fmt.Println("------ END OUTPUT ------")

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/erikh/box/builder"
+	"github.com/kless/term"
 	"github.com/urfave/cli"
 )
 
@@ -46,6 +47,14 @@ func main() {
 			Usage: "Disable the build cache",
 		},
 		cli.BoolFlag{
+			Name:  "no-tty",
+			Usage: "Disable TTY features this run",
+		},
+		cli.BoolFlag{
+			Name:  "force-tty",
+			Usage: "Force TTY features this run",
+		},
+		cli.BoolFlag{
 			Name:  "help, h",
 			Usage: "Show the help",
 		},
@@ -59,7 +68,13 @@ func main() {
 
 		args := ctx.Args()
 
-		b, err := builder.NewBuilder()
+		tty := !ctx.Bool("no-tty")
+
+		if !term.IsTerminal(term.InputFD) {
+			tty = ctx.Bool("force-tty")
+		}
+
+		b, err := builder.NewBuilder(tty)
 		if err != nil {
 			panic(err)
 		}
