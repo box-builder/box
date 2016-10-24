@@ -3,5 +3,6 @@ theme: readthedocs
 repo_url: https://github.com/erikh/box
 pages:
   - "Introduction": "index.md"
+  - "Command-Line Options": "cli.md"
   - "Verb Reference": "verbs.md"
   - "Function Reference": "functions.md"
