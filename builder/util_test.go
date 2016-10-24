@@ -14,7 +14,7 @@ import (
 )
 
 func runBuilder(script string) (*Builder, error) {
-	b, err := NewBuilder(term.IsTerminal(0))
+	b, err := NewBuilder(term.IsTerminal(0), []string{})
 	if err != nil {
 		return nil, err
 	}
