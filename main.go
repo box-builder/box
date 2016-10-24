@@ -58,6 +58,10 @@ func main() {
 			Name:  "help, h",
 			Usage: "Show the help",
 		},
+		cli.StringFlag{
+			Name:  "tag, t",
+			Usage: "Tag the last image with this name",
+		},
 	}
 
 	app.Action = func(ctx *cli.Context) {
@@ -104,6 +108,17 @@ func main() {
 
 		if response.String() != "" {
 			fmt.Printf("+++ Eval Response: %v\n", response)
+		}
+
+		tag := ctx.String("tag")
+
+		if tag != "" {
+			fmt.Printf("+++ Tagging last image with %q\n", tag)
+
+			if err := b.Tag(tag); err != nil {
+				fmt.Printf("!!! Can't tag with tag %q: %v\n", tag, err)
+				os.Exit(1)
+			}
 		}
 
 		id := b.ImageID()

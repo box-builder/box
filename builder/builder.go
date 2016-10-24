@@ -50,6 +50,11 @@ func NewBuilder(tty bool) (*Builder, error) {
 	return builder, nil
 }
 
+// Tag tags the last image yielded by the builder with the provided name.
+func (b *Builder) Tag(name string) error {
+	return b.exec.Tag(name)
+}
+
 // SetCache sets the caching strategy for builds. Turn on to use caching, off
 // to not. The default is set to whether or not the environment variable
 // (NO_CACHE) is non-empty.
