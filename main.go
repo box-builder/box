@@ -62,6 +62,10 @@ func main() {
 			Name:  "tag, t",
 			Usage: "Tag the last image with this name",
 		},
+		cli.StringSliceFlag{
+			Name:  "omit, o",
+			Usage: "Omit functions/verbs. One per option, repeatable.",
+		},
 	}
 
 	app.Action = func(ctx *cli.Context) {
@@ -78,7 +82,7 @@ func main() {
 			tty = ctx.Bool("force-tty")
 		}
 
-		b, err := builder.NewBuilder(tty)
+		b, err := builder.NewBuilder(tty, ctx.StringSlice("omit"))
 		if err != nil {
 			panic(err)
 		}

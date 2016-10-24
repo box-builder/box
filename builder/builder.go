@@ -19,8 +19,17 @@ type Builder struct {
 	exec     executor.Executor
 }
 
+func keep(omitFuncs []string, name string) bool {
+	for _, fun := range omitFuncs {
+		if name == fun {
+			return false
+		}
+	}
+	return true
+}
+
 // NewBuilder creates a new builder. Returns error on docker or mruby issues.
-func NewBuilder(tty bool) (*Builder, error) {
+func NewBuilder(tty bool, omitFuncs []string) (*Builder, error) {
 	useCache := os.Getenv("NO_CACHE") == ""
 
 	exec, err := NewExecutor("docker", useCache, tty)
@@ -35,16 +44,20 @@ func NewBuilder(tty bool) (*Builder, error) {
 	}
 
 	for name, def := range verbJumpTable {
-		builder.AddVerb(name, def.verbFunc, def.argSpec)
+		if keep(omitFuncs, name) {
+			builder.AddVerb(name, def.verbFunc, def.argSpec)
+		}
 	}
 
 	for name, def := range funcJumpTable {
-		inner := def.fun
-		fn := func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-			return inner(builder, m, self)
-		}
+		if keep(omitFuncs, name) {
+			inner := def.fun
+			fn := func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+				return inner(builder, m, self)
+			}
 
-		builder.mrb.TopSelf().SingletonClass().DefineMethod(name, fn, def.argSpec)
+			builder.mrb.TopSelf().SingletonClass().DefineMethod(name, fn, def.argSpec)
+		}
 	}
 
 	return builder, nil
