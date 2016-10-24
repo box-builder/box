@@ -5,8 +5,7 @@ allow new actions, such as flattening and tagging images.
 
 ## Getting Box
 
-That's complicated. You can either follow the [Development Instructions](https://github.com/erikh/box/blob/master/README.md)
-or you can pull `erikh/box:latest` for now. See `Invocation` for how to run it.
+**[Download Release v0.1](https://github.com/erikh/box/releases/tag/v0.1)**
 
 ## Invocation
 
