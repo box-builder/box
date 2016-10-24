@@ -27,6 +27,11 @@
 			"Rev": "1921dde3f1e52bf7dac07a0a2fcd55b770e134c5"
 		},
 		{
+			"ImportPath": "github.com/docker/docker/pkg/stdcopy",
+			"Comment": "docs-v1.12.0-rc4-2016-07-15-2344-g1f9bece",
+			"Rev": "1f9beceacc916756bd5894f36306727ec9c6c008"
+		},
+		{
 			"ImportPath": "github.com/docker/engine-api/client",
 			"Comment": "v0.4.0-66-g4290f40",
 			"Rev": "4290f40c056686fcaa5c9caf02eac1dde9315adf"
@@ -120,6 +125,14 @@
 			"ImportPath": "github.com/docker/go-units",
 			"Comment": "v0.3.1-6-gf2145db",
 			"Rev": "f2145db703495b2e525c59662db69a7344b00bb8"
+		},
+		{
+			"ImportPath": "github.com/kless/term",
+			"Rev": "c8064aa880de646c634b193608ec79a41c823951"
+		},
+		{
+			"ImportPath": "github.com/kless/term/sys",
+			"Rev": "c8064aa880de646c634b193608ec79a41c823951"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/go-mruby",

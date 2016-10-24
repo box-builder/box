@@ -27,9 +27,9 @@ func NewConfig() *Config {
 }
 
 // ToDocker outputs a docker configuration suitable for running images.
-func (c *Config) ToDocker() *container.Config {
+func (c *Config) ToDocker(tty bool) *container.Config {
 	return &container.Config{
-		Tty:          true,
+		Tty:          tty,
 		AttachStderr: true,
 		AttachStdout: true,
 		Image:        c.Image,
