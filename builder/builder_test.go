@@ -233,7 +233,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	c.Assert(err, IsNil)
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
-	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{})
+	c.Assert(inspect.Config.Entrypoint, IsNil)
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
 }
 
@@ -293,6 +293,22 @@ func (bs *builderSuite) TestRun(c *C) {
 }
 
 func (bs *builderSuite) TestWorkDirInside(c *C) {
+	_, err := runBuilder(`
+    from "debian"
+    workdir "."
+  `)
+
+	c.Assert(err, NotNil)
+
+	_, err = runBuilder(`
+    from "debian"
+    inside "." do
+      run "true"
+    end
+  `)
+
+	c.Assert(err, NotNil)
+
 	b, err := runBuilder(`
     from "debian"
     run "mkdir /test"
