@@ -106,6 +106,9 @@ cmd "foo"              # this will equate to `/bin/echo foo`
 from sets the initial image and if necessary, pulls it from the registry. It
 also sets the initial layer and must be called before several operations.
 
+Using `from` overwrites all container configuration, including `workdir`,
+`user`, `env`, `cmd`, and `entrypoint`.
+
 Example:
 
 ```ruby

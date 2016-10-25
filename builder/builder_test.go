@@ -580,6 +580,31 @@ func (bs *builderSuite) TestEnv(c *C) {
 	}
 
 	c.Assert(count, Equals, 2)
+
+	_, err = runBuilder(`
+    from "debian"
+    env "TERM" => "myterm"
+    tag "builder-env-base"
+  `)
+	c.Assert(err, IsNil)
+
+	_, err = runBuilder(`
+    from "builder-env-base"
+    tag "builder-env"
+  `)
+
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), "builder-env")
+	c.Assert(err, IsNil)
+	found = false
+
+	for _, item := range inspect.Config.Env {
+		if item == "TERM=myterm" {
+			found = true
+			break
+		}
+	}
+
+	c.Assert(found, Equals, true)
 }
 
 func (bs *builderSuite) TestReaderFuncs(c *C) {
