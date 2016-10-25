@@ -12,6 +12,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -94,7 +95,9 @@ func workdir(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 		return nil, createException(m, err.Error())
 	}
 
-	// FIXME must be absolute path, fix & test this.
+	if !path.IsAbs(args[0].String()) {
+		return nil, createException(m, fmt.Sprintf("path %q is not absolute in workdir", args[0].String()))
+	}
 
 	b.exec.Config().WorkDir = args[0].String()
 
@@ -285,7 +288,10 @@ func inside(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		return nil, createException(m, fmt.Sprintf("Arg %q was not block!", args[1].String()))
 	}
 
-	// FIXME must be absolute path, fix & test this.
+	if !path.IsAbs(args[0].String()) {
+		return nil, createException(m, fmt.Sprintf("path %q is not absolute in workdir", args[0].String()))
+	}
+
 	workdir := b.exec.Config().WorkDir
 	b.exec.Config().WorkDir = args[0].String()
 
