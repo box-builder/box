@@ -23,10 +23,14 @@ set_exec entrypoint: ["/bin/echo"], cmd: ["foo"]
 
 ## workdir
 
-workdir sets the WorkingDir in the docker environment. It sets this
+workdir sets the working directory in the docker environment. It sets this
 throughout the image creation; all run/copy statements will respect this
 value. If you wish to break out or work within it further, look at the
 `inside` call.
+
+The workdir, if left empty by either the parent in `from` or from no
+interaction from the plan, is set to `/` to avoid inheriting accidentally from
+the parent image.
 
 Example:
 
@@ -43,6 +47,8 @@ user sets the username this container will use by default. It also affects
 following run statements (but not copy, which always copies as root
 currently). If you wish to switch to a user temporarily, consider using
 `with_user`.
+
+An empty user is always set to `root` in the final image.
 
 Example:
 
@@ -108,6 +114,8 @@ also sets the initial layer and must be called before several operations.
 
 Using `from` overwrites all container configuration, including `workdir`,
 `user`, `env`, `cmd`, and `entrypoint`.
+
+It is generally expected that `from` is called first in a build plan.
 
 Example:
 
