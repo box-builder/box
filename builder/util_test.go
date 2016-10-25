@@ -28,6 +28,7 @@ func readContainerFile(c *C, b *Builder, fn string) []byte {
 }
 
 func runContainerCommand(c *C, b *Builder, cmd []string) []byte {
+	b.exec.Config().Entrypoint = []string{}
 	b.exec.Config().Cmd = cmd
 	id, err := b.exec.Create()
 	c.Assert(err, IsNil)

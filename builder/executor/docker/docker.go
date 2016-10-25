@@ -235,7 +235,7 @@ func (d *Docker) Tag(tag string) error {
 	return d.client.ImageTag(context.Background(), d.config.Image, tag)
 }
 
-// Fetch retrieves a docker image and returns its id.
+// Fetch retrieves a docker image, overwrites the container configuration, and returns its id.
 func (d *Docker) Fetch(name string) (string, error) {
 	inspect, _, err := d.client.ImageInspectWithRaw(context.Background(), name)
 	if err != nil {
@@ -264,6 +264,8 @@ func (d *Docker) Fetch(name string) (string, error) {
 			return "", err
 		}
 	}
+
+	d.config.FromDocker(inspect.Config)
 
 	return inspect.ID, nil
 }
