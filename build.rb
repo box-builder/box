@@ -1,5 +1,7 @@
 from "golang"
 
+workdir "/" # affects copy statements later
+
 packages = %w[
   build-essential
   g++
