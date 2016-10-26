@@ -7,6 +7,14 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/Azure/go-ansiterm",
+			"Rev": "fa152c58bc15761d0200cb75fe958b89a9d4888e"
+		},
+		{
+			"ImportPath": "github.com/Azure/go-ansiterm/winterm",
+			"Rev": "fa152c58bc15761d0200cb75fe958b89a9d4888e"
+		},
+		{
 			"ImportPath": "github.com/Microsoft/go-winio",
 			"Comment": "v0.3.5-2-gce2922f",
 			"Rev": "ce2922f643c8fd76b46cadc7f404a06282678b34"
@@ -28,6 +36,16 @@
 		},
 		{
 			"ImportPath": "github.com/docker/docker/pkg/stdcopy",
+			"Comment": "docs-v1.12.0-rc4-2016-07-15-2344-g1f9bece",
+			"Rev": "1f9beceacc916756bd5894f36306727ec9c6c008"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/term",
+			"Comment": "docs-v1.12.0-rc4-2016-07-15-2344-g1f9bece",
+			"Rev": "1f9beceacc916756bd5894f36306727ec9c6c008"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/term/windows",
 			"Comment": "docs-v1.12.0-rc4-2016-07-15-2344-g1f9bece",
 			"Rev": "1f9beceacc916756bd5894f36306727ec9c6c008"
 		},
@@ -125,14 +143,6 @@
 			"ImportPath": "github.com/docker/go-units",
 			"Comment": "v0.3.1-6-gf2145db",
 			"Rev": "f2145db703495b2e525c59662db69a7344b00bb8"
-		},
-		{
-			"ImportPath": "github.com/kless/term",
-			"Rev": "c8064aa880de646c634b193608ec79a41c823951"
-		},
-		{
-			"ImportPath": "github.com/kless/term/sys",
-			"Rev": "c8064aa880de646c634b193608ec79a41c823951"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/go-mruby",
