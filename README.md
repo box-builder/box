@@ -5,13 +5,25 @@ embeddable ruby. It allows for notions of conditionals, loops, and data
 structures for use within your builder plan. If you've written a Dockerfile
 before, writing a box build plan is easy.
 
+* Unique general features:
+  * mruby syntax
+  * filtering of keywords to secure builds
+* In the build plan itself:
+  * Tagging
+  * Flattening
+  * Debug mode (drop to a shell in the middle of a plan run and inspect your container)
+  * Ruby block methods for `user` (`with_user`) and `workdir` (`inside`) allow
+    you to scope `copy` and `run` operations for a more obvious build plan.
+
 * **[Download Release v0.1](https://github.com/erikh/box/releases/tag/v0.1)**
 * **[Extended Documentation for Syntax and Usage](https://erikh.github.io/box/)**
 
 ## Example
 
-This will fetch the golang image, update APT and then install the packages set
-in the `packages` variable. Then it will tag the whole image as `mypackages`.
+This will fetch the golang image, update APT, and then install the packages set
+in the `packages` variable. It then creates a user and copies the dir to its
+homedir. If an environment value is provided, it will be used. Then it will tag
+the whole image as `mypackages`.
 
 Save it to plan.rb and run it with `box plan.rb` or `box < plan.rb` to read it
 from stdin. **Box only copies what it needs to; your whole directory won't be
@@ -24,6 +36,12 @@ packages = "build-essential g++ git wget curl ruby bison flex"
 
 run "apt-get update"
 run "apt-get install -y #{packages}"
+
+run %q[useradd -m -d /home/erikh -s /bin/bash erikh]
+
+inside "/home/erikh" do
+  copy((getenv("MYDIR") || "."), ".")
+end
 
 tag "mypackages"
 ```

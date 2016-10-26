@@ -3,6 +3,18 @@ we provide additional flexibility over the vanilla `docker build` command by
 adding control structures and basic predicates. We also add new verbs that
 allow new actions, such as flattening and tagging images.
 
+Some features that differentiate it from `docker build`:
+
+* Unique general features:
+  * mruby syntax
+  * filtering of keywords to secure builds
+* In the build plan itself:
+  * Tagging
+  * Flattening
+  * Debug mode (drop to a shell in the middle of a plan run and inspect your container)
+  * Ruby block methods for `user` ([with\_user](verbs/#with95user)) and `workdir` ([inside](verbs/#inside)) allow
+    you to scope `copy` and `run` operations for a more obvious build plan.
+
 ## Getting Box
 
 **[Download Release v0.1](https://github.com/erikh/box/releases/tag/v0.1)**
@@ -26,7 +38,7 @@ jumping-off point for most copy operations. If you run the `erikh/box`
 container, you may wish to run it in this way:
 
 ```bash
-$ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest < myplan.rb
+$ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest myplan.rb
 ```
 
 For additional flags and functionality, see the help:
