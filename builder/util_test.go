@@ -9,8 +9,8 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/docker/docker/pkg/term"
 	"github.com/docker/engine-api/types"
-	"github.com/kless/term"
 )
 
 func runBuilder(script string) (*Builder, error) {

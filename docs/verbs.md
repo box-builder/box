@@ -3,6 +3,27 @@ be used to move data into and out of containers, or set properties and run
 commands.
 
 
+## debug
+
+`debug` drops to a container's shell (bash by default, but an argument can be
+provided to change this) at the current place in the build cycle when invoked.
+Changes to the container will be persisted through the rest of the run, and a
+layer will be created.
+
+If the shell exits non-zero, like `run` it will abort the build.
+
+There is currently no way to detach from a debug session. Close the shell
+and/or programs.
+
+Example:
+
+```ruby
+from "debian"
+copy ".", "/test"
+debug # verify all files landed in test like you expected them to
+run "chown -R erikh:erikh /test" # this will run after you close the shell
+```
+
 ## set\_exec
 `set_exec` sets both the entrypoint and cmd at the same time, allowing for no
 race between the operations.

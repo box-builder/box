@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/pkg/term"
 	"github.com/erikh/box/builder"
-	"github.com/kless/term"
 	"github.com/urfave/cli"
 )
 
@@ -78,7 +78,7 @@ func main() {
 
 		tty := !ctx.Bool("no-tty")
 
-		if !term.IsTerminal(term.InputFD) {
+		if !term.IsTerminal(0) {
 			tty = ctx.Bool("force-tty")
 		}
 

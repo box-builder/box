@@ -29,6 +29,7 @@ type verbDefinition struct {
 
 // verbJumpTable is the dispatch instructions sent to the builder at preparation time.
 var verbJumpTable = map[string]verbDefinition{
+	"debug":      {debug, mruby.ArgsOpt(1)},
 	"flatten":    {flatten, mruby.ArgsNone()},
 	"tag":        {tag, mruby.ArgsReq(1)},
 	"copy":       {copy, mruby.ArgsReq(2)},
@@ -46,6 +47,36 @@ var verbJumpTable = map[string]verbDefinition{
 
 // verbFunc is a builder DSL function used to interact with docker.
 type verbFunc func(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
+
+func debug(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	var shell string
+
+	if len(args) > 0 {
+		shell = args[0].String()
+	} else {
+		shell = "/bin/bash"
+	}
+
+	b.exec.SetStdin(true)
+
+	entrypoint := b.exec.Config().Entrypoint
+	cmd := b.exec.Config().Cmd
+
+	b.exec.Config().Entrypoint = []string{}
+	b.exec.Config().Cmd = []string{shell}
+
+	defer func() {
+		b.exec.Config().Entrypoint = entrypoint
+		b.exec.Config().Cmd = cmd
+		b.exec.SetStdin(false)
+	}()
+
+	if err := b.exec.Commit(cacheKey, b.exec.RunHook); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	return nil, nil
+}
 
 func setExec(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := standardCheck(b, args, 1); err != nil {
