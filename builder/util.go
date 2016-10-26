@@ -18,6 +18,7 @@ func createException(m *mruby.Mrb, msg string) mruby.Value {
 
 func extractStringArgs(args []*mruby.MrbValue) []string {
 	strArgs := []string{}
+
 	for _, arg := range args {
 		if arg.Type() != mruby.TypeProc {
 			strArgs = append(strArgs, arg.String())

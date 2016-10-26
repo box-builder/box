@@ -51,8 +51,12 @@ type Executor interface {
 	Fetch(string) (string, error)
 
 	// RunHook is used to manage run invocations, and is processed by the run
-	// statement. A command is provided.
+	// statement.
 	RunHook(string) (string, error)
+
+	// SetStdin turns on the stdin features during run invocations. It is used to
+	// facilitate debugging.
+	SetStdin(bool)
 
 	// UseCache determines if the cache should be considered or not.
 	UseCache(bool)

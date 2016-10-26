@@ -99,7 +99,8 @@ func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
 			return nil, createException(m, err.Error())
 		}
 
-		if !cached {
+		// if we don't do this for debug, we will step past it on successive runs
+		if !cached || name == "debug" {
 			return fn(b, cacheKey, args, m, self)
 		}
 

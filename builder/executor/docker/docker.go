@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/docker/docker/pkg/term"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/builder/config"
@@ -26,6 +27,7 @@ type Docker struct {
 	config   *config.Config
 	useCache bool
 	tty      bool
+	stdin    bool
 }
 
 // NewDocker constructs a new docker instance, for executing against docker
@@ -42,6 +44,12 @@ func NewDocker(useCache, tty bool) (*Docker, error) {
 		client:   client,
 		config:   config.NewConfig(),
 	}, nil
+}
+
+// SetStdin turns on the stdin features during run invocations. It is used to
+// facilitate debugging.
+func (d *Docker) SetStdin(on bool) {
+	d.stdin = on
 }
 
 // ImageID returns the image identifier of the most recent layer.
@@ -107,7 +115,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 		}
 	}
 
-	commitResp, err := d.client.ContainerCommit(context.Background(), id, types.ContainerCommitOptions{Config: d.config.ToDocker(d.tty), Comment: cacheKey})
+	commitResp, err := d.client.ContainerCommit(context.Background(), id, types.ContainerCommitOptions{Config: d.config.ToDocker(d.tty, d.stdin), Comment: cacheKey})
 	if err != nil {
 		return fmt.Errorf("Error during commit: %v", err)
 	}
@@ -203,7 +211,7 @@ func (d *Docker) CopyOneFileFromContainer(fn string) ([]byte, error) {
 func (d *Docker) Create() (string, error) {
 	cont, err := d.client.ContainerCreate(
 		context.Background(),
-		d.config.ToDocker(d.tty),
+		d.config.ToDocker(d.tty, d.stdin),
 		nil,
 		nil,
 		"",
@@ -272,15 +280,28 @@ func (d *Docker) Fetch(name string) (string, error) {
 
 // RunHook is the run hook for docker agents.
 func (d *Docker) RunHook(id string) (string, error) {
-	cearesp, err := d.client.ContainerAttach(context.Background(), id, types.ContainerAttachOptions{Stream: true, Stdout: true, Stderr: true})
+	cearesp, err := d.client.ContainerAttach(context.Background(), id, types.ContainerAttachOptions{Stream: true, Stdin: d.stdin, Stdout: true, Stderr: true})
 	if err != nil {
 		return "", fmt.Errorf("Could not attach to container: %v", err)
 	}
 
-	if !d.tty {
-		cearesp.CloseWrite()
+	if d.tty {
+		state, err := term.SetRawTerminal(0)
+		if err != nil {
+			return "", fmt.Errorf("Could not attach terminal to container: %v", err)
+		}
+
+		defer term.RestoreTerminal(0, state)
 	}
 
+	stopChan := make(chan struct{})
+	errChan := make(chan error)
+
+	if d.stdin {
+		go doCopy(cearesp.Conn, os.Stdin, errChan, stopChan)
+	}
+
+	defer cearesp.CloseWrite()
 	defer cearesp.Close()
 
 	err = d.client.ContainerStart(context.Background(), id, types.ContainerStartOptions{})
@@ -288,25 +309,48 @@ func (d *Docker) RunHook(id string) (string, error) {
 		return "", fmt.Errorf("Could not start container: %v", err)
 	}
 
-	fmt.Println("------ BEGIN OUTPUT ------")
-
-	if !d.tty {
-		_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, cearesp.Reader)
-		if err != nil && err != io.EOF {
-			return "", err
-		}
-	} else {
-		_, err = io.Copy(os.Stdout, cearesp.Reader)
-		if err != nil && err != io.EOF {
-			return "", err
-		}
+	if !d.stdin {
+		fmt.Println("------ BEGIN OUTPUT ------")
 	}
 
-	fmt.Println("------ END OUTPUT ------")
+	if !d.tty {
+		go func() {
+			// docker mux's the streams, and requires this stdcopy library to unpack them.
+			_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, cearesp.Reader)
+			if err != nil && err != io.EOF {
+				select {
+				case <-stopChan:
+					return
+				default:
+				}
 
-	stat, err := d.client.ContainerWait(context.Background(), id)
+				errChan <- err
+			}
+		}()
+	} else if d.tty {
+		go doCopy(os.Stdout, cearesp.Reader, errChan, stopChan)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		err, ok := <-errChan
+		if ok {
+			fmt.Printf("+++ Error: %v", err)
+			cancel()
+		}
+	}()
+
+	defer close(errChan)
+	defer close(stopChan)
+
+	stat, err := d.client.ContainerWait(ctx, id)
 	if err != nil {
 		return "", err
+	}
+
+	if !d.stdin {
+		fmt.Println("------ END OUTPUT ------")
 	}
 
 	if stat != 0 {
@@ -361,4 +405,24 @@ func printPull(reader io.Reader) error {
 	}
 
 	return nil
+}
+
+func doCopy(wtr io.Writer, rdr io.Reader, errChan chan error, stopChan chan struct{}) {
+	// repeat copy until error is returned. if error is not io.EOF, forward
+	// to channel. Return on any error.
+	for {
+		select {
+		case <-stopChan:
+			return
+		default:
+		}
+
+		if _, err := io.Copy(wtr, rdr); err == nil {
+			continue
+		} else if err != io.EOF {
+			errChan <- err
+		}
+
+		return
+	}
 }
