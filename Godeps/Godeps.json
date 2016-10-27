@@ -145,6 +145,10 @@
 			"Rev": "f2145db703495b2e525c59662db69a7344b00bb8"
 		},
 		{
+			"ImportPath": "github.com/erikh/testcli",
+			"Rev": "0437eded0bfa325036f05689355b8281c09c5545"
+		},
+		{
 			"ImportPath": "github.com/mitchellh/go-mruby",
 			"Rev": "3c8903cd3f058f4a92305ca825687727ac295957"
 		},

@@ -81,10 +81,6 @@ func (d *Docker) Config() *config.Config {
 
 // Commit commits an entry to the layer list.
 func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
-	if !d.useCache {
-		cacheKey = ""
-	}
-
 	id, err := d.Create()
 	if err != nil {
 		return err
@@ -110,7 +106,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 			return err
 		}
 
-		if tmp != "" && d.useCache {
+		if tmp != "" {
 			cacheKey = tmp
 		}
 	}
@@ -285,23 +281,20 @@ func (d *Docker) RunHook(id string) (string, error) {
 		return "", fmt.Errorf("Could not attach to container: %v", err)
 	}
 
-	if d.tty {
+	stopChan := make(chan struct{})
+	errChan := make(chan error)
+
+	if d.stdin {
 		state, err := term.SetRawTerminal(0)
 		if err != nil {
 			return "", fmt.Errorf("Could not attach terminal to container: %v", err)
 		}
 
 		defer term.RestoreTerminal(0, state)
-	}
 
-	stopChan := make(chan struct{})
-	errChan := make(chan error)
-
-	if d.stdin {
 		go doCopy(cearesp.Conn, os.Stdin, errChan, stopChan)
 	}
 
-	defer cearesp.CloseWrite()
 	defer cearesp.Close()
 
 	err = d.client.ContainerStart(context.Background(), id, types.ContainerStartOptions{})
@@ -337,10 +330,22 @@ func (d *Docker) RunHook(id string) (string, error) {
 		err, ok := <-errChan
 		if ok {
 			fmt.Printf("+++ Error: %v", err)
+			close(stopChan)
 			cancel()
 		}
 	}()
 
+	intSig := make(chan os.Signal)
+	signal.Notify(intSig, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		_, ok := <-intSig
+		if ok {
+			fmt.Println("!!! SIGINT or SIGTERM recieved, crashing container...")
+			cancel()
+		}
+	}()
+
+	defer close(intSig)
 	defer close(errChan)
 	defer close(stopChan)
 
@@ -420,7 +425,11 @@ func doCopy(wtr io.Writer, rdr io.Reader, errChan chan error, stopChan chan stru
 		if _, err := io.Copy(wtr, rdr); err == nil {
 			continue
 		} else if err != io.EOF {
-			errChan <- err
+			select {
+			case <-stopChan:
+			default:
+				errChan <- err
+			}
 		}
 
 		return

@@ -1,4 +1,4 @@
-PACKAGES := "./builder"
+PACKAGES := "./cli-tests ./builder"
 
 all:
 	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell pwd)/mruby_config.rb make
@@ -23,7 +23,7 @@ build:
 	go run main.go build.rb
 
 run-test:
-	docker run -it --privileged --rm -it box-test
+	docker run -e "TESTRUN=$(TESTRUN)" -it --privileged --rm -it box-test
 
 test: build run-test
 
