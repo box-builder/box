@@ -34,3 +34,7 @@ func build(content string, extraArgs ...string) *testcli.Cmd {
 func checkSuccess(c *C, cmd *testcli.Cmd) {
 	c.Assert(cmd.Success(), Equals, true, Commentf("stdout:\n%s\nstderr:\n%s\n", cmd.Stdout(), cmd.Stderr()))
 }
+
+func checkFailure(c *C, cmd *testcli.Cmd) {
+	c.Assert(cmd.Failure(), Equals, true, Commentf("stdout:\n%s\nstderr:\n%s\n", cmd.Stdout(), cmd.Stderr()))
+}
