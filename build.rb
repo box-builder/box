@@ -1,8 +1,9 @@
 from "golang"
-
 workdir "/" # affects copy statements later
 
-packages = %w[
+DOCKER_VERSION = "1.12.2"
+
+PACKAGES = %w[
   build-essential
   g++
   git
@@ -16,13 +17,14 @@ packages = %w[
 ]
 
 run "apt-get update"
-run "apt-get install -y #{packages.join(" ")}"
+run "apt-get install -y #{PACKAGES.join(" ")}"
 env "GOPATH" => "/go"
 
 if getenv("RELEASE") == ""
-  run "wget https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz"
-  run "tar -xpf docker-1.12.1.tgz --strip-components=1 -C /usr/bin/"
-  run "rm docker-1.12.1.tgz"
+  docker_path = "docker-#{DOCKER_VERSION}.tgz"
+  run "wget https://get.docker.com/builds/Linux/x86_64/#{docker_path}"
+  run "tar -xpf #{docker_path} --strip-components=1 -C /usr/bin/"
+  run "rm #{docker_path}"
   copy "dind", "/dind"
 end
 
