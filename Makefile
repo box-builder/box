@@ -23,7 +23,7 @@ build:
 	go run main.go build.rb
 
 run-test:
-	docker run -it --privileged --rm -it box-test
+	docker run -e "TESTRUN=$(TESTRUN)" -it --privileged --rm -it box-test
 
 test: build run-test
 
