@@ -81,10 +81,6 @@ func (d *Docker) Config() *config.Config {
 
 // Commit commits an entry to the layer list.
 func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
-	if !d.useCache {
-		cacheKey = ""
-	}
-
 	id, err := d.Create()
 	if err != nil {
 		return err
@@ -110,7 +106,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 			return err
 		}
 
-		if tmp != "" && d.useCache {
+		if tmp != "" {
 			cacheKey = tmp
 		}
 	}
