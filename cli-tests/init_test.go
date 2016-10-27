@@ -23,9 +23,11 @@ func (s *cliSuite) SetUpTest(c *C) {
 }
 
 func build(content string, extraArgs ...string) *testcli.Cmd {
-	buf := bytes.NewBufferString(content)
 	c := testcli.Command("box", extraArgs...)
-	c.SetStdin(buf)
+	if content != "" {
+		buf := bytes.NewBufferString(content)
+		c.SetStdin(buf)
+	}
 	c.Run()
 
 	return c

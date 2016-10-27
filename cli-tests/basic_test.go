@@ -20,7 +20,7 @@ func (s *cliSuite) TestCache(c *C) {
 	cmd := build(`
     from "debian"
     run "ls"
-    run "ls"
+    run "ls -l"
   `, "-n")
 
 	checkSuccess(c, cmd)
@@ -30,16 +30,20 @@ func (s *cliSuite) TestCache(c *C) {
 	cmd = build(`
     from "debian"
     run "ls"
+    run "ls -l"
   `)
 
+	cmd.SetEnv([]string{"PATH=" + os.Getenv("PATH")})
 	checkSuccess(c, cmd)
 
 	c.Assert(strings.Contains(cmd.Stdout(), "Cache"), Equals, true, Commentf("%s", cmd.Stdout()))
 
+	os.Setenv("NO_CACHE", "1")
 	cmd = build(`
     from "debian"
     run "ls"
-  `, "-n")
+    run "ls -l"
+  `)
 
 	checkSuccess(c, cmd)
 
