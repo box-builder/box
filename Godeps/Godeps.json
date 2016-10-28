@@ -146,7 +146,7 @@
 		},
 		{
 			"ImportPath": "github.com/mitchellh/go-mruby",
-			"Rev": "3c8903cd3f058f4a92305ca825687727ac295957"
+			"Rev": "2b3cb1143d87912a136c0323b1903e1275c37020"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer/user",

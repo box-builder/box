@@ -4,6 +4,36 @@ your build for further processing; the `read` function allows that.
 
 These are the functions supported by Box.
 
+## import
+
+import loads a ruby file, and then executes it as if it were a box plan. This
+is prinicipally used to modularize build instructions between multiple builds.
+
+Note that this will load ruby files specified anywhere on the filesystem. Use
+at your own risk. You can provide the `-o import` option to omit this function
+from use.
+
+Example:
+
+File A:
+
+```ruby
+from "debian"
+```
+
+File B imports File A and builds on it:
+
+```ruby
+import "file-a.rb"
+run "ls"
+```
+
+```ruby
+# If you set IMAGE=ceph/rbd:latest in your environment, that would be pulled
+# via the `from` statement.
+from getenv("IMAGE")
+```
+
 ## getenv
 
 getenv retrieves a value from the building environment (passed in as string)

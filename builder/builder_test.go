@@ -43,6 +43,31 @@ func (bs *builderSuite) SetUpTest(c *C) {
 	os.Setenv("NO_CACHE", "1")
 }
 
+func (bs *builderSuite) TestImport(c *C) {
+	f, err := ioutil.TempFile("", "import-tmp")
+	c.Assert(err, IsNil)
+
+	defer f.Close()
+
+	_, err = f.Write([]byte(`
+    from "debian"
+  `))
+
+	c.Assert(err, IsNil)
+
+	b, err := runBuilder(fmt.Sprintf(`
+    import "%s"
+  `, f.Name()))
+	c.Assert(err, IsNil)
+	c.Assert(b.ImageID(), Not(Equals), "")
+
+	b, err = runBuilder(`
+    import "/nonexistent"
+  `)
+	c.Assert(err, NotNil)
+	c.Assert(b.ImageID(), Equals, "")
+}
+
 func (bs *builderSuite) TestCopy(c *C) {
 	testpath := filepath.Join(dockerfilePath, "test1.rb")
 
