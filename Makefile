@@ -20,6 +20,7 @@ bootstrap-test: bootstrap-image
 	make run-test
  
 build:
+	@echo you must build the project with `make` before using this target
 	go run main.go build.rb
 
 run-test:
@@ -33,4 +34,4 @@ release: build
 docker-test:
 	bash docker-test.sh $(PACKAGES)
 
-.PHONY: vendor docs
+.PHONY: docs

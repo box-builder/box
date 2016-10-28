@@ -145,10 +145,6 @@
 			"Rev": "f2145db703495b2e525c59662db69a7344b00bb8"
 		},
 		{
-			"ImportPath": "github.com/erikh/testcli",
-			"Rev": "0437eded0bfa325036f05689355b8281c09c5545"
-		},
-		{
 			"ImportPath": "github.com/mitchellh/go-mruby",
 			"Rev": "3c8903cd3f058f4a92305ca825687727ac295957"
 		},
@@ -156,6 +152,10 @@
 			"ImportPath": "github.com/opencontainers/runc/libcontainer/user",
 			"Comment": "v1.0.0-rc2-16-g26ebd6a",
 			"Rev": "26ebd6ab634d07528b0dba6e07820c6a9c5d38ba"
+		},
+		{
+			"ImportPath": "github.com/rendon/testcli",
+			"Rev": "6283090d169f51a2410b4e260341a01c9a4c0ca7"
 		},
 		{
 			"ImportPath": "github.com/urfave/cli",

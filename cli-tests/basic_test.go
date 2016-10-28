@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/erikh/testcli"
+	"github.com/rendon/testcli"
 
 	. "gopkg.in/check.v1"
 )
