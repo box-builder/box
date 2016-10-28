@@ -9,6 +9,8 @@ import (
 
 	"github.com/erikh/box/builder/executor"
 	"github.com/erikh/box/builder/executor/docker"
+	"github.com/erikh/box/log"
+	"github.com/fatih/color"
 	mruby "github.com/mitchellh/go-mruby"
 )
 
@@ -31,6 +33,10 @@ func keep(omitFuncs []string, name string) bool {
 // NewBuilder creates a new builder. Returns error on docker or mruby issues.
 func NewBuilder(tty bool, omitFuncs []string) (*Builder, error) {
 	useCache := os.Getenv("NO_CACHE") == ""
+
+	if !tty {
+		color.NoColor = true
+	}
 
 	exec, err := NewExecutor("docker", useCache, tty)
 	if err != nil {
@@ -93,7 +99,8 @@ func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
 		sum := sha512.Sum512_256([]byte(cacheKey))
 		cacheKey = base64.StdEncoding.EncodeToString([]byte(sum[:]))
 
-		fmt.Printf("+++ Execute: %s %s\n", name, strings.Join(strArgs, ", "))
+		log.BuildStep(name, strings.Join(strArgs, ","))
+
 		cached, err := b.exec.CheckCache(cacheKey)
 		if err != nil {
 			return nil, createException(m, err.Error())

@@ -9,6 +9,7 @@ import (
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/erikh/box/builder"
+	"github.com/erikh/box/log"
 	"github.com/urfave/cli"
 )
 
@@ -111,18 +112,17 @@ func main() {
 		}
 
 		if response.String() != "" {
-			fmt.Printf("+++ Eval Response: %v\n", response)
+			log.EvalResponse(response.String())
 		}
 
 		tag := ctx.String("tag")
 
 		if tag != "" {
-			fmt.Printf("+++ Tagging last image with %q\n", tag)
-
 			if err := b.Tag(tag); err != nil {
 				fmt.Printf("!!! Can't tag with tag %q: %v\n", tag, err)
 				os.Exit(1)
 			}
+			log.Tag(tag)
 		}
 
 		id := b.ImageID()
@@ -131,7 +131,7 @@ func main() {
 			id = strings.SplitN(id, ":", 2)[1]
 		}
 
-		fmt.Printf("+++ Finish: %v\n", id)
+		log.Finish(id)
 	}
 
 	if err := app.Run(os.Args); err != nil {

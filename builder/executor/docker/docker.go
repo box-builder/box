@@ -19,6 +19,8 @@ import (
 	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/builder/config"
 	"github.com/erikh/box/builder/executor"
+	"github.com/erikh/box/log"
+	"github.com/fatih/color"
 )
 
 // Docker implements an executor that talks to docker to achieve its goals.
@@ -150,7 +152,7 @@ func (d *Docker) CheckCache(cacheKey string) (bool, error) {
 				}
 
 				if inspect.Comment == cacheKey {
-					fmt.Printf("+++ Cache hit: using %q\n", img.ID)
+					log.CacheHit(img.ID)
 					d.config.FromDocker(inspect.Config)
 					d.config.Image = img.ID
 					return true, nil
@@ -304,7 +306,7 @@ func (d *Docker) RunHook(id string) (string, error) {
 	}
 
 	if !d.stdin {
-		fmt.Println("------ BEGIN OUTPUT ------")
+		color.New(color.FgRed, color.Bold, color.BgWhite).Printf("------ BEGIN OUTPUT ------\n")
 	}
 
 	if !d.tty {
@@ -356,7 +358,7 @@ func (d *Docker) RunHook(id string) (string, error) {
 	}
 
 	if !d.stdin {
-		fmt.Println("------ END OUTPUT ------")
+		color.New(color.FgRed, color.Bold, color.BgWhite).Printf("------- END OUTPUT -------\n")
 	}
 
 	if stat != 0 {

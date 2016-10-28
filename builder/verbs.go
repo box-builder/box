@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/erikh/box/builder/tar"
+	"github.com/erikh/box/log"
 	mruby "github.com/mitchellh/go-mruby"
 )
 
@@ -219,7 +220,7 @@ func tag(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		return nil, createException(m, err.Error())
 	}
 
-	fmt.Printf("+++ Tagged: %q\n", name)
+	log.Tag(name)
 
 	return nil, nil
 }
@@ -408,8 +409,6 @@ func copy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 	if strings.HasSuffix(target, "/") {
 		target = filepath.Join(target, rel)
 	}
-
-	fmt.Printf("+++ Copying: %q to %q\n", rel, target)
 
 	fn, err := tar.Archive(rel, target)
 	defer os.Remove(fn)
