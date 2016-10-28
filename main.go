@@ -22,7 +22,7 @@ var (
 	// Email is my email
 	Email = "github@hollensbe.org"
 	// Usage is the title of the application
-	Usage = "Flexible Docker Builder"
+	Usage = "Advanced mruby Container Image Builder"
 	// Author is me
 	Author = "Erik Hollensbe"
 
