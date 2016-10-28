@@ -145,6 +145,20 @@
 			"Rev": "f2145db703495b2e525c59662db69a7344b00bb8"
 		},
 		{
+			"ImportPath": "github.com/fatih/color",
+			"Comment": "v1.1.0-4-gbf82308",
+			"Rev": "bf82308e8c8546dc2b945157173eb8a959ae9505"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-colorable",
+			"Comment": "v0.0.6-6-g6c903ff",
+			"Rev": "6c903ff4aa50920ca86087a280590b36b3152b9c"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-isatty",
+			"Rev": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8"
+		},
+		{
 			"ImportPath": "github.com/mitchellh/go-mruby",
 			"Rev": "2b3cb1143d87912a136c0323b1903e1275c37020"
 		},
