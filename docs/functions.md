@@ -28,12 +28,6 @@ import "file-a.rb"
 run "ls"
 ```
 
-```ruby
-# If you set IMAGE=ceph/rbd:latest in your environment, that would be pulled
-# via the `from` statement.
-from getenv("IMAGE")
-```
-
 ## getenv
 
 getenv retrieves a value from the building environment (passed in as string)
