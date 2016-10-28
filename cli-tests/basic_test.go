@@ -70,7 +70,7 @@ func (s *cliSuite) TestTag(c *C) {
 
 	checkSuccess(c, cmd)
 
-	c.Assert(strings.Contains(cmd.Stdout(), `Tagging last image with "tagtest"`), Equals, true, Commentf("%s", cmd.Stdout()))
+	c.Assert(strings.Contains(cmd.Stdout(), `Tagged: tagtest`), Equals, true, Commentf("%s", cmd.Stdout()))
 }
 
 func (s *cliSuite) TestHelp(c *C) {

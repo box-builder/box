@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/erikh/box/log"
 )
 
 // Archive takes a source and target directory and returns a filename and/or
@@ -33,7 +35,7 @@ func Archive(rel, target string) (string, error) {
 				return err
 			}
 
-			fmt.Printf("--- Copy: %s -> %s\n", path, filepath.Join(target, path))
+			log.CopyPath(path, filepath.Join(target, path))
 
 			header, err := tar.FileInfoHeader(fi, filepath.Join(target, path))
 			if err != nil {
