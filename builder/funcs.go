@@ -11,6 +11,7 @@ package builder
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -26,10 +27,35 @@ type funcFunc func(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value,
 
 // mrubyJumpTable is the dispatch instructions sent to the mruby interpreter at builder setup.
 var funcJumpTable = map[string]funcDefinition{
+	"import": {importFunc, mruby.ArgsReq(1)},
 	"getenv": {getenv, mruby.ArgsReq(1)},
 	"getuid": {getuid, mruby.ArgsReq(1)},
 	"getgid": {getgid, mruby.ArgsReq(1)},
 	"read":   {read, mruby.ArgsReq(1)},
+}
+
+// importFunc implements the import function.
+//
+// import loads a new ruby file at the point of the function call. it is
+// prinicipally used to extend and consolidate reusable code for multiple
+// styles of build.
+func importFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+	if err := checkArgs(args, 1); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	content, err := ioutil.ReadFile(args[0].String())
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	val, err := b.Run(string(content))
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	return val, nil
 }
 
 // getenv retrieves a value from the building environment (passed in as string)
