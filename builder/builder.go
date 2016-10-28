@@ -99,7 +99,7 @@ func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
 		sum := sha512.Sum512_256([]byte(cacheKey))
 		cacheKey = base64.StdEncoding.EncodeToString([]byte(sum[:]))
 
-		log.BuildStep(name, strings.Join(strArgs, ","))
+		log.BuildStep(name, strings.Join(strArgs, ", "))
 
 		cached, err := b.exec.CheckCache(cacheKey)
 		if err != nil {
