@@ -98,6 +98,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 	defer func() {
 		d.Destroy(id)
 		signal.Reset(syscall.SIGINT, syscall.SIGTERM)
+		close(signals)
 	}()
 
 	if hook != nil {
