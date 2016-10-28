@@ -5,7 +5,7 @@ import (
 	"os"
 	. "testing"
 
-	"github.com/erikh/testcli"
+	"github.com/rendon/testcli"
 
 	. "gopkg.in/check.v1"
 )
