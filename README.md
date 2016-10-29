@@ -25,9 +25,8 @@ in the `packages` variable. It then creates a user and copies the dir to its
 homedir. If an environment value is provided, it will be used. Then it will tag
 the whole image as `mypackages`.
 
-Save it to plan.rb and run it with `box plan.rb` or `box < plan.rb` to read it
-from stdin. **Box only copies what it needs to; your whole directory won't be
-uploaded to docker.**
+Save it to plan.rb and run it with `box plan.rb`. **Box only copies what it
+needs to; your whole directory won't be uploaded to docker.**
 
 ```ruby
 from "golang"

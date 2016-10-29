@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/pkg/term"
 	"github.com/erikh/box/builder"
 	"github.com/erikh/box/log"
+	"github.com/fatih/color"
 	"github.com/urfave/cli"
 )
 
@@ -21,14 +22,14 @@ var (
 	// Email is my email
 	Email = "github@hollensbe.org"
 	// Usage is the title of the application
-	Usage = "Flexible Docker Builder"
+	Usage = "Advanced mruby Container Image Builder"
 	// Author is me
 	Author = "Erik Hollensbe"
 
 	// Copyright is the copyright, generated automatically for each year.
 	Copyright = fmt.Sprintf("(C) %d %s - Licensed under MIT license", time.Now().Year(), Author)
 	// UsageText is the description of how to use the program.
-	UsageText = "box [options] filename (if omitted, pass the file contents into stdin)"
+	UsageText = "box [options] filename"
 )
 
 func main() {
@@ -94,8 +95,11 @@ func main() {
 		if len(args) == 1 {
 			content, err = ioutil.ReadFile(args[0])
 		} else {
-			content, err = ioutil.ReadAll(os.Stdin)
+			cli.ShowAppHelp(ctx)
+			color.Red("!!! Please provide a filename to process!\n\n")
+			os.Exit(1)
 		}
+
 		if err != nil {
 			fmt.Printf("!!! Error: %v\n", err.Error())
 			os.Exit(2)
