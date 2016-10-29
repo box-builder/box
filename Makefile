@@ -27,8 +27,16 @@ run-test:
 
 test: build run-test
 
-release: build
-	docker run -e RELEASE=1 -it --privileged --rm -it box-test
+release: clean all test
+	RELEASE=1 go run main.go -t erikh/box:${VERSION} build.rb
+	sh release/release.sh ${VERSION}
+	@echo File to release is RELEASE.tmp.md
+
+release-osx: clean all
+	# test directly on mac
+	go test -v ./cli-tests -check.vv
+	go test -v ./builder -check.vv
+	sh release/release.sh ${VERSION}
 
 docker-test:
 	bash docker-test.sh $(PACKAGES)
