@@ -148,15 +148,19 @@ adding control structures and basic predicates. We also add new verbs that
 allow new actions, such as flattening and tagging images.</p>
 <p>Some features that differentiate it from <code>docker build</code>:</p>
 <ul>
-<li>Unique general features:</li>
+<li>Unique general features:<ul>
 <li>mruby syntax</li>
 <li>filtering of keywords to secure builds</li>
-<li>In the build plan itself:</li>
+</ul>
+</li>
+<li>In the build plan itself:<ul>
 <li>Tagging</li>
 <li>Flattening</li>
 <li>Debug mode (drop to a shell in the middle of a plan run and inspect your container)</li>
 <li>Ruby block methods for <code>user</code> (<a href="./verbs/#with95user">with_user</a>) and <code>workdir</code> (<a href="./verbs/#inside">inside</a>) allow
-    you to scope <code>copy</code> and <code>run</code> operations for a more obvious build plan.</li>
+  you to scope <code>copy</code> and <code>run</code> operations for a more obvious build plan.</li>
+</ul>
+</li>
 </ul>
 <h2 id="getting-box">Getting Box</h2>
 <p><strong><a href="https://github.com/erikh/box/releases/tag/v0.2">Download Release v0.2</a></strong></p>
@@ -326,5 +330,5 @@ end
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-10-29 08:24:34.996087
+Build Date UTC : 2016-10-29 08:26:31.694227
 -->
