@@ -17,11 +17,12 @@ Some features that differentiate it from `docker build`:
 
 ## Getting Box
 
-**[Download Release v0.1](https://github.com/erikh/box/releases/tag/v0.1)**
+**[Download Release v0.2](https://github.com/erikh/box/releases/tag/v0.2)**
 
 ## Invocation
 
-The commandline tool `box` will either accept a file as a commandline argument:
+The commandline tool `box` accepts a file (your "build plan") as a commandline
+argument:
 
 ```bash
 $ box myplan.rb
@@ -32,7 +33,11 @@ jumping-off point for most copy operations. If you run the `erikh/box`
 container, you may wish to run it in this way:
 
 ```bash
-$ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest myplan.rb
+$ docker run -i \
+  -v $PWD:$PWD \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -w $PWD \
+  erikh/box:latest myplan.rb
 ```
 
 For additional flags and functionality, see the help:
