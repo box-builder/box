@@ -6,14 +6,14 @@ allow new actions, such as flattening and tagging images.
 Some features that differentiate it from `docker build`:
 
 * Unique general features:
-  * mruby syntax
-  * filtering of keywords to secure builds
+    * mruby syntax
+    * filtering of keywords to secure builds
 * In the build plan itself:
-  * Tagging
-  * Flattening
-  * Debug mode (drop to a shell in the middle of a plan run and inspect your container)
-  * Ruby block methods for `user` ([with\_user](verbs/#with95user)) and `workdir` ([inside](verbs/#inside)) allow
-    you to scope `copy` and `run` operations for a more obvious build plan.
+    * Tagging
+    * Flattening
+    * Debug mode (drop to a shell in the middle of a plan run and inspect your container)
+    * Ruby block methods for `user` ([with\_user](verbs/#with95user)) and `workdir` ([inside](verbs/#inside)) allow
+      you to scope `copy` and `run` operations for a more obvious build plan.
 
 ## Getting Box
 
