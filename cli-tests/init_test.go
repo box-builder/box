@@ -22,15 +22,19 @@ func (s *cliSuite) SetUpTest(c *C) {
 	os.Setenv("NO_CACHE", "1")
 }
 
-func build(content string, extraArgs ...string) *testcli.Cmd {
+func build(content string, extraArgs ...string) (*testcli.Cmd, error) {
 	if content != "" {
-		// FIXME this should probably check for errors
-
-		f, _ := ioutil.TempFile("", "box-cli-test")
+		f, err := ioutil.TempFile("", "box-cli-test")
+		if err != nil {
+			return nil, err
+		}
 		defer f.Close()
 		defer os.Remove(f.Name())
 
-		f.Write([]byte(content))
+		_, err = f.Write([]byte(content))
+		if err != nil {
+			return nil, err
+		}
 
 		extraArgs = append(extraArgs, f.Name())
 	}
@@ -38,7 +42,7 @@ func build(content string, extraArgs ...string) *testcli.Cmd {
 	c := testcli.Command("box", extraArgs...)
 	c.Run()
 
-	return c
+	return c, nil
 }
 
 func checkSuccess(c *C, cmd *testcli.Cmd) {
