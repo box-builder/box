@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"io/ioutil"
 	"os"
 	. "testing"
 
@@ -23,11 +23,19 @@ func (s *cliSuite) SetUpTest(c *C) {
 }
 
 func build(content string, extraArgs ...string) *testcli.Cmd {
-	c := testcli.Command("box", extraArgs...)
 	if content != "" {
-		buf := bytes.NewBufferString(content)
-		c.SetStdin(buf)
+		// FIXME this should probably check for errors
+
+		f, _ := ioutil.TempFile("", "box-cli-test")
+		defer f.Close()
+		defer os.Remove(f.Name())
+
+		f.Write([]byte(content))
+
+		extraArgs = append(extraArgs, f.Name())
 	}
+
+	c := testcli.Command("box", extraArgs...)
 	c.Run()
 
 	return c

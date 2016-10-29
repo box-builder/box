@@ -10,7 +10,6 @@ import (
 )
 
 func (s *cliSuite) TestBasic(c *C) {
-	checkSuccess(c, build(`from "debian"`))
 	checkSuccess(c, build("", "test.rb"))
 }
 
