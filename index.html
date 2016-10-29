@@ -87,6 +87,13 @@
           
             <li>
     <li class="toctree-l1 ">
+        <a class="" href="cli/">Command-Line Options</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
         <a class="" href="verbs/">Verb Reference</a>
         
     </li>
@@ -139,25 +146,38 @@
 we provide additional flexibility over the vanilla <code>docker build</code> command by
 adding control structures and basic predicates. We also add new verbs that
 allow new actions, such as flattening and tagging images.</p>
+<p>Some features that differentiate it from <code>docker build</code>:</p>
+<ul>
+<li>Unique general features:</li>
+<li>mruby syntax</li>
+<li>filtering of keywords to secure builds</li>
+<li>In the build plan itself:</li>
+<li>Tagging</li>
+<li>Flattening</li>
+<li>Debug mode (drop to a shell in the middle of a plan run and inspect your container)</li>
+<li>Ruby block methods for <code>user</code> (<a href="./verbs/#with95user">with_user</a>) and <code>workdir</code> (<a href="./verbs/#inside">inside</a>) allow
+    you to scope <code>copy</code> and <code>run</code> operations for a more obvious build plan.</li>
+</ul>
 <h2 id="getting-box">Getting Box</h2>
-<p><strong><a href="https://github.com/erikh/box/releases/tag/v0.1">Download Release v0.1</a></strong></p>
+<p><strong><a href="https://github.com/erikh/box/releases/tag/v0.2">Download Release v0.2</a></strong></p>
 <h2 id="invocation">Invocation</h2>
-<p>The commandline tool <code>box</code> will either accept a file as a commandline argument:</p>
-<pre><code class="shell">$ box myplan.rb
-</code></pre>
-
-<p>Or from stdin:</p>
-<pre><code class="shell">$ box &lt; myplan.rb
+<p>The commandline tool <code>box</code> accepts a file (your "build plan") as a commandline
+argument:</p>
+<pre><code class="bash">$ box myplan.rb
 </code></pre>
 
 <p>The current working directory that Box runs in is very important, it is the
 jumping-off point for most copy operations. If you run the <code>erikh/box</code>
 container, you may wish to run it in this way:</p>
-<pre><code class="shell">$ docker run -i -v $PWD:$PWD -v /var/run/docker.sock:/var/run/docker.sock -w $PWD erikh/box:latest &lt; myplan.rb
+<pre><code class="bash">$ docker run -i \
+  -v $PWD:$PWD \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -w $PWD \
+  erikh/box:latest myplan.rb
 </code></pre>
 
 <p>For additional flags and functionality, see the help:</p>
-<pre><code class="shell">$ box --help
+<pre><code class="bash">$ box --help
 </code></pre>
 
 <h2 id="making-box-scripts">Making Box Scripts</h2>
@@ -266,7 +286,7 @@ end
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="verbs/" class="btn btn-neutral float-right" title="Verb Reference">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="cli/" class="btn btn-neutral float-right" title="Command-Line Options">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
     </div>
@@ -296,7 +316,7 @@ end
       
       
       
-        <span style="margin-left: 15px"><a href="verbs/" style="color: #fcfcfc">Next &raquo;</a></span>
+        <span style="margin-left: 15px"><a href="cli/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>
@@ -306,5 +326,5 @@ end
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-10-24 09:22:54.756796
+Build Date UTC : 2016-10-29 08:24:34.996087
 -->

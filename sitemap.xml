@@ -4,7 +4,15 @@
     
     <url>
      <loc>None/</loc>
-     <lastmod>2016-10-24</lastmod>
+     <lastmod>2016-10-29</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+    <url>
+     <loc>None/cli/</loc>
+     <lastmod>2016-10-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -12,7 +20,7 @@
     
     <url>
      <loc>None/verbs/</loc>
-     <lastmod>2016-10-24</lastmod>
+     <lastmod>2016-10-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -20,7 +28,7 @@
     
     <url>
      <loc>None/functions/</loc>
-     <lastmod>2016-10-24</lastmod>
+     <lastmod>2016-10-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
     

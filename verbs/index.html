@@ -62,10 +62,20 @@
 <li>
           
             <li>
+    <li class="toctree-l1 ">
+        <a class="" href="../cli/">Command-Line Options</a>
+        
+    </li>
+<li>
+          
+            <li>
     <li class="toctree-l1 current">
         <a class="current" href="./">Verb Reference</a>
         
             <ul>
+            
+                <li class="toctree-l3"><a href="#debug">debug</a></li>
+                
             
                 <li class="toctree-l3"><a href="#set95exec">set_exec</a></li>
                 
@@ -157,6 +167,21 @@
                 <p>Verbs take action on a container and usually create a layer. Some commands can
 be used to move data into and out of containers, or set properties and run
 commands.</p>
+<h2 id="debug">debug</h2>
+<p><code>debug</code> drops to a container's shell (bash by default, but an argument can be
+provided to change this) at the current place in the build cycle when invoked.
+Changes to the container will be persisted through the rest of the run, and a
+layer will be created.</p>
+<p>If the shell exits non-zero, like <code>run</code> it will abort the build.</p>
+<p>There is currently no way to detach from a debug session. Close the shell
+and/or programs.</p>
+<p>Example:</p>
+<pre><code class="ruby">from &quot;debian&quot;
+copy &quot;.&quot;, &quot;/test&quot;
+debug # verify all files landed in test like you expected them to
+run &quot;chown -R erikh:erikh /test&quot; # this will run after you close the shell
+</code></pre>
+
 <h2 id="set95exec">set_exec</h2>
 <p><code>set_exec</code> sets both the entrypoint and cmd at the same time, allowing for no
 race between the operations.</p>
@@ -171,10 +196,13 @@ set_exec entrypoint: [&quot;/bin/echo&quot;], cmd: [&quot;foo&quot;]
 </code></pre>
 
 <h2 id="workdir">workdir</h2>
-<p>workdir sets the WorkingDir in the docker environment. It sets this
+<p>workdir sets the working directory in the docker environment. It sets this
 throughout the image creation; all run/copy statements will respect this
 value. If you wish to break out or work within it further, look at the
 <code>inside</code> call.</p>
+<p>The workdir, if left empty by either the parent in <code>from</code> or from no
+interaction from the plan, is set to <code>/</code> to avoid inheriting accidentally from
+the parent image.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
 # each container that runs this image without the `-w` flag will start as
@@ -187,6 +215,7 @@ workdir '/test'
 following run statements (but not copy, which always copies as root
 currently). If you wish to switch to a user temporarily, consider using
 <code>with_user</code>.</p>
+<p>An empty user is always set to <code>root</code> in the final image.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
 # all containers started with this image will use user `foo`
@@ -231,6 +260,9 @@ cmd &quot;foo&quot;              # this will equate to `/bin/echo foo`
 <h2 id="from">from</h2>
 <p>from sets the initial image and if necessary, pulls it from the registry. It
 also sets the initial layer and must be called before several operations.</p>
+<p>Using <code>from</code> overwrites all container configuration, including <code>workdir</code>,
+<code>user</code>, <code>env</code>, <code>cmd</code>, and <code>entrypoint</code>.</p>
+<p>It is generally expected that <code>from</code> is called first in a build plan.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
 </code></pre>
@@ -360,7 +392,7 @@ copy &quot;.&quot;, &quot;/test&quot;
         <a href="../functions/" class="btn btn-neutral float-right" title="Function Reference">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href=".." class="btn btn-neutral" title="Introduction"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../cli/" class="btn btn-neutral" title="Command-Line Options"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -388,7 +420,7 @@ copy &quot;.&quot;, &quot;/test&quot;
           <a href="https://github.com/erikh/box" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href=".." style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../cli/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
         <span style="margin-left: 15px"><a href="../functions/" style="color: #fcfcfc">Next &raquo;</a></span>

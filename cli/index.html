@@ -8,7 +8,7 @@
   
   
   
-  <title>Function Reference - Box - A Next-Generation Builder for Docker Images</title>
+  <title>Command-Line Options - Box - A Next-Generation Builder for Docker Images</title>
   
 
   <link rel="shortcut icon" href="../img/favicon.ico">
@@ -23,9 +23,9 @@
   
   <script>
     // Current page data
-    var mkdocs_page_name = "Function Reference";
-    var mkdocs_page_input_path = "functions.md";
-    var mkdocs_page_url = "/functions/";
+    var mkdocs_page_name = "Command-Line Options";
+    var mkdocs_page_input_path = "cli.md";
+    var mkdocs_page_url = "/cli/";
   </script>
   
   <script src="../js/jquery-2.1.1.min.js"></script>
@@ -62,8 +62,30 @@
 <li>
           
             <li>
-    <li class="toctree-l1 ">
-        <a class="" href="../cli/">Command-Line Options</a>
+    <li class="toctree-l1 current">
+        <a class="current" href="./">Command-Line Options</a>
+        
+            <ul>
+            
+                <li class="toctree-l3"><a href="#-help-h-and-version-v">--help (-h) and --version (-v)</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#-no-cache-n">--no-cache (-n)</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#-omit-o">--omit (-o)</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#-tag-t">--tag (-t)</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#-no-tty">--no-tty</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#-force-tty">--force-tty</a></li>
+                
+            
+            </ul>
         
     </li>
 <li>
@@ -76,27 +98,8 @@
 <li>
           
             <li>
-    <li class="toctree-l1 current">
-        <a class="current" href="./">Function Reference</a>
-        
-            <ul>
-            
-                <li class="toctree-l3"><a href="#import">import</a></li>
-                
-            
-                <li class="toctree-l3"><a href="#getenv">getenv</a></li>
-                
-            
-                <li class="toctree-l3"><a href="#read">read</a></li>
-                
-            
-                <li class="toctree-l3"><a href="#getuid">getuid</a></li>
-                
-            
-                <li class="toctree-l3"><a href="#getgid">getgid</a></li>
-                
-            
-            </ul>
+    <li class="toctree-l1 ">
+        <a class="" href="../functions/">Function Reference</a>
         
     </li>
 <li>
@@ -123,7 +126,7 @@
     
       
     
-    <li>Function Reference</li>
+    <li>Command-Line Options</li>
     <li class="wy-breadcrumbs-aside">
       
         
@@ -137,67 +140,49 @@
           <div role="main">
             <div class="section">
               
-                <p>Functions in Box provide a data-passing mechanism for build instructions. For
-example, you may wish to read the contents of a file from the container into
-your build for further processing; the <code>read</code> function allows that.</p>
-<p>These are the functions supported by Box.</p>
-<h2 id="import">import</h2>
-<p>import loads a ruby file, and then executes it as if it were a box plan. This
-is prinicipally used to modularize build instructions between multiple builds.</p>
-<p>Note that this will load ruby files specified anywhere on the filesystem. Use
-at your own risk. You can provide the <code>-o import</code> option to omit this function
-from use.</p>
+                <p>Command-Line Options in box alter behavior of box for its runtime.  Using these
+options shape your build and suit it for use in many group environments.</p>
+<p>In the documentation below, each long option is in the heading with the short
+option (if any) in parentheses.</p>
+<h2 id="-help-h-and-version-v">--help (-h) and --version (-v)</h2>
+<p>Show the help and version respectively.</p>
+<h2 id="-no-cache-n">--no-cache (-n)</h2>
+<p>Turn caching off, this forces a rebuild of all build plan steps. Note that
+this won't re-pull any pulled images.</p>
 <p>Example:</p>
-<p>File A:</p>
-<pre><code class="ruby">from &quot;debian&quot;
+<pre><code class="bash">$ box -n plan.rb
 </code></pre>
 
-<p>File B imports File A and builds on it:</p>
-<pre><code class="ruby">import &quot;file-a.rb&quot;
-run &quot;ls&quot;
+<h2 id="-omit-o">--omit (-o)</h2>
+<p>Omit a function or verb from the DSL. This removes all functionality of a
+specific mruby verb or function and causes a syntax error if encountered.  This
+restricts certain operations in builds for teams or unprivileged scenarios.</p>
+<p>Example:</p>
+<pre><code class="bash">$ cat &gt;plan.rb &lt;&lt;EOF
+from 'debian'
+tag 'mydebian'
+EOF
+# boom - missing keyword or function from ruby
+$ box -o tag plan.rb
 </code></pre>
 
-<h2 id="getenv">getenv</h2>
-<p>getenv retrieves a value from the building environment (passed in as string)
-and returns a string with the value. If no value exists, an empty string is
-returned.</p>
+<h2 id="-tag-t">--tag (-t)</h2>
+<p>Tag the last generated image with the provided value. If the tag fails, the
+build won't fail, but instead be untagged. However, box still exits
+non-zero to indicate the tag failed.</p>
 <p>Example:</p>
-<pre><code class="ruby"># If you set IMAGE=ceph/rbd:latest in your environment, that would be pulled
-# via the `from` statement.
-from getenv(&quot;IMAGE&quot;)
+<pre><code class="bash"># starts a build with debian and retags the result as 'mydebian'
+echo &quot;from 'debian'&quot; | box -t mydebian
 </code></pre>
 
-<h2 id="read">read</h2>
-<p>read takes a filename as string, reads it from the latest image in the
-evaluation and returns its data. Yields an error if the file does not exist
-or from has not been called.</p>
-<p>read returns a string which may then be manipulated with normal string
-manipulations in ruby.</p>
-<p>Example:</p>
-<pre><code class="ruby">from &quot;debian&quot;
-# this gets the first username in your passwd file inside the debian image
-run &quot;echo #{read(&quot;/etc/passwd&quot;).split(&quot;\n&quot;).first.split(&quot;:&quot;)[0]}&quot;
-</code></pre>
-
-<h2 id="getuid">getuid</h2>
-<p>getuid, given a string username provides an integer response with the UID of
-the user. This works by reading the /etc/passwd file in the image.</p>
-<p>Yields an error if it cannot find the user or from has not been called.</p>
-<p>Example:</p>
-<pre><code class="ruby">from &quot;debian&quot;
-run &quot;useradd -m -d /home/erikh -s /bin/sh erikh&quot;
-run &quot;id #{getuid(&quot;erikh&quot;)}&quot;
-</code></pre>
-
-<h2 id="getgid">getgid</h2>
-<p>getgid, given a string group name provides an integer response with the GID
-of the group. This works by reading the /etc/group file in the image.</p>
-<p>Yields an error if it cannot find the group or from has not been called.</p>
-<p>Example:</p>
-<pre><code class="ruby">from &quot;debian&quot;
-run &quot;groupadd cabal&quot;
-run &quot;getent group #{getgid(&quot;cabal&quot;)}&quot;
-</code></pre>
+<h2 id="-no-tty">--no-tty</h2>
+<p>Forcibly turn all tty operation/propagation off for this run. This will cause
+many programs to behave different specifically in <code>run</code> statements, and the
+<code>pull</code> animations for downloading will not be provided.</p>
+<p>No TTY mode is the default when unix pipes are involved.</p>
+<h2 id="-force-tty">--force-tty</h2>
+<p>Force the TTY on even if it is off for some reason.</p>
+<p>The combination of <code>--no-tty --force-tty</code> is to force the tty.</p>
               
             </div>
           </div>
@@ -205,8 +190,10 @@ run &quot;getent group #{getgid(&quot;cabal&quot;)}&quot;
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
+        <a href="../verbs/" class="btn btn-neutral float-right" title="Verb Reference">Next <span class="icon icon-circle-arrow-right"></span></a>
       
-        <a href="../verbs/" class="btn btn-neutral" title="Verb Reference"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+        <a href=".." class="btn btn-neutral" title="Introduction"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -234,8 +221,10 @@ run &quot;getent group #{getgid(&quot;cabal&quot;)}&quot;
           <a href="https://github.com/erikh/box" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../verbs/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href=".." style="color: #fcfcfc;">&laquo; Previous</a></span>
       
+      
+        <span style="margin-left: 15px"><a href="../verbs/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>
