@@ -35,8 +35,9 @@ func (bs *builderSuite) SetUpSuite(c *C) {
 	dockerClient, err = client.NewEnvClient()
 	c.Assert(err, IsNil)
 
-	_, err = runBuilder(`from "debian"`)
+	b, err := runBuilder(`from "debian"`)
 	c.Assert(err, IsNil)
+	b.Close()
 }
 
 func (bs *builderSuite) SetUpTest(c *C) {
@@ -60,12 +61,14 @@ func (bs *builderSuite) TestImport(c *C) {
   `, f.Name()))
 	c.Assert(err, IsNil)
 	c.Assert(b.ImageID(), Not(Equals), "")
+	b.Close()
 
 	b, err = runBuilder(`
     import "/nonexistent"
   `)
 	c.Assert(err, NotNil)
 	c.Assert(b.ImageID(), Equals, "")
+	b.Close()
 }
 
 func (bs *builderSuite) TestCopy(c *C) {
@@ -85,6 +88,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 	c.Assert(string(content), Not(Equals), "")
 
 	c.Assert(bytes.Equal(result, content), Equals, true)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -98,6 +102,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 	c.Assert(string(content), Not(Equals), "")
 
 	c.Assert(content, DeepEquals, result)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -108,6 +113,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 
 	result = readContainerFile(c, b, "/test/builder.go")
 	c.Assert(content, DeepEquals, result)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -119,6 +125,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 
 	result = readContainerFile(c, b, "/test/test/builder.go")
 	c.Assert(content, DeepEquals, result)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -132,6 +139,8 @@ func (bs *builderSuite) TestCopy(c *C) {
 	result = readContainerFile(c, b, "/test/test/builder.go")
 	c.Assert(content, DeepEquals, result)
 
+	b.Close()
+
 	b, err = runBuilder(`
     from "debian"
     inside "/test" do
@@ -141,6 +150,8 @@ func (bs *builderSuite) TestCopy(c *C) {
 
 	c.Assert(err, NotNil)
 
+	b.Close()
+
 	b, err = runBuilder(`
     from "debian"
     inside "/test" do
@@ -149,6 +160,7 @@ func (bs *builderSuite) TestCopy(c *C) {
   `)
 
 	c.Assert(err, IsNil)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -158,6 +170,7 @@ func (bs *builderSuite) TestCopy(c *C) {
   `)
 
 	c.Assert(err, NotNil)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -167,6 +180,7 @@ func (bs *builderSuite) TestCopy(c *C) {
   `)
 
 	c.Assert(err, NotNil)
+	b.Close()
 }
 
 func (bs *builderSuite) TestTag(c *C) {
@@ -182,6 +196,7 @@ func (bs *builderSuite) TestTag(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(inspect.RepoTags, DeepEquals, []string{"test:latest"})
+	b.Close()
 }
 
 func (bs *builderSuite) TestFlatten(c *C) {
@@ -205,6 +220,7 @@ func (bs *builderSuite) TestFlatten(c *C) {
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), "notflattened")
 	c.Assert(err, IsNil)
 	c.Assert(len(inspect.RootFS.Layers), Not(Equals), 1)
+	b.Close()
 }
 
 func (bs *builderSuite) TestEntrypointCmd(c *C) {
@@ -222,6 +238,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/cat"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{})
+	b.Close()
 
 	// if cmd is set earlier than entrypoint, it is erased.
 	b, err = runBuilder(`
@@ -235,6 +252,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/echo"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{})
+	b.Close()
 
 	// normal cmd usage.
 	b, err = runBuilder(`
@@ -248,6 +266,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/echo"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
+	b.Close()
 
 	// normal cmd usage.
 	b, err = runBuilder(`
@@ -260,6 +279,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, IsNil)
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
+	b.Close()
 }
 
 func (bs *builderSuite) TestRun(c *C) {
@@ -271,6 +291,7 @@ func (bs *builderSuite) TestRun(c *C) {
 	c.Assert(err, IsNil)
 	result := readContainerFile(c, b, "/bar")
 	c.Assert(string(result), Equals, "foo")
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -282,6 +303,7 @@ func (bs *builderSuite) TestRun(c *C) {
 
 	result = runContainerCommand(c, b, []string{"/bin/sh", "-c", "/usr/bin/stat -c %U /test/bar"})
 	c.Assert(string(result), Equals, "nobody\n")
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -292,6 +314,7 @@ func (bs *builderSuite) TestRun(c *C) {
 
 	result = runContainerCommand(c, b, []string{"/bin/sh", "-c", "/usr/bin/stat -c %U /test/bar"})
 	c.Assert(string(result), Equals, "nobody\n")
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -304,6 +327,7 @@ func (bs *builderSuite) TestRun(c *C) {
 	c.Assert(err, IsNil)
 	result = readContainerFile(c, b, "/test/bar")
 	c.Assert(string(result), Equals, "foo")
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -315,17 +339,19 @@ func (bs *builderSuite) TestRun(c *C) {
 	c.Assert(err, IsNil)
 	result = readContainerFile(c, b, "/test/bar")
 	c.Assert(string(result), Equals, "foo")
+	b.Close()
 }
 
 func (bs *builderSuite) TestWorkDirInside(c *C) {
-	_, err := runBuilder(`
+	b, err := runBuilder(`
     from "debian"
     workdir "."
   `)
 
 	c.Assert(err, NotNil)
+	b.Close()
 
-	_, err = runBuilder(`
+	b, err = runBuilder(`
     from "debian"
     inside "." do
       run "true"
@@ -333,8 +359,9 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
   `)
 
 	c.Assert(err, NotNil)
+	b.Close()
 
-	b, err := runBuilder(`
+	b, err = runBuilder(`
     from "debian"
     run "mkdir /test"
     workdir "/test"
@@ -348,6 +375,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.WorkingDir, Equals, "/test")
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -368,6 +396,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	// this file is used in the copy comparisons
 	content, err := ioutil.ReadFile("builder.go")
 	c.Assert(err, IsNil)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -383,6 +412,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.WorkingDir, Equals, "/test")
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -400,6 +430,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.WorkingDir, Equals, "/")
+	b.Close()
 }
 
 func (bs *builderSuite) TestUser(c *C) {
@@ -417,6 +448,7 @@ func (bs *builderSuite) TestUser(c *C) {
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.User, Equals, "nobody")
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -433,6 +465,7 @@ func (bs *builderSuite) TestUser(c *C) {
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.User, Equals, "root")
+	b.Close()
 }
 
 func (bs *builderSuite) TestBuildCache(c *C) {
@@ -448,6 +481,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 
 	imageID, err := getParent(b, b.exec.Config().Image)
 	c.Assert(err, IsNil)
+	b.Close()
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
@@ -458,6 +492,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 
 	cached, err := getParent(b, b.exec.Config().Image)
 	c.Assert(err, IsNil)
+	b.Close()
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
@@ -468,6 +503,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 	parent, err := getParent(b, b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(cached, Equals, parent)
+	b.Close()
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
@@ -478,6 +514,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 	parent, err = getParent(b, b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(cached, Not(Equals), parent)
+	b.Close()
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
@@ -488,6 +525,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 
 	cached, err = getParent(b, b.exec.Config().Image)
 	c.Assert(err, IsNil)
+	b.Close()
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
@@ -503,6 +541,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 	c.Assert(err, IsNil)
 	defer os.Remove("test")
 	f.Close()
+	b.Close()
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
@@ -513,6 +552,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 	parent, err = getParent(b, b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(cached, Not(Equals), parent)
+	b.Close()
 }
 
 func (bs *builderSuite) TestSetExec(c *C) {
@@ -521,18 +561,21 @@ func (bs *builderSuite) TestSetExec(c *C) {
     set_exec cmd: "quux"
   `)
 	c.Assert(err, NotNil)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
     set_exec entrypoint: "quux"
   `)
 	c.Assert(err, NotNil)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
     set_exec test: ["quux"]
   `)
 	c.Assert(err, NotNil)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -543,6 +586,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/bash"})
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -553,6 +597,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -565,6 +610,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/bash", "-c"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"exit 0"})
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -577,6 +623,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/bash", "-c"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"exit 0"})
+	b.Close()
 }
 
 func (bs *builderSuite) TestEnv(c *C) {
@@ -598,6 +645,7 @@ func (bs *builderSuite) TestEnv(c *C) {
 	}
 
 	c.Assert(found, Equals, true)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
@@ -621,15 +669,17 @@ func (bs *builderSuite) TestEnv(c *C) {
 	}
 
 	c.Assert(count, Equals, 2)
+	b.Close()
 
-	_, err = runBuilder(`
+	b, err = runBuilder(`
     from "debian"
     env "TERM" => "myterm"
     tag "builder-env-base"
   `)
 	c.Assert(err, IsNil)
+	b.Close()
 
-	_, err = runBuilder(`
+	b, err = runBuilder(`
     from "builder-env-base"
     tag "builder-env"
   `)
@@ -646,6 +696,7 @@ func (bs *builderSuite) TestEnv(c *C) {
 	}
 
 	c.Assert(found, Equals, true)
+	b.Close()
 }
 
 func (bs *builderSuite) TestReaderFuncs(c *C) {
@@ -656,6 +707,7 @@ func (bs *builderSuite) TestReaderFuncs(c *C) {
     run "echo -n '#{read("/etc/passwd")}' > /passwd"
   `)
 	c.Assert(err, IsNil)
+	b.Close()
 
 	content, err := b.exec.CopyOneFileFromContainer("/uid")
 	c.Assert(err, IsNil)
@@ -678,16 +730,19 @@ func (bs *builderSuite) TestReaderFuncs(c *C) {
     puts read("/nonexistent")
   `)
 	c.Assert(err, NotNil)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
     puts getuid("quux")
   `)
 	c.Assert(err, NotNil)
+	b.Close()
 
 	b, err = runBuilder(`
     from "debian"
     puts getgid("quux")
   `)
 	c.Assert(err, NotNil)
+	b.Close()
 }
