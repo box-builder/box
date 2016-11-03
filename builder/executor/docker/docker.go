@@ -306,7 +306,9 @@ func (d *Docker) RunHook(id string) (string, error) {
 	}
 
 	if !d.stdin {
-		color.New(color.FgRed, color.Bold, color.BgWhite).Printf("------ BEGIN OUTPUT ------\n")
+		color.New(color.FgRed, color.Bold, color.BgWhite).Printf("------ BEGIN OUTPUT ------")
+		color.Unset()
+		fmt.Println()
 	}
 
 	if !d.tty {
@@ -358,7 +360,9 @@ func (d *Docker) RunHook(id string) (string, error) {
 	}
 
 	if !d.stdin {
-		color.New(color.FgRed, color.Bold, color.BgWhite).Printf("------- END OUTPUT -------\n")
+		color.New(color.FgRed, color.Bold, color.BgWhite).Printf("------- END OUTPUT -------")
+		color.Unset()
+		fmt.Println()
 	}
 
 	if stat != 0 {
