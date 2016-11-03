@@ -1,5 +1,7 @@
 # Box: A Next-Generation Builder for Docker Images [![Build Status](https://travis-ci.org/erikh/box.svg?branch=master)](https://travis-ci.org/erikh/box)
 
+[![Join the chat at https://gitter.im/box-builder/Lobby](https://badges.gitter.im/box-builder/Lobby.svg)](https://gitter.im/box-builder/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Box is a builder for docker that gives you the power of mruby, a limited,
 embeddable ruby. It allows for notions of conditionals, loops, and data
 structures for use within your builder plan. If you've written a Dockerfile
