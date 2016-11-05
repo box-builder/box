@@ -691,3 +691,26 @@ func (bs *builderSuite) TestReaderFuncs(c *C) {
   `)
 	c.Assert(err, NotNil)
 }
+
+func (bs *builderSuite) TestExecPropagation(c *C) {
+	b, err := runBuilder(`
+    from "debian"
+    run "useradd -s /bin/bash -m -d /home/test test"
+    env something: "here"
+    run "apt-get update"
+    user "test"
+    tag "test"
+  `)
+	c.Assert(err, IsNil)
+
+	c.Assert(b.exec.Config().Entrypoint, IsNil)
+	c.Assert(b.exec.Config().Cmd, DeepEquals, []string{"/bin/bash"})
+
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "test")
+	c.Assert(strslice.StrSlice(b.exec.Config().Cmd), DeepEquals, inspect.Config.Cmd)
+
+	// Docker rewrites a nil as the array below.
+	c.Assert(strslice.StrSlice{"/bin/sh", "-c"}, DeepEquals, inspect.Config.Entrypoint)
+
+	b.Close()
+}

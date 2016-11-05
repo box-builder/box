@@ -17,12 +17,11 @@ type Config struct {
 // NewConfig initializes a new configuration.
 func NewConfig() *Config {
 	return &Config{
-		Env:        []string{},
-		Entrypoint: []string{},
-		Cmd:        []string{"/bin/sh"},
-		User:       "root",
-		WorkDir:    "/",
-		Image:      "",
+		Env:     []string{},
+		Cmd:     []string{"/bin/sh"},
+		User:    "root",
+		WorkDir: "/",
+		Image:   "",
 	}
 }
 
