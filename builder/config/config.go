@@ -1,6 +1,10 @@
 package config
 
-import "github.com/docker/engine-api/types/container"
+import (
+	"time"
+
+	"github.com/docker/docker/api/types/container"
+)
 
 // Config is a basic configuration of an image at each step. It is kept in sync
 // by commit routines in the executor. Setting properties here will propogate
@@ -50,4 +54,20 @@ func (c *Config) FromDocker(cont *container.Config) {
 	c.Cmd = cont.Cmd
 	c.User = cont.User
 	c.WorkDir = cont.WorkingDir
+}
+
+// ToImage returns the config as an image manifest.
+func (c *Config) ToImage(layers []string) map[string]interface{} {
+	fields := map[string]interface{}{}
+	fields["config"] = c.ToDocker(false, false)
+	fields["created"] = time.Now().Format("2006-01-02T15:04:05Z07:00")
+	fields["architecture"] = "amd64"
+	fields["os"] = "linux"
+	fields["history"] = []map[string]interface{}{{}}
+	fields["rootfs"] = map[string]interface{}{
+		"diff_ids": layers,
+		"type":     "layers",
+	}
+
+	return fields
 }

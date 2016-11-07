@@ -162,7 +162,7 @@ func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 
 	defer b.exec.Destroy(id)
 
-	rc, err := b.exec.CopyFromContainer(id, "/")
+	rc, size, err := b.exec.CopyFromContainer(id, "/")
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -186,17 +186,7 @@ func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 
 	defer f.Close()
 
-	b.exec.Config().Image = ""
-
-	hook := func(id string) (string, error) {
-		if err := b.exec.CopyToContainer(id, "/", f); err != nil {
-			return "", err
-		}
-
-		return "", nil
-	}
-
-	if err := b.exec.Commit("flatten", hook); err != nil {
+	if err := b.exec.CopyToImage(id, size, f); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -255,6 +245,7 @@ func from(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 		return nil, createException(m, err.Error())
 	}
 
+	b.fromImage = id
 	b.exec.Config().Image = id
 
 	return mruby.String(id), nil
@@ -397,11 +388,8 @@ func copy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 		return nil, createException(m, err.Error())
 	}
 
-	paths := filepath.SplitList(rel)
-	for _, path := range paths {
-		if path == ".." {
-			return nil, createException(m, fmt.Sprintf("Cannot use relative path %s because it may fall below the root build directory", source))
-		}
+	if strings.HasPrefix(rel, "..") {
+		return nil, createException(m, fmt.Sprintf("Cannot use relative path %s because it may fall below the root build directory", source))
 	}
 
 	target = filepath.Clean(filepath.Join(b.exec.Config().WorkDir, target))
@@ -421,6 +409,8 @@ func copy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 		return nil, createException(m, err.Error())
 	}
 
+	cacheKey = fmt.Sprintf("box:copy %s", cacheKey)
+
 	if b.useCache {
 		cached, err := b.exec.CheckCache(cacheKey)
 		if err != nil {
@@ -437,9 +427,10 @@ func copy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 		return nil, createException(m, err.Error())
 	}
 
+	defer f.Close()
+
 	hook := func(id string) (string, error) {
-		defer f.Close()
-		return "", b.exec.CopyToContainer(id, "/", f)
+		return "", b.exec.CopyToContainer(id, f)
 	}
 
 	if err := b.exec.Commit(cacheKey, hook); err != nil {

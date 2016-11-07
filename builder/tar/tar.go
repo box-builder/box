@@ -2,9 +2,8 @@ package tar
 
 import (
 	"archive/tar"
-	"crypto/sha512"
+	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -106,14 +105,13 @@ func SumFile(fn string) (string, error) {
 		return "", err
 	}
 
-	hash := sha512.New512_256()
+	hash := sha256.New()
 	_, err = io.Copy(hash, f)
 	if err != nil && err != io.EOF {
 		f.Close()
 		return "", err
 	}
-	cacheKey := fmt.Sprintf("box:copy %s", hex.EncodeToString(hash.Sum(nil)))
 	f.Close()
 
-	return cacheKey, nil
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }

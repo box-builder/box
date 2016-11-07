@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	. "testing"
 
-	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types/strslice"
+	"github.com/docker/docker/api/types/strslice"
+	"github.com/docker/docker/client"
 
 	. "gopkg.in/check.v1"
 )
