@@ -17,7 +17,7 @@ Some features that differentiate it from `docker build`:
 
 ## Getting Box
 
-**[Download Release v0.2](https://github.com/erikh/box/releases/tag/v0.2)**
+**[Download Release v0.2.1](https://github.com/erikh/box/releases/tag/v0.2.1)**
 
 ## Invocation
 
