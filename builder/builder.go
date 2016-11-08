@@ -16,9 +16,10 @@ import (
 
 // Builder implements the builder core.
 type Builder struct {
-	useCache bool
-	mrb      *mruby.Mrb
-	exec     executor.Executor
+	useCache  bool
+	mrb       *mruby.Mrb
+	exec      executor.Executor
+	fromImage string
 }
 
 func keep(omitFuncs []string, name string) bool {

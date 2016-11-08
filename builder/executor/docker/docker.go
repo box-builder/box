@@ -13,12 +13,13 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/term"
-	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/builder/config"
 	"github.com/erikh/box/builder/executor"
+	"github.com/erikh/box/image"
 	"github.com/erikh/box/log"
 	"github.com/fatih/color"
 )
@@ -27,6 +28,7 @@ import (
 type Docker struct {
 	client   *client.Client
 	config   *config.Config
+	from     string
 	useCache bool
 	tty      bool
 	stdin    bool
@@ -226,15 +228,28 @@ func (d *Docker) Destroy(id string) error {
 
 // CopyFromContainer copies a series of files in a similar fashion to
 // CopyToContainer, just in reverse.
-func (d *Docker) CopyFromContainer(id, path string) (io.Reader, error) {
-	rc, _, err := d.client.CopyFromContainer(context.Background(), id, path)
-	return rc, err
+func (d *Docker) CopyFromContainer(id, path string) (io.Reader, int64, error) {
+	rc, stat, err := d.client.CopyFromContainer(context.Background(), id, path)
+	return rc, stat.Size, err
 }
 
-// CopyToContainer copies a tarred up series of files (passed in through the
-// io.Reader handle) to the container where they are untarred.
-func (d *Docker) CopyToContainer(id, path string, tw io.Reader) error {
-	return d.client.CopyToContainer(context.Background(), id, path, tw, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+// CopyToContainer copies files from the tarfile specified in reader to the
+// containerto the container so it can then be committed. It does not close the
+// reader.
+func (d *Docker) CopyToContainer(id string, r io.Reader) error {
+	return d.client.CopyToContainer(context.Background(), id, "/", r, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+}
+
+// CopyToImage copies a tarred up series of files (passed in through the
+// io.Reader handle) to the image where they are untarred.
+func (d *Docker) CopyToImage(id string, size int64, tw io.Reader) error {
+	img, err := image.CopyToImage(d.client, d.config, id, size, tw)
+	if err != nil {
+		return err
+	}
+
+	d.config.Image = img
+	return nil
 }
 
 // Tag an image with the provided string.
@@ -285,7 +300,7 @@ func (d *Docker) RunHook(id string) (string, error) {
 	}
 
 	stopChan := make(chan struct{})
-	errChan := make(chan error)
+	errChan := make(chan error, 1)
 
 	if d.stdin {
 		state, err := term.SetRawTerminal(0)

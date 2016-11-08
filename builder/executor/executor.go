@@ -27,13 +27,18 @@ type Executor interface {
 	// CheckCache consults the cache to see if there are any items which fit it.
 	CheckCache(string) (bool, error)
 
-	// CopyToContainer copies a tarred up series of files (passed in through the
-	// io.Reader handle) to the container where they are untarred.
-	CopyToContainer(string, string, io.Reader) error
+	// CopyToImage copies a tarred up series of files (passed in through the
+	// io.Reader handle) to the image where they are untarred. The first argument
+	// is the parent image to use.
+	CopyToImage(string, int64, io.Reader) error
 
 	// CopyFromContainer copies a series of files in a similar fashion to
 	// CopyToContainer, just in reverse.
-	CopyFromContainer(string, string) (io.Reader, error)
+	CopyFromContainer(string, string) (io.Reader, int64, error)
+
+	// CopyFromContainer copies a series of files in a similar fashion to
+	// CopyToContainer, just in reverse.
+	CopyToContainer(string, io.Reader) error
 
 	// CopyOneFileFromContainer copies a file from the container and returns its content.
 	CopyOneFileFromContainer(string) ([]byte, error)

@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	. "testing"
 
-	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types/strslice"
+	"github.com/docker/docker/api/types/strslice"
+	"github.com/docker/docker/client"
 
 	. "gopkg.in/check.v1"
 )
@@ -205,6 +205,7 @@ func (bs *builderSuite) TestFlatten(c *C) {
     run "echo foo >bar"
     run "echo here is another layer >a_file"
     tag "notflattened"
+    run "chown -R nobody:nogroup a_file"
     flatten
     tag "flattened"
   `)
@@ -221,6 +222,9 @@ func (bs *builderSuite) TestFlatten(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(len(inspect.RootFS.Layers), Not(Equals), 1)
 	b.Close()
+
+	result := runContainerCommand(c, b, []string{"/bin/sh", "-c", "/usr/bin/stat -c %U a_file"})
+	c.Assert(string(result), Equals, "nobody\n")
 }
 
 func (bs *builderSuite) TestEntrypointCmd(c *C) {

@@ -10,7 +10,7 @@ import (
 
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/term"
-	"github.com/docker/engine-api/types"
+	"github.com/docker/docker/api/types"
 )
 
 func runBuilder(script string) (*Builder, error) {
