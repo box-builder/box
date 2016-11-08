@@ -1,3 +1,11 @@
+### v0.2.1
+
+* Fix colorized output bleed for certain terminals on OS X.
+* Fix run statements appropriately propagating when not supplied in the build plan
+* Fix flatten statement to incorporate permissions when copying.
+* Move to new official docker client.
+* Clean up a file descriptor leak handling ruby files themselves.
+
 ### v0.2
 
 * TTY detection (for colorized output and terminal handling) and flags to force it on (--force-tty) and off (--no-tty).
