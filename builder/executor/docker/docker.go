@@ -140,25 +140,23 @@ func (d *Docker) CheckCache(cacheKey string) (bool, error) {
 		return false, nil
 	}
 
-	if d.config.Image != "" {
-		images, err := d.client.ImageList(context.Background(), types.ImageListOptions{All: true})
-		if err != nil {
-			return false, err
-		}
+	images, err := d.client.ImageList(context.Background(), types.ImageListOptions{All: true})
+	if err != nil {
+		return false, err
+	}
 
-		for _, img := range images {
-			if img.ParentID == d.config.Image {
-				inspect, _, err := d.client.ImageInspectWithRaw(context.Background(), img.ID)
-				if err != nil {
-					return false, err
-				}
+	for _, img := range images {
+		if (img.ParentID != "" && img.ParentID == d.config.Image) || img.ParentID == "" {
+			inspect, _, err := d.client.ImageInspectWithRaw(context.Background(), img.ID)
+			if err != nil {
+				return false, err
+			}
 
-				if inspect.Comment == cacheKey {
-					log.CacheHit(img.ID)
-					d.config.FromDocker(inspect.Config)
-					d.config.Image = img.ID
-					return true, nil
-				}
+			if inspect.Comment == cacheKey {
+				log.CacheHit(img.ID)
+				d.config.FromDocker(inspect.Config)
+				d.config.Image = img.ID
+				return true, nil
 			}
 		}
 	}
@@ -288,6 +286,7 @@ func (d *Docker) Fetch(name string) (string, error) {
 	}
 
 	d.config.FromDocker(inspect.Config)
+	d.config.Image = inspect.ID
 
 	return inspect.ID, nil
 }

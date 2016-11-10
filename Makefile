@@ -1,4 +1,4 @@
-PACKAGES := "./cli-tests ./builder"
+PACKAGES := "./cli-tests ./builder ./builder/executor/docker"
 
 all:
 	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell pwd)/mruby_config.rb make
