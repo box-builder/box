@@ -16,8 +16,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/erikh/box/builder/tar"
 	"github.com/erikh/box/log"
+	"github.com/erikh/box/tar"
 	mruby "github.com/mitchellh/go-mruby"
 )
 

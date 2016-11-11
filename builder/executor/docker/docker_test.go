@@ -9,7 +9,7 @@ import (
 	. "testing"
 
 	"github.com/docker/docker/api/types"
-	bt "github.com/erikh/box/builder/tar"
+	bt "github.com/erikh/box/tar"
 
 	. "gopkg.in/check.v1"
 )
