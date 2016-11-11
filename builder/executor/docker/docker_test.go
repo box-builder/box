@@ -9,7 +9,7 @@ import (
 	. "testing"
 
 	"github.com/docker/docker/api/types"
-	bt "github.com/erikh/box/builder/tar"
+	bt "github.com/erikh/box/tar"
 
 	. "gopkg.in/check.v1"
 )
@@ -175,4 +175,34 @@ func (ds *dockerSuite) TestCopy(c *C) {
 	passwd, err = d.CopyOneFileFromContainer("/etc/passwd")
 	c.Assert(err, IsNil)
 	c.Assert(strings.Contains(string(passwd), "root"), Equals, true, Commentf("%v", string(passwd)))
+
+	f.Close()
+
+	f, err = os.Open(f.Name())
+	c.Assert(err, IsNil)
+	_, err = f.Seek(0, 0)
+	c.Assert(err, IsNil)
+
+	fi, err := f.Stat()
+	c.Assert(err, IsNil)
+
+	c.Assert(d.CopyToImage(id, fi.Size(), f), IsNil)
+}
+
+func (ds *dockerSuite) TestTag(c *C) {
+	d, err := NewDocker(true, true)
+	c.Assert(err, IsNil)
+
+	// clear old state
+	d.client.ImageRemove(context.Background(), "test", types.ImageRemoveOptions{})
+
+	id, err := d.Fetch("docker:latest")
+	c.Assert(err, IsNil)
+
+	c.Assert(d.Tag("test"), IsNil)
+
+	inspect, _, err := d.client.ImageInspectWithRaw(context.Background(), "test")
+	c.Assert(err, IsNil)
+
+	c.Assert(inspect.ID, Equals, id)
 }

@@ -13,7 +13,7 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/erikh/box/builder/config"
-	bt "github.com/erikh/box/builder/tar"
+	bt "github.com/erikh/box/tar"
 )
 
 func writeLayer(imgwriter *tar.Writer, tarFile string, tf *os.File) error {

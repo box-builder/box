@@ -1,0 +1,57 @@
+package docker
+
+import (
+	"errors"
+
+	. "gopkg.in/check.v1"
+)
+
+func (ds *dockerSuite) TestRunCommit(c *C) {
+	commit := func(id string) (string, error) {
+		return "cachekey", nil
+	}
+
+	fail := func(id string) (string, error) {
+		return "", errors.New("an error")
+	}
+
+	d, err := NewDocker(false, false)
+	c.Assert(err, IsNil)
+	id, err := d.Fetch("debian:latest")
+	c.Assert(err, IsNil)
+	c.Assert(d.Commit("", commit), IsNil)
+	c.Assert(d.config.Image, Not(Equals), id)
+
+	d, err = NewDocker(false, false)
+	c.Assert(err, IsNil)
+	id, err = d.Fetch("debian:latest")
+	c.Assert(err, IsNil)
+	c.Assert(d.Commit("", fail), NotNil)
+	c.Assert(d.config.Image, Equals, id)
+}
+
+func (ds *dockerSuite) TestRunHook(c *C) {
+	d, err := NewDocker(false, false)
+	c.Assert(err, IsNil)
+	id, err := d.Fetch("debian:latest")
+	c.Assert(err, IsNil)
+
+	d.config.Entrypoint = []string{"/bin/sh", "-c"}
+	d.config.Cmd = []string{"exit 0"}
+	c.Assert(d.Commit("test", d.RunHook), IsNil)
+	c.Assert(d.config.Image, Not(Equals), id)
+
+	d, err = NewDocker(false, false)
+	c.Assert(err, IsNil)
+	id, err = d.Fetch("debian:latest")
+	c.Assert(err, IsNil)
+
+	createID, err := d.Create()
+	c.Assert(err, IsNil)
+	defer d.Destroy(createID)
+
+	d.config.Entrypoint = []string{"/bin/sh", "-c"}
+	d.config.Cmd = []string{"exit 1"}
+	c.Assert(d.Commit("test", d.RunHook), NotNil)
+	c.Assert(d.config.Image, Equals, id)
+}
