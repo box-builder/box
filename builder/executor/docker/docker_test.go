@@ -188,3 +188,21 @@ func (ds *dockerSuite) TestCopy(c *C) {
 
 	c.Assert(d.CopyToImage(id, fi.Size(), f), IsNil)
 }
+
+func (ds *dockerSuite) TestTag(c *C) {
+	d, err := NewDocker(true, true)
+	c.Assert(err, IsNil)
+
+	// clear old state
+	d.client.ImageRemove(context.Background(), "test", types.ImageRemoveOptions{})
+
+	id, err := d.Fetch("docker:latest")
+	c.Assert(err, IsNil)
+
+	c.Assert(d.Tag("test"), IsNil)
+
+	inspect, _, err := d.client.ImageInspectWithRaw(context.Background(), "test")
+	c.Assert(err, IsNil)
+
+	c.Assert(inspect.ID, Equals, id)
+}
