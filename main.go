@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/pkg/term"
 	"github.com/erikh/box/builder"
 	"github.com/erikh/box/log"
+	"github.com/erikh/box/repl"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
 )
@@ -68,6 +69,17 @@ func main() {
 			Name:  "omit, o",
 			Usage: "Omit functions/verbs. One per option, repeatable.",
 		},
+		cli.BoolFlag{
+			Name:  "no-final-commit, f",
+			Usage: "Perform no automatic commit at the end of the run.",
+		},
+	}
+
+	app.Commands = []cli.Command{
+		{
+			Name:   "repl",
+			Action: runRepl,
+		},
 	}
 
 	app.Action = func(ctx *cli.Context) {
@@ -89,6 +101,8 @@ func main() {
 			panic(err)
 		}
 		defer b.Close()
+
+		b.FinalCommit(!ctx.Bool("no-final-commit"))
 
 		var content []byte
 
@@ -141,5 +155,16 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "!!! Error: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+func runRepl(ctx *cli.Context) {
+	r, err := repl.NewRepl()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "!!! Error bootstrapping repl: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := r.Loop(); err != nil {
 	}
 }

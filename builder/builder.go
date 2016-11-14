@@ -16,10 +16,11 @@ import (
 
 // Builder implements the builder core.
 type Builder struct {
-	useCache  bool
-	mrb       *mruby.Mrb
-	exec      executor.Executor
-	fromImage string
+	useCache    bool
+	mrb         *mruby.Mrb
+	exec        executor.Executor
+	fromImage   string
+	finalCommit bool
 }
 
 func keep(omitFuncs []string, name string) bool {
@@ -45,9 +46,10 @@ func NewBuilder(tty bool, omitFuncs []string) (*Builder, error) {
 	}
 
 	builder := &Builder{
-		useCache: useCache,
-		mrb:      mruby.NewMrb(),
-		exec:     exec,
+		useCache:    useCache,
+		mrb:         mruby.NewMrb(),
+		exec:        exec,
+		finalCommit: true,
 	}
 
 	for name, def := range verbJumpTable {
@@ -118,6 +120,13 @@ func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
 	b.mrb.TopSelf().SingletonClass().DefineMethod(name, builderFunc, args)
 }
 
+// FinalCommit instructs the builder to perform the final commit at builder
+// termination time. This, however, should not happen if instructed not to or
+// in cases where the builder may be paused e.g., the repl.
+func (b *Builder) FinalCommit(ok bool) {
+	b.finalCommit = ok
+}
+
 // Run the script.
 func (b *Builder) Run(script string) (*mruby.MrbValue, error) {
 	if _, err := b.mrb.LoadString(script); err != nil {
@@ -144,8 +153,10 @@ func (b *Builder) Run(script string) (*mruby.MrbValue, error) {
 		b.exec.Config().User = "root"
 	}
 
-	if err := b.exec.Commit("", nil); err != nil {
-		return nil, err
+	if b.finalCommit {
+		if err := b.exec.Commit("", nil); err != nil {
+			return nil, err
+		}
 	}
 
 	return mruby.String(b.exec.ImageID()).MrbValue(b.mrb), nil
