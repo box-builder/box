@@ -10,6 +10,7 @@ before, writing a box build plan is easy.
 * Unique general features:
   * mruby syntax
   * filtering of keywords to secure builds
+  * REPL (shell) for interactive building (see video below)
 * In the build plan itself:
   * Tagging
   * Flattening
@@ -17,7 +18,7 @@ before, writing a box build plan is easy.
   * Ruby block methods for `user` (`with_user`) and `workdir` (`inside`) allow
     you to scope `copy` and `run` operations for a more obvious build plan.
 
-* **[Download Release v0.1](https://github.com/erikh/box/releases/tag/v0.1)**
+* **[Download Releases](https://github.com/erikh/box/releases/)**
 * **[Extended Documentation for Syntax and Usage](https://erikh.github.io/box/)**
 
 ## Example
@@ -46,6 +47,14 @@ end
 
 tag "mypackages"
 ```
+
+## Video
+
+Here's a video of the shell in action (click for more):
+
+*Available in v0.3 and up*
+
+[![Box REPL](http://i.makeagif.com/media/11-14-2016/HH-2BW.gif)](https://youtu.be/znCfrabMUs0)
 
 ## Advanced Use
 

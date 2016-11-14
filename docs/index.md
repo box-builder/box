@@ -17,9 +17,37 @@ Some features that differentiate it from `docker build`:
 
 ## Getting Box
 
-**[Download Release v0.2.1](https://github.com/erikh/box/releases/tag/v0.2.1)**
+**[Download a Release](https://github.com/erikh/box/releases/)**
+
+### Installation
+
+Just `gunzip` the downloaded file and put it in your path:
+
+```bash
+$ gunzip box.$(uname -s).gz
+$ chmod 755 box.$(uname -s)
+$ sudo mv box.$(uname -s) /usr/local/bin/box
+```
 
 ## Invocation
+
+### Use the shell
+
+If you want to try out box quickly, you can use the shell interface, AKA
+repl (read-eval-print loop):
+
+
+```bash
+$ box repl
+# or
+$ box shell
+```
+
+This video gives a quick demo of the shell:
+
+<iframe width="100%" height="640" src="https://www.youtube.com/embed/znCfrabMUs0" frameborder="0" allowfullscreen></iframe>
+
+### With a plan
 
 The commandline tool `box` accepts a file (your "build plan") as a commandline
 argument:
