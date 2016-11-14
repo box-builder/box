@@ -77,8 +77,18 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
-			Name:   "repl",
-			Action: runRepl,
+			Name:        "repl",
+			Action:      runRepl,
+			Description: "Run the read-eval-print loop to interactively work with box",
+			Usage:       "Run the read-eval-print loop to interactively work with box",
+			ArgsUsage:   " ",
+		},
+		{
+			Name:        "shell",
+			Action:      runRepl,
+			Description: "Run the read-eval-print loop to interactively work with box",
+			Usage:       "Run the read-eval-print loop to interactively work with box",
+			ArgsUsage:   " ",
 		},
 	}
 
