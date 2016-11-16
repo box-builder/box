@@ -269,9 +269,13 @@ func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		b.exec.Config().Cmd = cmd
 	}()
 
+	close(b.signalHandler) // shutdown the signal handler; RunHook should establish its own
+
 	if err := b.exec.Commit(cacheKey, b.exec.RunHook); err != nil {
 		return nil, createException(m, err.Error())
 	}
+
+	b.signalHandler = InterpreterSignal() // reinstall the signal handler
 
 	return nil, nil
 }

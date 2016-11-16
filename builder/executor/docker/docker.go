@@ -354,15 +354,7 @@ func (d *Docker) RunHook(id string) (string, error) {
 		}
 	}()
 
-	intSig := make(chan os.Signal)
-	signal.Notify(intSig, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		_, ok := <-intSig
-		if ok {
-			fmt.Println("!!! SIGINT or SIGTERM recieved, crashing container...")
-			cancel()
-		}
-	}()
+	intSig := RunSignal(cancel)
 
 	defer close(intSig)
 	defer close(errChan)
@@ -455,4 +447,20 @@ func doCopy(wtr io.Writer, rdr io.Reader, errChan chan error, stopChan chan stru
 
 		return
 	}
+}
+
+// RunSignal is the signal handler installed on run via the executor.
+func RunSignal(cancel context.CancelFunc) chan os.Signal {
+	intSig := make(chan os.Signal)
+
+	signal.Notify(intSig, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		_, ok := <-intSig
+		if ok {
+			fmt.Println("!!! SIGINT or SIGTERM recieved, crashing container...")
+			cancel()
+		}
+	}()
+
+	return intSig
 }
