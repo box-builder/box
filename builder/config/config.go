@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -58,6 +59,11 @@ func (c *Config) FromDocker(cont *container.Config) {
 
 // ToImage returns the config as an image manifest.
 func (c *Config) ToImage(layers []string) map[string]interface{} {
+	shaLayers := []string{}
+	for _, layer := range layers {
+		shaLayers = append(shaLayers, fmt.Sprintf("sha256:%v", layer))
+	}
+
 	fields := map[string]interface{}{}
 	fields["config"] = c.ToDocker(false, false)
 	fields["created"] = time.Now().Format("2006-01-02T15:04:05Z07:00")
@@ -65,7 +71,7 @@ func (c *Config) ToImage(layers []string) map[string]interface{} {
 	fields["os"] = "linux"
 	fields["history"] = []map[string]interface{}{{}}
 	fields["rootfs"] = map[string]interface{}{
-		"diff_ids": layers,
+		"diff_ids": shaLayers,
 		"type":     "layers",
 	}
 

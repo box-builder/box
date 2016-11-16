@@ -186,7 +186,7 @@ func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 
 	defer f.Close()
 
-	if err := b.exec.CopyToImage(id, size, f); err != nil {
+	if err := b.exec.Flatten(id, size, f); err != nil {
 		return nil, createException(m, err.Error())
 	}
 

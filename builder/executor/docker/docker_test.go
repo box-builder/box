@@ -186,7 +186,7 @@ func (ds *dockerSuite) TestCopy(c *C) {
 	fi, err := f.Stat()
 	c.Assert(err, IsNil)
 
-	c.Assert(d.CopyToImage(id, fi.Size(), f), IsNil)
+	c.Assert(d.Flatten(id, fi.Size(), f), IsNil)
 }
 
 func (ds *dockerSuite) TestTag(c *C) {

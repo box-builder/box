@@ -32,6 +32,7 @@ var funcJumpTable = map[string]funcDefinition{
 	"getuid": {getuid, mruby.ArgsReq(1)},
 	"getgid": {getgid, mruby.ArgsReq(1)},
 	"read":   {read, mruby.ArgsReq(1)},
+	"skip":   {skip, mruby.ArgsNone() | mruby.ArgsBlock()},
 }
 
 // importFunc implements the import function.
@@ -133,4 +134,20 @@ func getgid(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.
 	}
 
 	return nil, createException(m, fmt.Sprintf("Could not find group %q", group))
+}
+
+func skip(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+	if err := standardCheck(b, args, 1); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	b.exec.SetSkipLayers(true)
+	_, err := m.Yield(args[0])
+	b.exec.SetSkipLayers(false)
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	return nil, nil
 }

@@ -156,6 +156,10 @@ func (b *Builder) Run(script string) (*mruby.MrbValue, error) {
 		b.exec.Config().User = "root"
 	}
 
+	if err := b.exec.MakeImage(); err != nil {
+		return nil, err
+	}
+
 	if b.finalCommit {
 		if err := b.exec.Commit("", nil); err != nil {
 			return nil, err
