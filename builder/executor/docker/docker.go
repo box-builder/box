@@ -545,14 +545,18 @@ func (d *Docker) RunHook(id string) (string, error) {
 	return "", nil
 }
 
-func printPull(reader io.Reader) (string, error) {
-	idmap := map[string][]string{}
-	idlist := []string{}
+type pullInfo struct {
+	status   string
+	progress float64
+}
 
-	fmt.Println()
+func printPull(reader io.Reader) (string, error) {
+	idmap := map[string]pullInfo{}
+	idlist := []string{}
+	var retval string
 
 	buf := bufio.NewReader(reader)
-	for {
+	for retval == "" {
 		line, err := buf.ReadBytes('\n')
 		if err == io.EOF {
 			break
@@ -568,36 +572,59 @@ func printPull(reader io.Reader) (string, error) {
 		if stream, ok := unpacked["stream"].(string); ok {
 			// FIXME this is absolutely terrible
 			if strings.HasPrefix(stream, "Loaded image ID:") {
-				// FIXME draw to bottom of screen
-				return strings.TrimSpace(strings.TrimPrefix(stream, "Loaded image ID:")), nil
+				retval = strings.TrimSpace(strings.TrimPrefix(stream, "Loaded image ID:"))
 			}
 		}
 
-		progress, ok := unpacked["progress"].(string)
-		if !ok {
-			progress = ""
+		progressCount := float64(0)
+		progress, pok := unpacked["progressDetail"].(map[string]interface{})
+		if pok {
+			current, cok := progress["current"]
+			total, tok := progress["total"]
+			if cok && tok {
+				progressCount = (current.(float64) / total.(float64)) * 100
+			}
 		}
 
-		status := unpacked["status"].(string)
-		id, ok := unpacked["id"].(string)
-		if !ok {
-			fmt.Printf("\x1b[%dA", len(idmap)+1)
-			fmt.Printf("\r\x1b[K%s\n", status)
-		} else {
-			fmt.Printf("\x1b[%dA", len(idmap))
+		status, _ := unpacked["status"].(string)
+		id, idok := unpacked["id"].(string)
+		if idok {
 			if _, ok := idmap[id]; !ok {
 				idlist = append(idlist, id)
 			}
 
-			idmap[id] = []string{status, progress}
+			idmap[id] = pullInfo{status, progressCount}
 		}
 
 		for _, id := range idlist {
-			fmt.Printf("\r\x1b[K%s %s %s\n", id, idmap[id][0], idmap[id][1])
+			if idmap[id].progress == 0 {
+				fmt.Printf("\r\x1b[K%s %s\n", id, idmap[id].status)
+			} else {
+				fmt.Printf("\r\x1b[K%s %s %3.0f%%\n", id, idmap[id].status, idmap[id].progress)
+			}
+		}
+
+		if !idok && status != "" {
+			if pok { // image load only
+				fmt.Printf("\r\x1b[K%s %3.0f%%", status, progressCount)
+			} else {
+				fmt.Printf("\r\x1b[K%s\n", status)
+				fmt.Printf("\x1b[%dA", len(idmap)+1)
+			}
+		} else {
+			if len(idmap) != 0 {
+				fmt.Printf("\x1b[%dA", len(idmap))
+			}
 		}
 	}
 
-	return "", nil
+	for i := 0; i < len(idmap)+1; i++ {
+		fmt.Println()
+	}
+
+	fmt.Println("Loaded image", retval)
+
+	return retval, nil
 }
 
 func doCopy(wtr io.Writer, rdr io.Reader, errChan chan error, stopChan chan struct{}) {
