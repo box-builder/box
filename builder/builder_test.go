@@ -149,7 +149,6 @@ func (bs *builderSuite) TestCopy(c *C) {
   `)
 
 	c.Assert(err, NotNil)
-
 	b.Close()
 
 	b, err = runBuilder(`

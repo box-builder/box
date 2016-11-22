@@ -20,7 +20,7 @@ func extractStringArgs(args []*mruby.MrbValue) []string {
 	strArgs := []string{}
 
 	for _, arg := range args {
-		if arg.Type() != mruby.TypeProc {
+		if arg != nil && arg.Type() != mruby.TypeProc {
 			strArgs = append(strArgs, arg.String())
 		}
 	}
