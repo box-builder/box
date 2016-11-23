@@ -3,7 +3,11 @@
 dockerd -s vfs &
 sleep 5
 
-go test -timeout 30m -v $* -check.v -check.f "${TESTRUN}"
+for i in $*
+do
+  go test -timeout 30m -v "$i" -check.v -check.f "${TESTRUN}"
+done
+
 status=$?
 
 killall dockerd
