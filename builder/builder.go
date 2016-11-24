@@ -4,12 +4,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 
 	"github.com/erikh/box/builder/executor"
 	"github.com/erikh/box/builder/executor/docker"
+	"github.com/erikh/box/builder/signal"
 	"github.com/erikh/box/log"
 	"github.com/fatih/color"
 	mruby "github.com/mitchellh/go-mruby"
@@ -17,12 +16,11 @@ import (
 
 // Builder implements the builder core.
 type Builder struct {
-	useCache      bool
-	mrb           *mruby.Mrb
-	exec          executor.Executor
-	fromImage     string
-	finalCommit   bool
-	signalHandler chan os.Signal
+	useCache    bool
+	mrb         *mruby.Mrb
+	exec        executor.Executor
+	fromImage   string
+	finalCommit bool
 }
 
 func keep(omitFuncs []string, name string) bool {
@@ -71,7 +69,7 @@ func NewBuilder(tty bool, omitFuncs []string) (*Builder, error) {
 		}
 	}
 
-	builder.signalHandler = InterpreterSignal()
+	signal.SetSignal(nil)
 
 	return builder, nil
 }
@@ -183,20 +181,4 @@ func NewExecutor(name string, useCache, tty bool) (executor.Executor, error) {
 	}
 
 	return nil, fmt.Errorf("Executor %q not found", name)
-}
-
-// InterpreterSignal is installed at bootstrap and also re-installed after any
-// run statements. See RunSignal's source for that handler.
-func InterpreterSignal() chan os.Signal {
-	intSig := make(chan os.Signal)
-	signal.Notify(intSig, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		_, ok := <-intSig
-		if ok {
-			fmt.Println("!!! SIGINT or SIGTERM recieved, crashing container...")
-			os.Exit(1)
-		}
-	}()
-
-	return intSig
 }

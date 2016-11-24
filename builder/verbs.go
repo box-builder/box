@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/erikh/box/builder/signal"
 	"github.com/erikh/box/log"
 	"github.com/erikh/box/tar"
 	mruby "github.com/mitchellh/go-mruby"
@@ -269,13 +270,9 @@ func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		b.exec.Config().Cmd = cmd
 	}()
 
-	close(b.signalHandler) // shutdown the signal handler; RunHook should establish its own
-
 	if err := b.exec.Commit(cacheKey, b.exec.RunHook); err != nil {
 		return nil, createException(m, err.Error())
 	}
-
-	b.signalHandler = InterpreterSignal() // reinstall the signal handler
 
 	return nil, nil
 }
@@ -403,6 +400,7 @@ func copy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 	}
 
 	fn, err := tar.Archive(rel, target)
+	signal.SetSignal(func() { os.Remove(fn) })
 	defer os.Remove(fn)
 	if err != nil {
 		return nil, createException(m, err.Error())

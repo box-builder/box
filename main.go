@@ -125,7 +125,7 @@ func main() {
 		}
 
 		if err != nil {
-			fmt.Printf("!!! Error: %v\n", err.Error())
+			fmt.Printf("\n\n!!! Error: %v\n", err.Error())
 			os.Exit(2)
 		}
 
@@ -135,7 +135,7 @@ func main() {
 
 		response, err := b.Run(string(content))
 		if err != nil {
-			fmt.Printf("!!! Error: %v\n", err.Error())
+			fmt.Printf("\n\n!!! Error: %v\n", err.Error())
 			os.Exit(1)
 		}
 
@@ -163,7 +163,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintf(os.Stderr, "!!! Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "\n\n!!! Error: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -171,10 +171,12 @@ func main() {
 func runRepl(ctx *cli.Context) {
 	r, err := repl.NewRepl()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "!!! Error bootstrapping repl: %v\n", err)
+		fmt.Fprintf(os.Stderr, "\n\n!!! Error bootstrapping repl: %v\n", err)
 		os.Exit(1)
 	}
 
 	if err := r.Loop(); err != nil {
+		fmt.Printf("\n\n!!! Error: %v\n", err)
+		os.Exit(1)
 	}
 }
