@@ -4,10 +4,38 @@ your build for further processing; the `read` function allows that.
 
 These are the functions supported by Box.
 
+## skip
+
+skip skips all layers within its block in the final produced image, which may
+be tagged with the `-t` commandline argument.
+
+Note that any other tagging or references to images built will still be
+available with full image contents, this only affects the final output image.
+
+**WARNING**: This command can cause extreme latency over TCP connections as it
+rebuilds images locally, which requires it to pull down and re-push any images.
+It is strongly recommended you build on the host you wish to push from or use.
+
+Example:
+
+This will import the `debian` image, and run commands to install software
+via `apt-get`. Then it will remove the update process's layer's contents from
+the image, removing caches and other dirt from the final image.
+
+```ruby
+from "debian"
+
+skip do
+  run "apt-get update"
+end
+
+run "apt-get install tmux"
+```
+
 ## import
 
 import loads a ruby file, and then executes it as if it were a box plan. This
-is prinicipally used to modularize build instructions between multiple builds.
+is principally used to modularize build instructions between multiple builds.
 
 Note that this will load ruby files specified anywhere on the filesystem. Use
 at your own risk. You can provide the `-o import` option to omit this function
