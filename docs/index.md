@@ -77,7 +77,7 @@ $ box --help
 ## Making Box Scripts
 
 Box scripts are written in mruby, an embedded, smaller variant of ruby. If you
-are new to ruby, here is a tutorial that only [covers the basics](https://github.com/jhotta/chef-fundamentals-ja/blob/master/slides/just-enough-ruby-for-chef/01_slide.md).
+are new to ruby, here is a tutorial that only [covers the basics](https://github.com/jhotta/chef-fundamentals-ja/blob/master/slides/just-enough-ruby-for-chef/01_slide.md#variables)
 You will not need to be an advanced ruby user to leverage Box.
 
 Box script terms are either functions or verbs.
@@ -92,8 +92,8 @@ the build system and pass it to other calls, or just print it out for later
 use. Functions like `getuid` exist to retrieve the UID of a user as the
 container sees it, for the purposes of using it for future operations.
 
-Please take a look at our [verbs reference](/verbs) and [functions
-reference](/functions) for more information.
+Please take a look at our [verbs reference](/user-guide/verbs) and [functions
+reference](/user-guide/functions) for more information.
 
 ## Example Box Script
 

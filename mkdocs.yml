@@ -1,8 +1,9 @@
-site_name: Box - A Next-Generation Builder for Docker Images
-theme: readthedocs
+site_name: Box
+theme: slate
 repo_url: https://github.com/erikh/box
 pages:
-  - "Introduction": "index.md"
-  - "Command-Line Options": "cli.md"
-  - "Verb Reference": "verbs.md"
-  - "Function Reference": "functions.md"
+  - "Intro": "index.md"
+  - "User Guide":
+    - "Command-Line Options": "user-guide/cli.md"
+    - "Verbs": "user-guide/verbs.md"
+    - "Functions": "user-guide/functions.md"
