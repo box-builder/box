@@ -27,10 +27,10 @@ type Executor interface {
 	// CheckCache consults the cache to see if there are any items which fit it.
 	CheckCache(string) (bool, error)
 
-	// CopyToImage copies a tarred up series of files (passed in through the
+	// Flatten copies a tarred up series of files (passed in through the
 	// io.Reader handle) to the image where they are untarred. The first argument
 	// is the parent image to use.
-	CopyToImage(string, int64, io.Reader) error
+	Flatten(string, int64, io.Reader) error
 
 	// CopyFromContainer copies a series of files in a similar fashion to
 	// CopyToContainer, just in reverse.
@@ -68,4 +68,14 @@ type Executor interface {
 
 	// UseTTY determines whether or not to allow docker to use a TTY for both run and pull operations.
 	UseTTY(bool)
+
+	// SetSkipLayers toggles whether or not to skip layers that are being built
+	// next. Toggle again to re-enable layer recording. The final image will not
+	// contain the skipped layers.
+	SetSkipLayers(ok bool)
+
+	// MakeImage makes the final image, skipping any layers as necessary. The
+	// layers must be pre-recorded within the executor.
+	// It returns an error condition, if any.
+	MakeImage() error
 }

@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/docker/docker/api/types"
@@ -26,12 +27,16 @@ import (
 
 // Docker implements an executor that talks to docker to achieve its goals.
 type Docker struct {
-	client   *client.Client
-	config   *config.Config
-	from     string
-	useCache bool
-	tty      bool
-	stdin    bool
+	client       *client.Client
+	config       *config.Config
+	from         string
+	useCache     bool
+	tty          bool
+	stdin        bool
+	layers       []string
+	skipLayers   []string
+	doSkipLayers bool
+	layerSet     map[string]struct{}
 }
 
 // NewDocker constructs a new docker instance, for executing against docker
@@ -43,11 +48,150 @@ func NewDocker(useCache, tty bool) (*Docker, error) {
 	}
 
 	return &Docker{
-		tty:      tty,
-		useCache: useCache,
-		client:   client,
-		config:   config.NewConfig(),
+		tty:        tty,
+		useCache:   useCache,
+		client:     client,
+		config:     config.NewConfig(),
+		layerSet:   map[string]struct{}{},
+		layers:     []string{},
+		skipLayers: []string{},
 	}, nil
+}
+
+// MakeImage makes the final image, skipping any layers as necessary. The
+// layers must be pre-recorded within the executor. Note that if you have no
+// layers to skip, this operation will need to do nothing, so it will do
+// nothing.
+//
+// It returns an error condition, if any.
+func (d *Docker) MakeImage() error {
+	// this is prinicipally an optimization so we can determine later if we
+	// need to reconstruct the image.
+	if len(d.skipLayers) == 0 {
+		return nil
+	}
+
+	rc, err := d.client.ImageSave(context.Background(), []string{d.ImageID()})
+	if err != nil {
+		return nil
+	}
+
+	tf, err := ioutil.TempFile("", "box-downloaded-image")
+	if err != nil {
+		return err
+	}
+
+	defer os.Remove(tf.Name())
+
+	if _, err := io.Copy(tf, rc); err != nil {
+		tf.Close()
+		return err
+	}
+
+	tf.Close()
+
+	layers, dir, err := image.Unpack(tf.Name())
+
+	if err := os.Remove(tf.Name()); err != nil {
+		return err
+	}
+
+	defer func() {
+		if dir != "" {
+			os.RemoveAll(dir)
+		}
+	}()
+
+	if err != nil {
+		return err
+	}
+
+	if len(layers) < len(d.layers) {
+		return fmt.Errorf("error: image mismatch; layers recorded are more than layers in image: %d - %d", len(layers), len(d.layers))
+	}
+
+	commitLayers := []*image.Layer{}
+
+	for i := 0; i < len(layers); i++ {
+		if i >= len(d.layers) {
+			break
+		}
+
+		commit := true
+
+		for layers[i].LayerID() != d.layers[i] {
+			if i == 0 {
+				layers = layers[1:]
+			} else {
+				layers = append(layers[:i-1], layers[i:]...)
+			}
+
+			if len(layers) < i || len(d.layers) < i {
+				commit = false
+				break
+			}
+		}
+
+		if commit {
+			commitLayers = append(commitLayers, layers[i])
+		}
+	}
+
+	fn, err := image.Make(d.Config(), commitLayers)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Open(fn)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	defer os.Remove(f.Name())
+
+	imgresp, err := d.client.ImageLoad(context.Background(), f, false)
+	if err != nil {
+		return err
+	}
+
+	d.config.Image, err = printPull(imgresp.Body)
+	return err
+}
+
+// addImage adds layers to the layer list from a provided image, in order of
+// appearance. Any existing layers are skipped over, removing them from the list.
+func (d *Docker) addImage(image string) error {
+	d.config.Image = image
+
+	resp, _, err := d.client.ImageInspectWithRaw(context.Background(), image)
+	if err != nil {
+		return err
+	}
+
+	for _, layer := range resp.RootFS.Layers {
+		if _, ok := d.layerSet[layer]; !ok {
+			if !d.doSkipLayers {
+				// XXX this really worries me. Pretty sure there's a potential cache
+				// fail/poison here, but I have to debug it.
+				// BETA QUALITY YO
+				d.layers = append(d.layers, layer)
+			} else {
+				// this is prinicipally an optimization so we can determine later if we
+				// need to reconstruct the image.
+				d.skipLayers = append(d.skipLayers, layer)
+			}
+
+			d.layerSet[layer] = struct{}{}
+		}
+	}
+
+	return nil
+}
+
+// SetSkipLayers toggles whether or not to skip layers when building the
+// final image.
+func (d *Docker) SetSkipLayers(ok bool) {
+	d.doSkipLayers = ok
 }
 
 // SetStdin turns on the stdin features during run invocations. It is used to
@@ -106,6 +250,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 	}()
 
 	if hook != nil {
+		// FIXME this is terrible.
 		tmp, err := hook(id)
 		if err != nil {
 			return err
@@ -127,9 +272,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 		return fmt.Errorf("Could not remove intermediate container %q: %v", id, err)
 	}
 
-	d.config.Image = commitResp.ID
-
-	return nil
+	return d.addImage(commitResp.ID)
 }
 
 // CheckCache consults the cache and returns true or false depending on whether
@@ -155,8 +298,7 @@ func (d *Docker) CheckCache(cacheKey string) (bool, error) {
 			if inspect.Comment == cacheKey {
 				log.CacheHit(img.ID)
 				d.config.FromDocker(inspect.Config)
-				d.config.Image = img.ID
-				return true, nil
+				return true, d.addImage(img.ID)
 			}
 		}
 	}
@@ -238,15 +380,40 @@ func (d *Docker) CopyToContainer(id string, r io.Reader) error {
 	return d.client.CopyToContainer(context.Background(), id, "/", r, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
 }
 
-// CopyToImage copies a tarred up series of files (passed in through the
+// Flatten copies a tarred up series of files (passed in through the
 // io.Reader handle) to the image where they are untarred.
-func (d *Docker) CopyToImage(id string, size int64, tw io.Reader) error {
-	img, err := image.CopyToImage(d.client, d.config, id, size, tw)
+func (d *Docker) Flatten(id string, size int64, tw io.Reader) error {
+	imgName, err := image.Flatten(d.config, id, size, tw)
 	if err != nil {
 		return err
 	}
 
-	d.config.Image = img
+	out, err := os.Open(imgName)
+	if err != nil {
+		return err
+	}
+
+	defer out.Close()
+	defer os.Remove(out.Name())
+
+	resp, err := d.client.ImageLoad(context.Background(), out, true)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	parts := strings.SplitN(string(content), ":", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("Invalid value returned from docker: %s", string(content))
+	}
+
+	d.config.Image = strings.TrimSpace(parts[1])
 	return nil
 }
 
@@ -273,7 +440,7 @@ func (d *Docker) Fetch(name string) (string, error) {
 			}
 			fmt.Println("done.")
 		} else {
-			if err := printPull(reader); err != nil {
+			if _, err := printPull(reader); err != nil {
 				return "", err
 			}
 		}
@@ -287,7 +454,7 @@ func (d *Docker) Fetch(name string) (string, error) {
 
 	d.config.FromDocker(inspect.Config)
 	d.config.Image = inspect.ID
-
+	d.layers = inspect.RootFS.Layers
 	return inspect.ID, nil
 }
 
@@ -378,51 +545,86 @@ func (d *Docker) RunHook(id string) (string, error) {
 	return "", nil
 }
 
-func printPull(reader io.Reader) error {
-	idmap := map[string][]string{}
-	idlist := []string{}
+type pullInfo struct {
+	status   string
+	progress float64
+}
 
-	fmt.Println()
+func printPull(reader io.Reader) (string, error) {
+	idmap := map[string]pullInfo{}
+	idlist := []string{}
+	var retval string
 
 	buf := bufio.NewReader(reader)
-	for {
+	for retval == "" {
 		line, err := buf.ReadBytes('\n')
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return err
+			return "", err
 		}
 
 		var unpacked map[string]interface{}
 		if err := json.Unmarshal(line, &unpacked); err != nil {
-			return err
+			return "", err
 		}
 
-		progress, ok := unpacked["progress"].(string)
-		if !ok {
-			progress = ""
+		if stream, ok := unpacked["stream"].(string); ok {
+			// FIXME this is absolutely terrible
+			if strings.HasPrefix(stream, "Loaded image ID:") {
+				retval = strings.TrimSpace(strings.TrimPrefix(stream, "Loaded image ID:"))
+			}
 		}
 
-		status := unpacked["status"].(string)
-		id, ok := unpacked["id"].(string)
-		if !ok {
-			fmt.Printf("\x1b[%dA", len(idmap)+1)
-			fmt.Printf("\r\x1b[K%s\n", status)
-		} else {
-			fmt.Printf("\x1b[%dA", len(idmap))
+		progressCount := float64(0)
+		progress, pok := unpacked["progressDetail"].(map[string]interface{})
+		if pok {
+			current, cok := progress["current"]
+			total, tok := progress["total"]
+			if cok && tok {
+				progressCount = (current.(float64) / total.(float64)) * 100
+			}
+		}
+
+		status, _ := unpacked["status"].(string)
+		id, idok := unpacked["id"].(string)
+		if idok {
 			if _, ok := idmap[id]; !ok {
 				idlist = append(idlist, id)
 			}
 
-			idmap[id] = []string{status, progress}
+			idmap[id] = pullInfo{status, progressCount}
 		}
 
 		for _, id := range idlist {
-			fmt.Printf("\r\x1b[K%s %s %s\n", id, idmap[id][0], idmap[id][1])
+			if idmap[id].progress == 0 {
+				fmt.Printf("\r\x1b[K%s %s\n", id, idmap[id].status)
+			} else {
+				fmt.Printf("\r\x1b[K%s %s %3.0f%%\n", id, idmap[id].status, idmap[id].progress)
+			}
+		}
+
+		if !idok && status != "" {
+			if pok { // image load only
+				fmt.Printf("\r\x1b[K%s %3.0f%%", status, progressCount)
+			} else {
+				fmt.Printf("\r\x1b[K%s\n", status)
+				fmt.Printf("\x1b[%dA", len(idmap)+1)
+			}
+		} else {
+			if len(idmap) != 0 {
+				fmt.Printf("\x1b[%dA", len(idmap))
+			}
 		}
 	}
 
-	return nil
+	for i := 0; i < len(idmap)+1; i++ {
+		fmt.Println()
+	}
+
+	fmt.Println("Loaded image", retval)
+
+	return retval, nil
 }
 
 func doCopy(wtr io.Writer, rdr io.Reader, errChan chan error, stopChan chan struct{}) {

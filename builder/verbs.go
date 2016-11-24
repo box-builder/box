@@ -37,9 +37,9 @@ var verbJumpTable = map[string]verbDefinition{
 	"from":       {from, mruby.ArgsReq(1)},
 	"run":        {run, mruby.ArgsAny()},
 	"user":       {user, mruby.ArgsReq(1)},
-	"with_user":  {withUser, mruby.ArgsBlock() | mruby.ArgsReq(1)},
+	"with_user":  {withUser, mruby.ArgsBlock() | mruby.ArgsReq(2)},
 	"workdir":    {workdir, mruby.ArgsReq(1)},
-	"inside":     {inside, mruby.ArgsBlock() | mruby.ArgsReq(1)},
+	"inside":     {inside, mruby.ArgsBlock() | mruby.ArgsReq(2)},
 	"env":        {env, mruby.ArgsAny()},
 	"cmd":        {cmd, mruby.ArgsAny()},
 	"entrypoint": {entrypoint, mruby.ArgsAny()},
@@ -186,7 +186,7 @@ func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 
 	defer f.Close()
 
-	if err := b.exec.CopyToImage(id, size, f); err != nil {
+	if err := b.exec.Flatten(id, size, f); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
