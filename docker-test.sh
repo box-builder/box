@@ -1,5 +1,9 @@
 #!/bin/bash	
 
+set -eu
+
+mkdocs build
+
 dockerd -s vfs &
 sleep 5
 

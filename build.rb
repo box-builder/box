@@ -14,6 +14,7 @@ skip do
     flex
     iptables
     psmisc
+    python-pip
   ]
 
   workdir "/"
@@ -33,6 +34,8 @@ skip do
   if getenv("IGNORE_LIBMRUBY") == ""
     run "cd /go/src/github.com/erikh/box && make clean all"
   end
+
+  run "pip install mkdocs mkdocs-bootswatch"
 
   workdir "/go/src/github.com/erikh/box"
   set_exec entrypoint: ["/dind"], cmd: ["make", "docker-test"]
