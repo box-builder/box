@@ -2,3 +2,5 @@ libmruby.a
 box
 dev.rb
 site
+release-notes.txt
+*.tmp.md
