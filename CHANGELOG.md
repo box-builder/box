@@ -1,3 +1,7 @@
+### v0.3.1
+
+* Release version is reflected correctly in the binary
+
 ### v0.2.1
 
 * Fix colorized output bleed for certain terminals on OS X.
