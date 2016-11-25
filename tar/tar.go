@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/erikh/box/builder/signal"
 	"github.com/erikh/box/log"
 )
 
@@ -25,6 +26,9 @@ func Archive(rel, target string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	signal.SetSignal(func() { os.Remove(f.Name()) })
+	defer signal.SetSignal(nil)
 
 	tw := tar.NewWriter(f)
 

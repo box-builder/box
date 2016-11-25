@@ -9,10 +9,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -20,6 +18,7 @@ import (
 	"github.com/docker/docker/pkg/term"
 	"github.com/erikh/box/builder/config"
 	"github.com/erikh/box/builder/executor"
+	"github.com/erikh/box/builder/signal"
 	"github.com/erikh/box/image"
 	"github.com/erikh/box/log"
 	"github.com/fatih/color"
@@ -234,23 +233,12 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 		return err
 	}
 
-	signals := make(chan os.Signal)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		_, ok := <-signals
-		if ok {
-			d.Destroy(id)
-		}
-	}()
-
-	defer func() {
-		d.Destroy(id)
-		signal.Reset(syscall.SIGINT, syscall.SIGTERM)
-		close(signals)
-	}()
+	signal.SetSignal(func() { d.Destroy(id) })
+	defer signal.SetSignal(nil)
+	defer d.Destroy(id)
 
 	if hook != nil {
-		// FIXME this is terrible.
+		// FIXME this cache key handling is terrible.
 		tmp, err := hook(id)
 		if err != nil {
 			return err
@@ -460,13 +448,30 @@ func (d *Docker) Fetch(name string) (string, error) {
 
 // RunHook is the run hook for docker agents.
 func (d *Docker) RunHook(id string) (string, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	signal.SetSignal(func() {
+		cancel()
+		d.Destroy(id)
+	})
+
+	stopChan := make(chan struct{})
+	errChan := make(chan error, 1)
+
+	go func() {
+		err, ok := <-errChan
+		if ok {
+			fmt.Printf("\n\n+++ Run Error: %v\n", err)
+			cancel()
+			d.Destroy(id)
+		}
+	}()
+
+	defer signal.SetSignal(nil)
+
 	cearesp, err := d.client.ContainerAttach(context.Background(), id, types.ContainerAttachOptions{Stream: true, Stdin: d.stdin, Stdout: true, Stderr: true})
 	if err != nil {
 		return "", fmt.Errorf("Could not attach to container: %v", err)
 	}
-
-	stopChan := make(chan struct{})
-	errChan := make(chan error, 1)
 
 	if d.stdin {
 		state, err := term.SetRawTerminal(0)
@@ -499,32 +504,15 @@ func (d *Docker) RunHook(id string) (string, error) {
 			if err != nil && err != io.EOF {
 				select {
 				case <-stopChan:
-					return
 				default:
+					errChan <- err
 				}
-
-				errChan <- err
 			}
 		}()
 	} else if d.tty {
 		go doCopy(os.Stdout, cearesp.Reader, errChan, stopChan)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go func() {
-		err, ok := <-errChan
-		if ok {
-			fmt.Printf("+++ Error: %v", err)
-			close(stopChan)
-			cancel()
-		}
-	}()
-
-	intSig := RunSignal(cancel)
-
-	defer close(intSig)
-	defer close(errChan)
 	defer close(stopChan)
 
 	stat, err := d.client.ContainerWait(ctx, id)
@@ -642,27 +630,11 @@ func doCopy(wtr io.Writer, rdr io.Reader, errChan chan error, stopChan chan stru
 		} else if err != io.EOF {
 			select {
 			case <-stopChan:
+			case errChan <- err: // if the channel is closed, this will fail.
 			default:
-				errChan <- err
 			}
 		}
 
 		return
 	}
-}
-
-// RunSignal is the signal handler installed on run via the executor.
-func RunSignal(cancel context.CancelFunc) chan os.Signal {
-	intSig := make(chan os.Signal)
-
-	signal.Notify(intSig, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		_, ok := <-intSig
-		if ok {
-			fmt.Println("!!! SIGINT or SIGTERM recieved, crashing container...")
-			cancel()
-		}
-	}()
-
-	return intSig
 }
