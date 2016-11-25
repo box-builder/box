@@ -2,6 +2,16 @@
 
 * Release version is reflected correctly in the binary
 
+### v0.3
+* New REPL/shell! You can now interactively build container images with box.
+* New skip verb: skip layers that you don't want in the final image.
+* Improved signal handling; cancelling builds now leaves no temporary files or
+  containers within the system.
+* A new command-line flag, `box -f`, omits the automatic final commit. It is
+  typically used with the `tag` verb to avoid making two images.
+* The readability of progress meters was improved. 
+
+
 ### v0.2.1
 
 * Fix colorized output bleed for certain terminals on OS X.
