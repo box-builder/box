@@ -52,6 +52,8 @@ func NewBuilder(tty bool, omitFuncs []string) (*Builder, error) {
 		finalCommit: true,
 	}
 
+	builder.mrb.DisableGC()
+
 	for name, def := range verbJumpTable {
 		if keep(omitFuncs, name) {
 			builder.AddVerb(name, def.verbFunc, def.argSpec)
@@ -169,6 +171,8 @@ func (b *Builder) Run(script string) (*mruby.MrbValue, error) {
 
 // Close tears down all functions of the builder, preparing it for exit.
 func (b *Builder) Close() error {
+	b.mrb.EnableGC()
+	b.mrb.FullGC()
 	b.mrb.Close()
 	return nil
 }
