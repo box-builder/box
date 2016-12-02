@@ -60,18 +60,9 @@ func debug(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, se
 	}
 
 	b.exec.SetStdin(true)
+	defer b.exec.SetStdin(false)
 
-	entrypoint := b.exec.Config().Entrypoint
-	cmd := b.exec.Config().Cmd
-
-	b.exec.Config().Entrypoint = []string{}
-	b.exec.Config().Cmd = []string{shell}
-
-	defer func() {
-		b.exec.Config().Entrypoint = entrypoint
-		b.exec.Config().Cmd = cmd
-		b.exec.SetStdin(false)
-	}()
+	b.exec.Config().TemporaryCommand([]string{}, []string{shell})
 
 	if err := b.exec.Commit(cacheKey, b.exec.RunHook); err != nil {
 		return nil, createException(m, err.Error())
@@ -103,9 +94,9 @@ func setExec(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 
 		switch key.String() {
 		case "entrypoint":
-			b.exec.Config().Entrypoint = strArgs
+			b.exec.Config().Entrypoint.Image = strArgs
 		case "cmd":
-			b.exec.Config().Cmd = strArgs
+			b.exec.Config().Cmd.Image = strArgs
 		default:
 			return fmt.Errorf("set_exec only accepts cmd and entrypoint as keys")
 		}
@@ -223,11 +214,7 @@ func entrypoint(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mr
 
 	stringArgs := extractStringArgs(args)
 
-	b.exec.Config().Entrypoint = stringArgs
-	// override the cmd when the entrypoint is set. this is a tough problem to
-	// solve in the right way. If cmd is set prior to this, we cannot be sure
-	// once we set the entrypoint that it is still valid, so we erase it.
-	b.exec.Config().Cmd = []string{}
+	b.exec.Config().Entrypoint.Image = stringArgs
 
 	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
@@ -259,16 +246,7 @@ func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 
 	stringArgs := extractStringArgs(args)
 
-	entrypoint := b.exec.Config().Entrypoint
-	cmd := b.exec.Config().Cmd
-
-	b.exec.Config().Entrypoint = []string{"/bin/sh", "-c"}
-	b.exec.Config().Cmd = stringArgs
-
-	defer func() {
-		b.exec.Config().Entrypoint = entrypoint
-		b.exec.Config().Cmd = cmd
-	}()
+	b.exec.Config().TemporaryCommand([]string{"/bin/sh", "-c"}, stringArgs)
 
 	if err := b.exec.Commit(cacheKey, b.exec.RunHook); err != nil {
 		return nil, createException(m, err.Error())
@@ -361,7 +339,7 @@ func cmd(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 
 	stringArgs := extractStringArgs(args)
 
-	b.exec.Config().Cmd = stringArgs
+	b.exec.Config().Cmd.Image = stringArgs
 
 	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())

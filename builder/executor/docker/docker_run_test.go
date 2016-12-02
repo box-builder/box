@@ -36,8 +36,8 @@ func (ds *dockerSuite) TestRunHook(c *C) {
 	id, err := d.Fetch("debian:latest")
 	c.Assert(err, IsNil)
 
-	d.config.Entrypoint = []string{"/bin/sh", "-c"}
-	d.config.Cmd = []string{"exit 0"}
+	d.config.Entrypoint.Temporary = []string{"/bin/sh", "-c"}
+	d.config.Cmd.Temporary = []string{"exit 0"}
 	c.Assert(d.Commit("test", d.RunHook), IsNil)
 	c.Assert(d.config.Image, Not(Equals), id)
 
@@ -50,8 +50,8 @@ func (ds *dockerSuite) TestRunHook(c *C) {
 	c.Assert(err, IsNil)
 	defer d.Destroy(createID)
 
-	d.config.Entrypoint = []string{"/bin/sh", "-c"}
-	d.config.Cmd = []string{"exit 1"}
+	d.config.Entrypoint.Temporary = []string{"/bin/sh", "-c"}
+	d.config.Cmd.Temporary = []string{"exit 1"}
 	c.Assert(d.Commit("test", d.RunHook), NotNil)
 	c.Assert(d.config.Image, Equals, id)
 }
