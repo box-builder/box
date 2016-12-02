@@ -240,10 +240,10 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/cat"})
-	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
 	b.Close()
 
-	// if cmd is set earlier than entrypoint, it is erased.
+	// if cmd is set earlier than entrypoint, it should not change
 	b, err = runBuilder(`
     from "debian"
     cmd "hi"
@@ -254,10 +254,10 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/echo"})
-	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
 	b.Close()
 
-	// normal cmd usage.
+	// likewise for entrypoint.
 	b, err = runBuilder(`
     from "debian"
     entrypoint "/bin/echo"
@@ -761,11 +761,11 @@ func (bs *builderSuite) TestExecPropagation(c *C) {
   `)
 	c.Assert(err, IsNil)
 
-	c.Assert(b.exec.Config().Entrypoint, IsNil)
-	c.Assert(b.exec.Config().Cmd, DeepEquals, []string{"/bin/bash"})
+	c.Assert(b.exec.Config().Entrypoint.Image, IsNil)
+	c.Assert(b.exec.Config().Cmd.Image, DeepEquals, []string{"/bin/bash"})
 
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "test")
-	c.Assert(strslice.StrSlice(b.exec.Config().Cmd), DeepEquals, inspect.Config.Cmd)
+	c.Assert(strslice.StrSlice(b.exec.Config().Cmd.Image), DeepEquals, inspect.Config.Cmd)
 
 	// Docker rewrites a nil as the array below.
 	c.Assert(strslice.StrSlice{"/bin/sh", "-c"}, DeepEquals, inspect.Config.Entrypoint)

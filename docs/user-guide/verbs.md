@@ -25,8 +25,7 @@ run "chown -R erikh:erikh /test" # this will run after you close the shell
 ```
 
 ## set\_exec
-`set_exec` sets both the entrypoint and cmd at the same time, allowing for no
-race between the operations.
+`set_exec` sets both the entrypoint and cmd at the same time.
 
 `set_exec` takes a dictionary consisting of two known elements as symbols:
 entrypoint and cmd. They each take a string array which is then propagated
@@ -118,7 +117,7 @@ tag "erikh/true" # tag the latest image as "erikh/true"
 ## entrypoint
 
 entrypoint sets the entrypoint for the image at runtime. It will not be
-used for run invocations. Note that setting this clears any previously set cmd.
+used for run invocations.
 
 Example:
 
@@ -264,8 +263,6 @@ env GOPATH: "/go", PATH: "/usr/bin:/bin" # equivalent if you prefer this syntax
 cmd, when provided with a string will set the docker image's Cmd property,
 which are the arguments that follow the entrypoint (and are overridden when
 you provide a command to `docker run`). It does not affect run invocations.
-
-Note that if you set this before entrypoint, it will be cleared.
 
 Example:
 

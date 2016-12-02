@@ -8,9 +8,9 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/term"
-	"github.com/docker/docker/api/types"
 )
 
 func runBuilder(script string) (*Builder, error) {
@@ -28,8 +28,8 @@ func readContainerFile(c *C, b *Builder, fn string) []byte {
 }
 
 func runContainerCommand(c *C, b *Builder, cmd []string) []byte {
-	b.exec.Config().Entrypoint = []string{}
-	b.exec.Config().Cmd = cmd
+	b.exec.Config().Entrypoint.Temporary = []string{}
+	b.exec.Config().Cmd.Temporary = cmd
 	id, err := b.exec.Create()
 	c.Assert(err, IsNil)
 	resp, err := dockerClient.ContainerAttach(context.Background(), id, types.ContainerAttachOptions{Stream: true, Stdout: true, Stdin: true})

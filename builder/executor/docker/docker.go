@@ -250,7 +250,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 		}
 	}
 
-	commitResp, err := d.client.ContainerCommit(context.Background(), id, types.ContainerCommitOptions{Config: d.config.ToDocker(d.tty, d.stdin), Comment: cacheKey})
+	commitResp, err := d.client.ContainerCommit(context.Background(), id, types.ContainerCommitOptions{Config: d.config.ToDocker(false, d.tty, d.stdin), Comment: cacheKey})
 	if err != nil {
 		return fmt.Errorf("Error during commit: %v", err)
 	}
@@ -341,7 +341,7 @@ func (d *Docker) CopyOneFileFromContainer(fn string) ([]byte, error) {
 func (d *Docker) Create() (string, error) {
 	cont, err := d.client.ContainerCreate(
 		context.Background(),
-		d.config.ToDocker(d.tty, d.stdin),
+		d.config.ToDocker(true, d.tty, d.stdin),
 		nil,
 		nil,
 		"",
