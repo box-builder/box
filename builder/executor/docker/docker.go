@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -460,7 +461,7 @@ func (d *Docker) RunHook(id string) (string, error) {
 	go func() {
 		err, ok := <-errChan
 		if ok {
-			fmt.Printf("\n\n+++ Run Error: %v\n", err)
+			fmt.Printf("\n\n+++ Run Error: %#v\n", err)
 			cancel()
 			d.Destroy(id)
 		}
@@ -468,7 +469,7 @@ func (d *Docker) RunHook(id string) (string, error) {
 
 	defer signal.SetSignal(nil)
 
-	cearesp, err := d.client.ContainerAttach(context.Background(), id, types.ContainerAttachOptions{Stream: true, Stdin: d.stdin, Stdout: true, Stderr: true})
+	cearesp, err := d.client.ContainerAttach(ctx, id, types.ContainerAttachOptions{Stream: true, Stdin: d.stdin, Stdout: true, Stderr: true})
 	if err != nil {
 		return "", fmt.Errorf("Could not attach to container: %v", err)
 	}
@@ -486,7 +487,7 @@ func (d *Docker) RunHook(id string) (string, error) {
 
 	defer cearesp.Close()
 
-	err = d.client.ContainerStart(context.Background(), id, types.ContainerStartOptions{})
+	err = d.client.ContainerStart(ctx, id, types.ContainerStartOptions{})
 	if err != nil {
 		return "", fmt.Errorf("Could not start container: %v", err)
 	}
@@ -627,10 +628,12 @@ func doCopy(wtr io.Writer, rdr io.Reader, errChan chan error, stopChan chan stru
 
 		if _, err := io.Copy(wtr, rdr); err == nil {
 			continue
+		} else if _, ok := err.(*net.OpError); ok {
+			continue
 		} else if err != io.EOF {
 			select {
 			case <-stopChan:
-			case errChan <- err: // if the channel is closed, this will fail.
+			case errChan <- err:
 			default:
 			}
 		}
