@@ -2,6 +2,7 @@ package builder
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -16,11 +17,10 @@ import (
 
 // Builder implements the builder core.
 type Builder struct {
-	useCache    bool
-	mrb         *mruby.Mrb
-	exec        executor.Executor
-	fromImage   string
-	finalCommit bool
+	useCache  bool
+	mrb       *mruby.Mrb
+	exec      executor.Executor
+	fromImage string
 }
 
 func keep(omitFuncs []string, name string) bool {
@@ -46,10 +46,9 @@ func NewBuilder(tty bool, omitFuncs []string) (*Builder, error) {
 	}
 
 	builder := &Builder{
-		useCache:    useCache,
-		mrb:         mruby.NewMrb(),
-		exec:        exec,
-		finalCommit: true,
+		useCache: useCache,
+		mrb:      mruby.NewMrb(),
+		exec:     exec,
 	}
 
 	builder.mrb.DisableGC()
@@ -107,6 +106,11 @@ func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
 
 		log.BuildStep(name, strings.Join(strArgs, ", "))
 
+		if os.Getenv("BOX_DEBUG") != "" {
+			content, _ := json.MarshalIndent(b.exec.Config(), "", "  ")
+			fmt.Println(string(content))
+		}
+
 		cached, err := b.exec.CheckCache(cacheKey)
 		if err != nil {
 			return nil, createException(m, err.Error())
@@ -123,13 +127,6 @@ func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
 	b.mrb.TopSelf().SingletonClass().DefineMethod(name, builderFunc, args)
 }
 
-// FinalCommit instructs the builder to perform the final commit at builder
-// termination time. This, however, should not happen if instructed not to or
-// in cases where the builder may be paused e.g., the repl.
-func (b *Builder) FinalCommit(ok bool) {
-	b.finalCommit = ok
-}
-
 // Run the script.
 func (b *Builder) Run(script string) (*mruby.MrbValue, error) {
 	if _, err := b.mrb.LoadString(script); err != nil {
@@ -143,27 +140,8 @@ func (b *Builder) Run(script string) (*mruby.MrbValue, error) {
 
 	defer b.exec.Destroy(id)
 
-	// this tweaks the behavior to be a little more consisitent IMO with regards
-	// to how docker handles inheritance. It's a hack and a very non-standard
-	// part of box. This also slightly forces users to consider the users and
-	// paths involved in running their images, which I think is a good thing.
-
-	if b.exec.Config().WorkDir == "" { // if the working dir is empty, set to / -- don't inherit.
-		b.exec.Config().WorkDir = "/"
-	}
-
-	if b.exec.Config().User == "" { // if the user is empty, do not inherit; use root.
-		b.exec.Config().User = "root"
-	}
-
 	if err := b.exec.MakeImage(); err != nil {
 		return nil, err
-	}
-
-	if b.finalCommit {
-		if err := b.exec.Commit("", nil); err != nil {
-			return nil, err
-		}
 	}
 
 	return mruby.String(b.exec.ImageID()).MrbValue(b.mrb), nil

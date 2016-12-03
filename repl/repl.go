@@ -31,8 +31,6 @@ func NewRepl() (*Repl, error) {
 		return nil, err
 	}
 
-	b.FinalCommit(false)
-
 	return &Repl{readline: rl, builder: b}, nil
 }
 

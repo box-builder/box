@@ -69,10 +69,6 @@ func main() {
 			Name:  "omit, o",
 			Usage: "Omit functions/verbs. One per option, repeatable.",
 		},
-		cli.BoolFlag{
-			Name:  "no-final-commit, f",
-			Usage: "Perform no automatic commit at the end of the run.",
-		},
 	}
 
 	app.Commands = []cli.Command{
@@ -111,8 +107,6 @@ func main() {
 			panic(err)
 		}
 		defer b.Close()
-
-		b.FinalCommit(!ctx.Bool("no-final-commit"))
 
 		var content []byte
 

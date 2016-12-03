@@ -477,13 +477,11 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 
 	b, err := runBuilder(`
     from "debian"
-    run "true"
   `)
 
 	c.Assert(err, IsNil)
 
-	imageID, err := getParent(b, b.exec.Config().Image)
-	c.Assert(err, IsNil)
+	imageID := b.exec.Config().Image
 	b.Close()
 
 	b, err = runBuilder(fmt.Sprintf(`
@@ -493,8 +491,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 
 	c.Assert(err, IsNil)
 
-	cached, err := getParent(b, b.exec.Config().Image)
-	c.Assert(err, IsNil)
+	cached := b.exec.Config().Image
 	b.Close()
 
 	b, err = runBuilder(fmt.Sprintf(`
@@ -503,9 +500,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
   `, imageID))
 
 	c.Assert(err, IsNil)
-	parent, err := getParent(b, b.exec.Config().Image)
-	c.Assert(err, IsNil)
-	c.Assert(cached, Equals, parent)
+	c.Assert(cached, Equals, b.exec.Config().Image)
 	b.Close()
 
 	b, err = runBuilder(fmt.Sprintf(`
@@ -514,9 +509,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
   `, imageID))
 
 	c.Assert(err, IsNil)
-	parent, err = getParent(b, b.exec.Config().Image)
-	c.Assert(err, IsNil)
-	c.Assert(cached, Not(Equals), parent)
+	c.Assert(cached, Not(Equals), b.exec.Config().Image)
 	b.Close()
 
 	b, err = runBuilder(fmt.Sprintf(`
@@ -526,19 +519,16 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 
 	c.Assert(err, IsNil)
 
-	cached, err = getParent(b, b.exec.Config().Image)
-	c.Assert(err, IsNil)
+	cached = b.exec.Config().Image
 	b.Close()
 
 	b, err = runBuilder(fmt.Sprintf(`
     from "%s"
     copy ".", "."
   `, imageID))
+	c.Assert(err, IsNil)
 
-	c.Assert(err, IsNil)
-	parent, err = getParent(b, b.exec.Config().Image)
-	c.Assert(err, IsNil)
-	c.Assert(cached, Equals, parent)
+	c.Assert(cached, Equals, b.exec.Config().Image)
 
 	f, err := os.Create("test")
 	c.Assert(err, IsNil)
@@ -552,9 +542,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
   `, imageID))
 
 	c.Assert(err, IsNil)
-	parent, err = getParent(b, b.exec.Config().Image)
-	c.Assert(err, IsNil)
-	c.Assert(cached, Not(Equals), parent)
+	c.Assert(cached, Not(Equals), b.exec.Config().Image)
 	b.Close()
 }
 

@@ -29,13 +29,10 @@ skip do
   run "rm #{docker_path}"
   copy "dind", "/dind"
 
-  copy ".", "/go/src/github.com/erikh/box"
-
-  if getenv("IGNORE_LIBMRUBY") == ""
-    run "cd /go/src/github.com/erikh/box && make clean all"
-  end
-
   run "pip install mkdocs mkdocs-bootswatch"
+
+  copy ".", "/go/src/github.com/erikh/box"
+  run "cd /go/src/github.com/erikh/box && make clean all"
 
   workdir "/go/src/github.com/erikh/box"
   set_exec entrypoint: ["/dind"], cmd: ["make", "docker-test"]

@@ -123,7 +123,8 @@ func workdir(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 		return nil, createException(m, fmt.Sprintf("path %q is not absolute in workdir", args[0].String()))
 	}
 
-	b.exec.Config().WorkDir = args[0].String()
+	b.exec.Config().WorkDir.Image = args[0].String()
+	b.exec.Config().WorkDir.Temporary = args[0].String()
 
 	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
@@ -137,7 +138,8 @@ func user(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 		return nil, createException(m, err.Error())
 	}
 
-	b.exec.Config().User = args[0].String()
+	b.exec.Config().User.Image = args[0].String()
+	b.exec.Config().User.Temporary = args[0].String()
 
 	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
@@ -264,19 +266,14 @@ func withUser(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb,
 		return nil, createException(m, fmt.Sprintf("Arg %q was not block!", args[1].String()))
 	}
 
-	user := b.exec.Config().User
-	b.exec.Config().User = args[0].String()
+	b.exec.Config().User.Temporary = args[0].String()
 
 	val, err := m.Yield(args[1], args[0])
 	if err != nil {
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
 	}
 
-	b.exec.Config().User = user
-
-	if err := b.exec.Commit(cacheKey, nil); err != nil {
-		return nil, createException(m, err.Error())
-	}
+	b.exec.Config().User.Temporary = b.exec.Config().User.Image
 
 	return val, nil
 }
@@ -294,19 +291,14 @@ func inside(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		return nil, createException(m, fmt.Sprintf("path %q is not absolute in workdir", args[0].String()))
 	}
 
-	workdir := b.exec.Config().WorkDir
-	b.exec.Config().WorkDir = args[0].String()
+	b.exec.Config().WorkDir.Temporary = args[0].String()
 
 	val, err := m.Yield(args[1], args[0])
 	if err != nil {
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
 	}
 
-	b.exec.Config().WorkDir = workdir
-
-	if err := b.exec.Commit(cacheKey, nil); err != nil {
-		return nil, createException(m, err.Error())
-	}
+	b.exec.Config().WorkDir.Temporary = b.exec.Config().WorkDir.Image
 
 	return val, nil
 }
@@ -371,7 +363,7 @@ func copy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 		return nil, createException(m, fmt.Sprintf("Cannot use relative path %s because it may fall below the root build directory", source))
 	}
 
-	target = filepath.Clean(filepath.Join(b.exec.Config().WorkDir, target))
+	target = filepath.Clean(filepath.Join(b.exec.Config().WorkDir.Temporary, target))
 
 	if strings.HasSuffix(target, "/") {
 		target = filepath.Join(target, rel)
