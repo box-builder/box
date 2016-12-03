@@ -21,9 +21,17 @@ bootstrap-test: bootstrap-image
  
 build:
 	go run main.go build.rb
+ 
+build-ci:
+	CI_BUILD=1 go run main.go --no-tty build.rb
+
+run-test-ci:
+	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -i box-test
 
 run-test:
-	docker run -e "TESTRUN=$(TESTRUN)" -it --privileged --rm -it box-test
+	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -it box-test
+
+test-ci: build-ci run-test-ci
 
 test: build run-test
 
@@ -36,6 +44,7 @@ release-osx: clean all
 	# test directly on mac
 	go test -v ./cli-tests -check.vv
 	go test -v ./builder -check.vv
+	go test -v ./builder/executor/docker -check.vv
 	sh release/release.sh ${VERSION}
 
 docker-test:

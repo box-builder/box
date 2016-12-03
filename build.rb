@@ -18,18 +18,20 @@ skip do
   ]
 
   workdir "/"
+  
+  qq = getenv("CI_BUILD") != "" ? "-qq" : ""
 
-  run "apt-get update"
-  run "apt-get install -y #{PACKAGES.join(" ")}"
+  run "apt-get update #{qq}"
+  run "apt-get install #{qq} #{PACKAGES.join(" ")}"
   env "GOPATH" => "/go"
 
   docker_path = "docker-#{DOCKER_VERSION}.tgz"
-  run "wget https://get.docker.com/builds/Linux/x86_64/#{docker_path}"
+  run "wget -q https://get.docker.com/builds/Linux/x86_64/#{docker_path}"
   run "tar -xpf #{docker_path} --strip-components=1 -C /usr/bin/"
   run "rm #{docker_path}"
   copy "dind", "/dind"
 
-  run "pip install mkdocs mkdocs-bootswatch"
+  run "pip -q install mkdocs mkdocs-bootswatch"
 
   copy ".", "/go/src/github.com/erikh/box"
   run "cd /go/src/github.com/erikh/box && make clean all"
