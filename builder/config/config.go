@@ -7,24 +7,28 @@ import (
 	"github.com/docker/docker/api/types/container"
 )
 
-// CommandState is an abstraction to facilitate Cmd and Entrypoint handling and
-// inheritance. It is split so that the docker configuration can use it as
-// needed to provide temporary build-time instructions vs. image-level
-// instructions. See ToDocker() for code that uses this struct.
-type CommandState struct {
+// StringSliceState is a state tracker for two types of states: image-level and
+// temporary (run commands, etc) commands.
+type StringSliceState struct {
 	Temporary []string
 	Image     []string
+}
+
+// StringState is just like StringArrayState, but for strings.
+type StringState struct {
+	Temporary string
+	Image     string
 }
 
 // Config is a basic configuration of an image at each step. It is kept in sync
 // by commit routines in the executor. Setting properties here will propogate
 // them to various image-manipulating commands when needed.
 type Config struct {
-	Image      string       // Image Identifier, may be different across executors.
-	User       string       // the currently configured user for this image.
-	WorkDir    string       // the current working directory on entering a container
-	Cmd        CommandState // the secondary execution form, it is provided to images if given to docker run, otherwise this is used.
-	Entrypoint CommandState // the primary execution form, the first arguments and the exec() jumping-off point.
+	Image      string           // Image Identifier, may be different across executors.
+	User       StringState      // the currently configured user for this image.
+	WorkDir    StringState      // the current working directory on entering a container
+	Cmd        StringSliceState // the secondary execution form, it is provided to images if given to docker run, otherwise this is used.
+	Entrypoint StringSliceState // the primary execution form, the first arguments and the exec() jumping-off point.
 	Env        []string
 }
 
@@ -32,8 +36,8 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		Env:     []string{},
-		User:    "root",
-		WorkDir: "/",
+		User:    StringState{"root", "root"},
+		WorkDir: StringState{"/", "/"},
 		Image:   "",
 	}
 }
@@ -48,13 +52,18 @@ func (c *Config) TemporaryCommand(entrypoint, cmd []string) {
 // ToDocker outputs a docker configuration suitable for running images.
 func (c *Config) ToDocker(temporary, tty, stdin bool) *container.Config {
 	var cmd, entrypoint []string
+	var user, workdir string
 
 	if temporary {
 		cmd = c.Cmd.Temporary
 		entrypoint = c.Entrypoint.Temporary
+		workdir = c.WorkDir.Temporary
+		user = c.User.Temporary
 	} else {
 		cmd = c.Cmd.Image
 		entrypoint = c.Entrypoint.Image
+		workdir = c.WorkDir.Image
+		user = c.User.Image
 	}
 
 	if len(cmd) == 0 && len(entrypoint) == 0 {
@@ -71,8 +80,8 @@ func (c *Config) ToDocker(temporary, tty, stdin bool) *container.Config {
 		Env:          c.Env,
 		Entrypoint:   entrypoint,
 		Cmd:          cmd,
-		User:         c.User,
-		WorkingDir:   c.WorkDir,
+		User:         user,
+		WorkingDir:   workdir,
 	}
 }
 
@@ -82,8 +91,16 @@ func (c *Config) FromDocker(cont *container.Config) {
 	c.Env = cont.Env
 	c.Entrypoint.Image = cont.Entrypoint
 	c.Cmd.Image = cont.Cmd
-	c.User = cont.User
-	c.WorkDir = cont.WorkingDir
+	c.User.Image = cont.User
+	c.WorkDir.Image = cont.WorkingDir
+
+	if c.User.Image == "" {
+		c.User.Image = "root"
+	}
+
+	if c.WorkDir.Image == "" {
+		c.WorkDir.Image = "/"
+	}
 }
 
 // ToImage returns the config as an image manifest.

@@ -140,19 +140,6 @@ func (b *Builder) Run(script string) (*mruby.MrbValue, error) {
 
 	defer b.exec.Destroy(id)
 
-	// this tweaks the behavior to be a little more consisitent IMO with regards
-	// to how docker handles inheritance. It's a hack and a very non-standard
-	// part of box. This also slightly forces users to consider the users and
-	// paths involved in running their images, which I think is a good thing.
-
-	if b.exec.Config().WorkDir == "" { // if the working dir is empty, set to / -- don't inherit.
-		b.exec.Config().WorkDir = "/"
-	}
-
-	if b.exec.Config().User == "" { // if the user is empty, do not inherit; use root.
-		b.exec.Config().User = "root"
-	}
-
 	if err := b.exec.MakeImage(); err != nil {
 		return nil, err
 	}
