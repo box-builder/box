@@ -13,7 +13,10 @@ import (
 )
 
 func (ds *dockerSuite) TestMakeImage(c *C) {
-	d, err := NewDocker(true, true)
+	d, err := NewDocker(true, ds.tty)
+	c.Assert(err, IsNil)
+
+	_, err = d.Fetch("debian")
 	c.Assert(err, IsNil)
 
 	rc, err := d.client.ImageSave(context.Background(), []string{"debian"})

@@ -10,6 +10,7 @@ import (
 	"github.com/erikh/box/builder/executor"
 	"github.com/erikh/box/builder/executor/docker"
 	"github.com/erikh/box/builder/signal"
+	"github.com/erikh/box/copy"
 	"github.com/erikh/box/log"
 	"github.com/fatih/color"
 	mruby "github.com/mitchellh/go-mruby"
@@ -38,6 +39,7 @@ func NewBuilder(tty bool, omitFuncs []string) (*Builder, error) {
 
 	if !tty {
 		color.NoColor = true
+		copy.NoTTY = true
 	}
 
 	exec, err := NewExecutor("docker", useCache, tty)
