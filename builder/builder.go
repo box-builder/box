@@ -2,6 +2,7 @@ package builder
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -104,6 +105,11 @@ func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
 		cacheKey = base64.StdEncoding.EncodeToString([]byte(cacheKey))
 
 		log.BuildStep(name, strings.Join(strArgs, ", "))
+
+		if os.Getenv("BOX_DEBUG") != "" {
+			content, _ := json.MarshalIndent(b.exec.Config(), "", "  ")
+			fmt.Println(string(content))
+		}
 
 		cached, err := b.exec.CheckCache(cacheKey)
 		if err != nil {
