@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/erikh/box/builder/config"
+	"github.com/erikh/box/copy"
 	bt "github.com/erikh/box/tar"
 )
 
@@ -45,7 +46,7 @@ func writeLayer(imgwriter *tar.Writer, tarFile string, tf *os.File) error {
 		return err
 	}
 
-	if _, err := io.Copy(imgwriter, tf); err != nil {
+	if err := copy.WithProgress(imgwriter, tf, "Writing Layer"); err != nil {
 		return err
 	}
 
@@ -129,27 +130,6 @@ func writeConfig(layers []*Layer, imgwriter *tar.Writer, config *config.Config) 
 
 	imgwriter.Flush()
 	return tarFiles, nil
-}
-
-func doSum(tf *os.File, tw io.Reader) (string, error) {
-	if _, err := io.Copy(tf, tw); err != nil {
-		return "", err
-	}
-
-	sum, err := bt.SumFile(tf.Name())
-	if err != nil {
-		return "", err
-	}
-
-	if err := tf.Sync(); err != nil {
-		return "", err
-	}
-
-	if _, err := tf.Seek(0, 0); err != nil {
-		return "", err
-	}
-
-	return sum, nil
 }
 
 func tmpfile() (*os.File, error) {
@@ -253,13 +233,13 @@ func Unpack(file string) ([]*Layer, string, error) {
 				return nil, dir, err
 			}
 
-			if _, err := io.Copy(out, tr); err != nil {
+			if err := copy.WithProgress(out, tr, fmt.Sprintf("Unpacking Layer ID %s", layerID[:8])); err != nil {
 				out.Close()
 				return nil, dir, err
 			}
 
 			out.Close()
-			sum, err := bt.SumFile(out.Name())
+			sum, err := bt.SumFile(out.Name(), "Layer")
 			if err != nil {
 				return nil, dir, err
 			}
@@ -342,13 +322,25 @@ func Flatten(config *config.Config, id string, size int64, tw io.Reader) (string
 		return "", err
 	}
 
-	defer tf.Close() // second close is fine here
 	defer os.Remove(tf.Name())
 
-	sum, err := doSum(tf, tw)
+	if err := copy.WithProgress(tf, tw, "Downloading Image for Flatten"); err != nil {
+		tf.Close() // second close is fine here
+		return "", err
+	}
+
+	tf.Close()
+
+	sum, err := bt.SumFile(tf.Name(), "Flattened Image")
 	if err != nil {
 		return "", err
 	}
+
+	tf, err = os.Open(tf.Name())
+	if err != nil {
+		return "", err
+	}
+	defer tf.Close() // second close is fine here
 
 	imgwriter := tar.NewWriter(out)
 	defer imgwriter.Close()

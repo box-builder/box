@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/erikh/box/builder/signal"
+	"github.com/erikh/box/copy"
 	"github.com/erikh/box/log"
 	"github.com/erikh/box/tar"
 	mruby "github.com/mitchellh/go-mruby"
@@ -34,7 +35,7 @@ var verbJumpTable = map[string]verbDefinition{
 	"debug":      {debug, mruby.ArgsOpt(1)},
 	"flatten":    {flatten, mruby.ArgsNone()},
 	"tag":        {tag, mruby.ArgsReq(1)},
-	"copy":       {copy, mruby.ArgsReq(2)},
+	"copy":       {doCopy, mruby.ArgsReq(2)},
 	"from":       {from, mruby.ArgsReq(1)},
 	"run":        {run, mruby.ArgsAny()},
 	"user":       {user, mruby.ArgsReq(1)},
@@ -167,7 +168,7 @@ func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 	}
 
 	defer os.Remove(f.Name())
-	if _, err := io.Copy(f, rc); err != nil && err != io.EOF {
+	if err := copy.WithProgress(f, rc, "Downloading image contents to host"); err != nil && err != io.EOF {
 		f.Close()
 		return nil, createException(m, err.Error())
 	}
@@ -340,7 +341,7 @@ func cmd(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 	return nil, nil
 }
 
-func copy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if err := standardCheck(b, args, 2); err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -376,7 +377,7 @@ func copy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 		return nil, createException(m, err.Error())
 	}
 
-	cacheKey, err = tar.SumFile(fn)
+	cacheKey, err = tar.SumFile(fn, "items to copy")
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}

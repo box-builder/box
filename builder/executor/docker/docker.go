@@ -20,6 +20,7 @@ import (
 	"github.com/erikh/box/builder/config"
 	"github.com/erikh/box/builder/executor"
 	"github.com/erikh/box/builder/signal"
+	"github.com/erikh/box/copy"
 	"github.com/erikh/box/image"
 	"github.com/erikh/box/log"
 	"github.com/fatih/color"
@@ -83,7 +84,7 @@ func (d *Docker) MakeImage() error {
 
 	defer os.Remove(tf.Name())
 
-	if _, err := io.Copy(tf, rc); err != nil {
+	if err := copy.WithProgress(tf, rc, "Downloading layers"); err != nil {
 		tf.Close()
 		return err
 	}
@@ -154,7 +155,8 @@ func (d *Docker) MakeImage() error {
 		return err
 	}
 
-	d.config.Image, err = printPull(imgresp.Body)
+	d.config.Image, err = printPull(d.tty, imgresp.Body)
+
 	return err
 }
 
@@ -421,17 +423,15 @@ func (d *Docker) Fetch(name string) (string, error) {
 		}
 
 		if !d.tty {
-			fmt.Printf("+++ Pulling %q...", name)
-			os.Stdout.Sync()
-			_, err := ioutil.ReadAll(reader)
-			if err != nil {
-				return "", err
-			}
+			fmt.Printf("Pulling %q...", name)
+		}
+
+		if _, err := printPull(d.tty, reader); err != nil {
+			return "", err
+		}
+
+		if !d.tty {
 			fmt.Println("done.")
-		} else {
-			if _, err := printPull(reader); err != nil {
-				return "", err
-			}
 		}
 
 		// this will fallthrough to the assignment below
@@ -539,7 +539,7 @@ type pullInfo struct {
 	progress float64
 }
 
-func printPull(reader io.Reader) (string, error) {
+func printPull(tty bool, reader io.Reader) (string, error) {
 	idmap := map[string]pullInfo{}
 	idlist := []string{}
 	var retval string
@@ -585,33 +585,37 @@ func printPull(reader io.Reader) (string, error) {
 			idmap[id] = pullInfo{status, progressCount}
 		}
 
-		for _, id := range idlist {
-			if idmap[id].progress == 0 {
-				fmt.Printf("\r\x1b[K%s %s\n", id, idmap[id].status)
-			} else {
-				fmt.Printf("\r\x1b[K%s %s %3.0f%%\n", id, idmap[id].status, idmap[id].progress)
+		if tty {
+			for _, id := range idlist {
+				if idmap[id].progress == 0 {
+					fmt.Printf("\r\x1b[K%s %s\n", id, idmap[id].status)
+				} else {
+					fmt.Printf("\r\x1b[K%s %s %3.0f%%\n", id, idmap[id].status, idmap[id].progress)
+				}
 			}
-		}
 
-		if !idok && status != "" {
-			if pok { // image load only
-				fmt.Printf("\r\x1b[K%s %3.0f%%", status, progressCount)
+			if !idok && status != "" {
+				if pok { // image load only
+					fmt.Printf("\r\x1b[K%s %3.0f%%", status, progressCount)
+				} else {
+					fmt.Printf("\r\x1b[K%s\n", status)
+					fmt.Printf("\x1b[%dA", len(idmap)+1)
+				}
 			} else {
-				fmt.Printf("\r\x1b[K%s\n", status)
-				fmt.Printf("\x1b[%dA", len(idmap)+1)
-			}
-		} else {
-			if len(idmap) != 0 {
-				fmt.Printf("\x1b[%dA", len(idmap))
+				if len(idmap) != 0 {
+					fmt.Printf("\x1b[%dA", len(idmap))
+				}
 			}
 		}
 	}
 
-	for i := 0; i < len(idmap)+1; i++ {
-		fmt.Println()
-	}
+	if tty {
+		for i := 0; i < len(idmap)+1; i++ {
+			fmt.Println()
+		}
 
-	fmt.Println("Loaded image", retval)
+		fmt.Println("Loaded image", retval)
+	}
 
 	return retval, nil
 }

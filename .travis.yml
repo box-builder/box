@@ -1,6 +1,12 @@
 ---
+language: go
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y flex bison
 sudo: required
 services:
   - docker
 script:
-  - "make bootstrap-test"
+  - "make all test-ci"
+go:
+  - "1.7.4"

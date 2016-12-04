@@ -33,7 +33,7 @@ func CacheHit(imageID string) {
 // CopyPath logs a copied path
 func CopyPath(file1, file2 string) {
 	printNotice()
-	color.New(color.FgMagenta).Printf("COPY: ")
+	color.New(color.FgRed).Printf("COPY: ")
 	color.Unset()
 	fmt.Printf("%q -> %q\n", file1, file2)
 }

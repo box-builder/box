@@ -4,13 +4,14 @@ import (
 	"archive/tar"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/erikh/box/builder/signal"
-	"github.com/erikh/box/log"
+	"github.com/erikh/box/copy"
 )
 
 // Archive takes a source and target directory and returns a filename and/or
@@ -38,8 +39,6 @@ func Archive(rel, target string) (string, error) {
 				return err
 			}
 
-			log.CopyPath(path, filepath.Join(target, path))
-
 			header, err := tar.FileInfoHeader(fi, filepath.Join(target, path))
 			if err != nil {
 				return err
@@ -58,7 +57,7 @@ func Archive(rel, target string) (string, error) {
 			}
 
 			if header.Typeflag == tar.TypeReg {
-				_, err = io.Copy(tw, p)
+				err = copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", path))
 				if err != nil && err != io.EOF {
 					p.Close()
 					return err
@@ -88,7 +87,7 @@ func Archive(rel, target string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		_, err = io.Copy(tw, p)
+		err = copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", rel))
 		if err != nil && err != io.EOF {
 			p.Close()
 			return "", err
@@ -103,14 +102,14 @@ func Archive(rel, target string) (string, error) {
 }
 
 // SumFile reads a file an returns a hex-encoded sha512/256.
-func SumFile(fn string) (string, error) {
+func SumFile(fn, fileType string) (string, error) {
 	f, err := os.Open(fn)
 	if err != nil {
 		return "", err
 	}
 
 	hash := sha256.New()
-	_, err = io.Copy(hash, f)
+	err = copy.WithProgress(hash, f, fmt.Sprintf("Summing %s", fileType))
 	if err != nil && err != io.EOF {
 		f.Close()
 		return "", err
