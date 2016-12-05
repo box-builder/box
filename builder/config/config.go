@@ -36,7 +36,7 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		Env:     []string{},
-		User:    StringState{"root", "root"},
+		User:    StringState{"", "root"},
 		WorkDir: StringState{"", "/"},
 		Image:   "",
 	}
