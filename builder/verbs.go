@@ -125,7 +125,6 @@ func workdir(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 	}
 
 	b.exec.Config().WorkDir.Image = args[0].String()
-	b.exec.Config().WorkDir.Temporary = args[0].String()
 
 	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
@@ -299,7 +298,7 @@ func inside(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
 	}
 
-	b.exec.Config().WorkDir.Temporary = b.exec.Config().WorkDir.Image
+	b.exec.Config().WorkDir.Temporary = ""
 
 	return val, nil
 }
@@ -364,18 +363,28 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		return nil, createException(m, fmt.Sprintf("Cannot use relative path %s because it may fall below the root build directory", source))
 	}
 
-	target = filepath.Clean(filepath.Join(b.exec.Config().WorkDir.Temporary, target))
+	workdir := b.exec.Config().WorkDir
+	var targetWd string
+
+	if workdir.Temporary == "" {
+		targetWd = workdir.Image
+	} else {
+		targetWd = workdir.Temporary
+	}
+
+	target = filepath.Clean(filepath.Join(targetWd, target))
 
 	if strings.HasSuffix(target, "/") {
 		target = filepath.Join(target, rel)
 	}
 
 	fn, err := tar.Archive(rel, target)
-	signal.SetSignal(func() { os.Remove(fn) })
-	defer os.Remove(fn)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
+
+	signal.SetSignal(func() { os.Remove(fn) })
+	defer os.Remove(fn)
 
 	cacheKey, err = tar.SumFile(fn, "items to copy")
 	if err != nil {

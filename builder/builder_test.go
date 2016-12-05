@@ -71,6 +71,18 @@ func (bs *builderSuite) TestImport(c *C) {
 	b.Close()
 }
 
+func (bs *builderSuite) TestCopyToRelativePathWithWorkdir(c *C) {
+	b, err := runBuilder(`
+    from "debian"
+    run "mkdir /test"
+    workdir "/test"
+    copy ".", "builder"
+    run "test -f /test/builder/builder.go"
+  `)
+	c.Assert(err, IsNil)
+	b.Close()
+}
+
 func (bs *builderSuite) TestCopy(c *C) {
 	testpath := filepath.Join(dockerfilePath, "test1.rb")
 
