@@ -22,7 +22,7 @@ skip do
   qq = getenv("CI_BUILD") != "" ? "-qq" : ""
 
   run "apt-get update #{qq}"
-  run "apt-get install #{qq} #{PACKAGES.join(" ")}"
+  run "apt-get install -y #{qq} #{PACKAGES.join(" ")}"
   env "GOPATH" => "/go"
 
   docker_path = "docker-#{DOCKER_VERSION}.tgz"
