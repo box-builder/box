@@ -469,6 +469,8 @@ func (d *Docker) RunHook(id string) (string, error) {
 	stopChan := make(chan struct{})
 	errChan := make(chan error, 1)
 
+	defer close(errChan)
+
 	go func() {
 		err, ok := <-errChan
 		if ok {
