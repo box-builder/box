@@ -1,4 +1,4 @@
-PACKAGES := "./cli-tests ./builder ./builder/executor/docker ./image"
+PACKAGES := "./cli-tests ./builder ./builder/executor/docker ./image ./tar"
 
 all:
 	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell pwd)/mruby_config.rb make
@@ -42,9 +42,7 @@ release: clean all test
 
 release-osx: clean all
 	# test directly on mac
-	go test -v ./cli-tests -check.vv
-	go test -v ./builder -check.vv
-	go test -v ./builder/executor/docker -check.vv
+	for i in $(PACKAGES); do go test -v $$i -check.vv; done
 	sh release/release.sh ${VERSION}
 
 docker-test:
