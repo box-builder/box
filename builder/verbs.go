@@ -139,7 +139,6 @@ func user(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 	}
 
 	b.exec.Config().User.Image = args[0].String()
-	b.exec.Config().User.Temporary = args[0].String()
 
 	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
@@ -273,7 +272,7 @@ func withUser(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb,
 		return nil, createException(m, fmt.Sprintf("Could not yield: %v", err))
 	}
 
-	b.exec.Config().User.Temporary = b.exec.Config().User.Image
+	b.exec.Config().User.Temporary = ""
 
 	return val, nil
 }
@@ -345,15 +344,14 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		return nil, createException(m, err.Error())
 	}
 
-	source := args[0].String()
-	target := args[1].String()
+	source := filepath.Clean(args[0].String())
+	target := filepath.Clean(args[1].String())
 
 	wd, err := os.Getwd()
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	// FIXME do not allow traversing above the wd
 	rel, err := filepath.Rel(wd, filepath.Join(wd, source))
 	if err != nil {
 		return nil, createException(m, err.Error())
@@ -372,10 +370,15 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		targetWd = workdir.Temporary
 	}
 
-	target = filepath.Clean(filepath.Join(targetWd, target))
+	fi, err := os.Lstat(source)
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
 
-	if strings.HasSuffix(target, "/") {
-		target = filepath.Join(target, rel)
+	if strings.HasSuffix(target, "/") || fi.IsDir() {
+		target = filepath.Clean(filepath.Join(targetWd, target, rel))
+	} else {
+		target = filepath.Clean(filepath.Join(targetWd, target))
 	}
 
 	fn, err := tar.Archive(rel, target)

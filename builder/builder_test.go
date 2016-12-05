@@ -81,6 +81,16 @@ func (bs *builderSuite) TestCopyToRelativePathWithWorkdir(c *C) {
   `)
 	c.Assert(err, IsNil)
 	b.Close()
+
+	b, err = runBuilder(`
+    from "debian"
+    run "mkdir /test"
+    workdir "/test"
+    copy "config", "."
+    run "test -f /test/config/config.go"
+  `)
+	c.Assert(err, IsNil)
+	b.Close()
 }
 
 func (bs *builderSuite) TestCopy(c *C) {
@@ -90,7 +100,6 @@ func (bs *builderSuite) TestCopy(c *C) {
     from "debian"
     copy "%s", "/test1.rb"
   `, testpath))
-
 	c.Assert(err, IsNil)
 
 	result := readContainerFile(c, b, "/test1.rb")
