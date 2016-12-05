@@ -37,7 +37,7 @@ func NewConfig() *Config {
 	return &Config{
 		Env:     []string{},
 		User:    StringState{"root", "root"},
-		WorkDir: StringState{"/", "/"},
+		WorkDir: StringState{"", "/"},
 		Image:   "",
 	}
 }
