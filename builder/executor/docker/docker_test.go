@@ -8,8 +8,8 @@ import (
 	"strings"
 	. "testing"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/term"
+	"github.com/docker/engine-api/types"
 	bt "github.com/erikh/box/tar"
 
 	. "gopkg.in/check.v1"
