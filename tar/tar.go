@@ -39,24 +39,42 @@ func Archive(rel, target string) (string, error) {
 				return err
 			}
 
-			header, err := tar.FileInfoHeader(fi, filepath.Join(target, path))
+			header, err := tar.FileInfoHeader(fi, path)
 			if err != nil {
 				return err
 			}
 
-			header.Linkname = filepath.Join(target, path)
-			header.Name = filepath.Join(target, path)
+			if !(header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeSymlink) {
+				return nil
+			}
 
+			realpath, err := filepath.EvalSymlinks(path)
+			if err != nil {
+				return err
+			}
+
+			relpath, err := filepath.Rel(rel, path)
+			if err != nil {
+				return err
+			}
+
+			realpath, err = filepath.Rel(rel, realpath)
+			if err != nil {
+				return err
+			}
+
+			header.Linkname = filepath.Join(target, relpath)
+			header.Name = filepath.Join(target, realpath)
 			if err := tw.WriteHeader(header); err != nil {
 				return err
 			}
 
-			p, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-
 			if header.Typeflag == tar.TypeReg {
+				p, err := os.Open(path)
+				if err != nil {
+					return err
+				}
+
 				err = copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", path))
 				if err != nil && err != io.EOF {
 					p.Close()
@@ -65,6 +83,7 @@ func Archive(rel, target string) (string, error) {
 
 				p.Close()
 			}
+
 			return nil
 		})
 		if err != nil {

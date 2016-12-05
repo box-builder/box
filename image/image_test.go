@@ -7,8 +7,8 @@ import (
 	"os"
 	. "testing"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
+	"github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/builder/config"
 
 	. "gopkg.in/check.v1"

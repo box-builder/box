@@ -30,6 +30,7 @@ func SetSignal(hook func()) {
 
 	if currentChannel != nil {
 		signal.Stop(currentChannel)
+		close(currentChannel)
 	}
 
 	currentChannel = intSig
