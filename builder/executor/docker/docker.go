@@ -387,7 +387,18 @@ func (d *Docker) Flatten(id string, size int64, tw io.Reader) error {
 	defer out.Close()
 	defer os.Remove(out.Name())
 
-	resp, err := d.client.ImageLoad(context.Background(), out, true)
+	r, w := io.Pipe()
+
+	go func() {
+		err := copy.WithProgress(w, out, "Loading image into docker")
+		if err != nil {
+			w.CloseWithError(err)
+		} else {
+			w.Close()
+		}
+	}()
+
+	resp, err := d.client.ImageLoad(context.Background(), r, true)
 	if err != nil {
 		return err
 	}
