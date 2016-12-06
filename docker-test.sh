@@ -9,7 +9,7 @@ sleep 5
 
 for i in $*
 do
-  go test -timeout 30m -v "$i" -check.v -check.f "${TESTRUN}"
+  go test -cover -timeout 30m -v "$i" -check.v -check.f "${TESTRUN}"
 done
 
 status=$?
