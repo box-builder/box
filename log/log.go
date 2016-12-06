@@ -61,3 +61,17 @@ func Finish(response string) {
 	color.Unset()
 	fmt.Println(response)
 }
+
+// BeginOutput demarcates an output section
+func BeginOutput() {
+	color.New(color.FgRed, color.Bold, color.BgWhite).Printf("------ BEGIN OUTPUT ------")
+	color.Unset()
+	fmt.Println()
+}
+
+// EndOutput ends an output section
+func EndOutput() {
+	color.New(color.FgRed, color.Bold, color.BgWhite).Printf("------- END OUTPUT -------")
+	color.Unset()
+	fmt.Println()
+}

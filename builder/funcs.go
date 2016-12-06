@@ -38,7 +38,7 @@ var funcJumpTable = map[string]funcDefinition{
 // importFunc implements the import function.
 //
 // import loads a new ruby file at the point of the function call. it is
-// prinicipally used to extend and consolidate reusable code for multiple
+// principally used to extend and consolidate reusable code for multiple
 // styles of build.
 func importFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	args := m.GetArgs()

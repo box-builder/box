@@ -14,6 +14,88 @@ import (
 	"github.com/erikh/box/copy"
 )
 
+func archiveSingle(rel, target string, tw *tar.Writer) error {
+	fi, err := os.Lstat(rel)
+	if err != nil {
+		return err
+	}
+
+	header, err := tar.FileInfoHeader(fi, target)
+	if err != nil {
+		return err
+	}
+
+	header.Name = target
+	header.Linkname = target
+
+	if err := tw.WriteHeader(header); err != nil {
+		return err
+	}
+
+	p, err := os.Open(rel)
+	if err != nil {
+		return err
+	}
+
+	defer p.Close()
+	return copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", rel))
+}
+
+func archiveWalk(rel, target string, tw *tar.Writer) filepath.WalkFunc {
+	return func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		header, err := tar.FileInfoHeader(fi, path)
+		if err != nil {
+			return err
+		}
+
+		if !(header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeSymlink) {
+			return nil
+		}
+
+		realpath, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			return err
+		}
+
+		relpath, err := filepath.Rel(rel, path)
+		if err != nil {
+			return err
+		}
+
+		realpath, err = filepath.Rel(rel, realpath)
+		if err != nil {
+			return err
+		}
+
+		header.Linkname = filepath.Join(target, relpath)
+		header.Name = filepath.Join(target, realpath)
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if header.Typeflag == tar.TypeReg {
+			p, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+
+			err = copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", path))
+			if err != nil && err != io.EOF {
+				p.Close()
+				return err
+			}
+
+			p.Close()
+		}
+
+		return nil
+	}
+}
+
 // Archive takes a source and target directory and returns a filename and/or
 // error. The source will be archived relative to the target. The file will
 // live in the user's os.TempDir().
@@ -34,84 +116,13 @@ func Archive(rel, target string) (string, error) {
 	tw := tar.NewWriter(f)
 
 	if fi.IsDir() {
-		err := filepath.Walk(rel, func(path string, fi os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			header, err := tar.FileInfoHeader(fi, path)
-			if err != nil {
-				return err
-			}
-
-			if !(header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeSymlink) {
-				return nil
-			}
-
-			realpath, err := filepath.EvalSymlinks(path)
-			if err != nil {
-				return err
-			}
-
-			relpath, err := filepath.Rel(rel, path)
-			if err != nil {
-				return err
-			}
-
-			realpath, err = filepath.Rel(rel, realpath)
-			if err != nil {
-				return err
-			}
-
-			header.Linkname = filepath.Join(target, relpath)
-			header.Name = filepath.Join(target, realpath)
-			if err := tw.WriteHeader(header); err != nil {
-				return err
-			}
-
-			if header.Typeflag == tar.TypeReg {
-				p, err := os.Open(path)
-				if err != nil {
-					return err
-				}
-
-				err = copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", path))
-				if err != nil && err != io.EOF {
-					p.Close()
-					return err
-				}
-
-				p.Close()
-			}
-
-			return nil
-		})
-		if err != nil {
+		if err := filepath.Walk(rel, archiveWalk(rel, target, tw)); err != nil {
 			return "", err
 		}
-	} else if !fi.IsDir() {
-		header, err := tar.FileInfoHeader(fi, target)
-		if err != nil {
+	} else {
+		if err := archiveSingle(rel, target, tw); err != nil {
 			return "", err
 		}
-
-		header.Name = target
-		header.Linkname = target
-
-		if err := tw.WriteHeader(header); err != nil {
-			return "", err
-		}
-
-		p, err := os.Open(rel)
-		if err != nil {
-			return "", err
-		}
-		err = copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", rel))
-		if err != nil && err != io.EOF {
-			p.Close()
-			return "", err
-		}
-		p.Close()
 	}
 
 	tw.Close()

@@ -24,9 +24,126 @@ type Layer struct {
 	layerFilename string
 }
 
+type imageInfo struct {
+	layerOrder []string
+	layerMap   map[string]*Layer
+}
+
 // LayerID returns the layer ID associated with this layer.
 func (l *Layer) LayerID() string {
 	return fmt.Sprintf("sha256:%s", l.layer)
+}
+
+func extractLayers(img *imageInfo, dir, file string) error {
+	f, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	tr := tar.NewReader(f)
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		if strings.HasSuffix(header.Name, ".tar") {
+			// this renames the file to be at the root with the sha as the filename itself.
+			// this just makes traversal a lot easier and makes less of a mess out of the filesystem.
+			layerID := filepath.Base(filepath.Dir(header.Name))
+			if len(layerID) != 64 {
+				return fmt.Errorf("invalid layerID: %v", layerID)
+			}
+
+			if strings.ContainsAny(layerID, "/.") {
+				return fmt.Errorf("Layer ID contains invalid characters: %v", layerID)
+			}
+
+			out, err := os.Create(filepath.Join(dir, layerID))
+			if err != nil {
+				return err
+			}
+
+			if err := copy.WithProgress(out, tr, fmt.Sprintf("Unpacking Layer ID %s", layerID[:8])); err != nil {
+				out.Close()
+				return err
+			}
+
+			out.Close()
+			sum, err := bt.SumFile(out.Name(), "Layer")
+			if err != nil {
+				return err
+			}
+
+			l, ok := img.layerMap[layerID]
+			if !ok {
+				return errors.New("layer not found")
+			}
+
+			l.layer = sum
+			l.filename = out.Name()
+		}
+	}
+
+	return nil
+}
+
+func extractManifest(file string) (*imageInfo, error) {
+	img := &imageInfo{
+		layerOrder: []string{},
+		layerMap:   map[string]*Layer{},
+	}
+
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+
+	tr := tar.NewReader(f)
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+
+		if header.Name == "manifest.json" {
+			manifest := []map[string]interface{}{}
+			content, err := ioutil.ReadAll(tr)
+			if err != nil {
+				return nil, err
+			}
+
+			if err := json.Unmarshal(content, &manifest); err != nil {
+				return nil, err
+			}
+
+			tmp, ok := manifest[0]["Layers"].([]interface{}) // FIXME how to handle multiple images?
+			if !ok {
+				return nil, fmt.Errorf("Manifest is broken: %#v", manifest)
+			}
+
+			for _, layer := range tmp {
+				layerID := strings.TrimSuffix(filepath.Base(filepath.Dir(layer.(string))), "/")
+				img.layerOrder = append(img.layerOrder, layerID)
+				img.layerMap[layerID] = &Layer{
+					layerFilename: layer.(string),
+				}
+			}
+
+			break
+		}
+	}
+
+	return img, nil
 }
 
 func writeLayer(imgwriter *tar.Writer, tarFile string, tf *os.File) error {
@@ -144,121 +261,27 @@ func tmpfile() (*os.File, error) {
 // files kept so it can be removed later. The dir will always be returned if
 // possible; even when a later operation returns an error.
 func Unpack(file string) ([]*Layer, string, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, "", err
-	}
-
-	defer f.Close()
-
-	tr := tar.NewReader(f)
-
 	dir, err := ioutil.TempDir("", "box-image-tmp")
 	if err != nil {
 		return nil, dir, err
 	}
 
-	layerOrder := []string{}
-	layerMap := map[string]*Layer{} // layer id -> Layer obj
-	layers := []*Layer{}
-
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, dir, err
-		}
-
-		if header.Name == "manifest.json" {
-			manifest := []map[string]interface{}{}
-			content, err := ioutil.ReadAll(tr)
-			if err != nil {
-				return nil, dir, err
-			}
-
-			if err := json.Unmarshal(content, &manifest); err != nil {
-				return nil, dir, err
-			}
-
-			tmp, ok := manifest[0]["Layers"].([]interface{}) // FIXME how to handle multiple images?
-			if !ok {
-				return nil, dir, fmt.Errorf("Manifest is broken: %#v", manifest)
-			}
-
-			for _, layer := range tmp {
-				layerID := strings.TrimSuffix(filepath.Base(filepath.Dir(layer.(string))), "/")
-				layerOrder = append(layerOrder, layerID)
-				layerMap[layerID] = &Layer{
-					layerFilename: layer.(string),
-				}
-			}
-
-			break
-		}
-	}
-
-	f.Close()
-
-	f, err = os.Open(f.Name())
+	img, err := extractManifest(file)
 	if err != nil {
 		return nil, dir, err
 	}
-	defer f.Close()
 
-	tr = tar.NewReader(f)
-
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, dir, err
-		}
-
-		if strings.HasSuffix(header.Name, ".tar") {
-			// this renames the file to be at the root with the sha as the filename itself.
-			// this just makes traversal a lot easier and makes less of a mess out of the filesystem.
-			layerID := filepath.Base(filepath.Dir(header.Name))
-			if len(layerID) != 64 {
-				return nil, dir, fmt.Errorf("invalid layerID: %v", layerID)
-			}
-
-			if strings.ContainsAny(layerID, "/.") {
-				return nil, dir, fmt.Errorf("Layer ID contains invalid characters: %v", layerID)
-			}
-
-			out, err := os.Create(filepath.Join(dir, layerID))
-			if err != nil {
-				return nil, dir, err
-			}
-
-			if err := copy.WithProgress(out, tr, fmt.Sprintf("Unpacking Layer ID %s", layerID[:8])); err != nil {
-				out.Close()
-				return nil, dir, err
-			}
-
-			out.Close()
-			sum, err := bt.SumFile(out.Name(), "Layer")
-			if err != nil {
-				return nil, dir, err
-			}
-
-			l, ok := layerMap[layerID]
-			if !ok {
-				return nil, dir, errors.New("layer not found")
-			}
-
-			l.layer = sum
-			l.filename = out.Name()
-		}
+	if err := extractLayers(img, dir, file); err != nil {
+		return nil, dir, err
 	}
 
-	for _, layerID := range layerOrder {
-		if layer, ok := layerMap[layerID]; ok {
+	layers := []*Layer{}
+
+	for _, layerID := range img.layerOrder {
+		if layer, ok := img.layerMap[layerID]; ok {
 			layers = append(layers, layer)
 		} else {
-			return nil, dir, fmt.Errorf("Layer ID %v not found in mapping: %v", layerID, layerMap)
+			return nil, dir, fmt.Errorf("Layer ID %v not found in mapping: %v", layerID, img.layerMap)
 		}
 	}
 

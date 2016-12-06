@@ -2,19 +2,14 @@ package docker
 
 import (
 	"archive/tar"
-	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/docker/docker/pkg/term"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/builder/config"
@@ -23,7 +18,6 @@ import (
 	"github.com/erikh/box/copy"
 	"github.com/erikh/box/image"
 	"github.com/erikh/box/log"
-	"github.com/fatih/color"
 )
 
 // Docker implements an executor that talks to docker to achieve its goals.
@@ -59,107 +53,6 @@ func NewDocker(useCache, tty bool) (*Docker, error) {
 	}, nil
 }
 
-// MakeImage makes the final image, skipping any layers as necessary. The
-// layers must be pre-recorded within the executor. Note that if you have no
-// layers to skip, this operation will need to do nothing, so it will do
-// nothing.
-//
-// It returns an error condition, if any.
-func (d *Docker) MakeImage() error {
-	// this is prinicipally an optimization so we can determine later if we
-	// need to reconstruct the image.
-	if len(d.skipLayers) == 0 {
-		return nil
-	}
-
-	rc, err := d.client.ImageSave(context.Background(), []string{d.ImageID()})
-	if err != nil {
-		return nil
-	}
-
-	tf, err := ioutil.TempFile("", "box-downloaded-image")
-	if err != nil {
-		return err
-	}
-
-	defer os.Remove(tf.Name())
-
-	if err := copy.WithProgress(tf, rc, "Downloading layers"); err != nil {
-		tf.Close()
-		return err
-	}
-
-	tf.Close()
-
-	layers, dir, err := image.Unpack(tf.Name())
-
-	if err := os.Remove(tf.Name()); err != nil {
-		return err
-	}
-
-	defer func() {
-		if dir != "" {
-			os.RemoveAll(dir)
-		}
-	}()
-
-	if err != nil {
-		return err
-	}
-
-	if len(layers) < len(d.layers) {
-		return fmt.Errorf("error: image mismatch; layers recorded are more than layers in image: %d - %d", len(layers), len(d.layers))
-	}
-
-	commitLayers := []*image.Layer{}
-
-	for i := 0; i < len(layers); i++ {
-		if i >= len(d.layers) {
-			break
-		}
-
-		commit := true
-
-		for layers[i].LayerID() != d.layers[i] {
-			if i == 0 {
-				layers = layers[1:]
-			} else {
-				layers = append(layers[:i-1], layers[i:]...)
-			}
-
-			if len(layers) < i || len(d.layers) < i {
-				commit = false
-				break
-			}
-		}
-
-		if commit {
-			commitLayers = append(commitLayers, layers[i])
-		}
-	}
-
-	fn, err := image.Make(d.Config(), commitLayers)
-	if err != nil {
-		return err
-	}
-
-	f, err := os.Open(fn)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	defer os.Remove(f.Name())
-
-	imgresp, err := d.client.ImageLoad(context.Background(), f, false)
-	if err != nil {
-		return err
-	}
-
-	d.config.Image, err = printPull(d.tty, imgresp.Body)
-
-	return err
-}
-
 // addImage adds layers to the layer list from a provided image, in order of
 // appearance. Any existing layers are skipped over, removing them from the list.
 func (d *Docker) addImage(image string) error {
@@ -178,7 +71,7 @@ func (d *Docker) addImage(image string) error {
 				// BETA QUALITY YO
 				d.layers = append(d.layers, layer)
 			} else {
-				// this is prinicipally an optimization so we can determine later if we
+				// this is principally an optimization so we can determine later if we
 				// need to reconstruct the image.
 				d.skipLayers = append(d.skipLayers, layer)
 			}
@@ -456,205 +349,4 @@ func (d *Docker) Fetch(name string) (string, error) {
 	d.config.Image = inspect.ID
 	d.layers = inspect.RootFS.Layers
 	return inspect.ID, nil
-}
-
-// RunHook is the run hook for docker agents.
-func (d *Docker) RunHook(id string) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	signal.SetSignal(func() {
-		cancel()
-		d.Destroy(id)
-	})
-
-	stopChan := make(chan struct{})
-	errChan := make(chan error, 1)
-
-	defer close(errChan)
-
-	go func() {
-		err, ok := <-errChan
-		if ok {
-			fmt.Printf("\n\n+++ Run Error: %#v\n", err)
-			cancel()
-			d.Destroy(id)
-		}
-	}()
-
-	defer signal.SetSignal(nil)
-
-	cearesp, err := d.client.ContainerAttach(ctx, id, types.ContainerAttachOptions{Stream: true, Stdin: d.stdin, Stdout: true, Stderr: true})
-	if err != nil {
-		return "", fmt.Errorf("Could not attach to container: %v", err)
-	}
-
-	if d.stdin {
-		state, err := term.SetRawTerminal(0)
-		if err != nil {
-			return "", fmt.Errorf("Could not attach terminal to container: %v", err)
-		}
-
-		defer term.RestoreTerminal(0, state)
-
-		go doCopy(cearesp.Conn, os.Stdin, errChan, stopChan)
-	}
-
-	defer cearesp.Close()
-
-	err = d.client.ContainerStart(ctx, id, types.ContainerStartOptions{})
-	if err != nil {
-		return "", fmt.Errorf("Could not start container: %v", err)
-	}
-
-	if !d.stdin {
-		color.New(color.FgRed, color.Bold, color.BgWhite).Printf("------ BEGIN OUTPUT ------")
-		color.Unset()
-		fmt.Println()
-	}
-
-	if !d.tty {
-		go func() {
-			// docker mux's the streams, and requires this stdcopy library to unpack them.
-			_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, cearesp.Reader)
-			if err != nil && err != io.EOF {
-				select {
-				case <-stopChan:
-				default:
-					errChan <- err
-				}
-			}
-		}()
-	} else if d.tty {
-		go doCopy(os.Stdout, cearesp.Reader, errChan, stopChan)
-	}
-
-	defer close(stopChan)
-
-	stat, err := d.client.ContainerWait(ctx, id)
-	if err != nil {
-		return "", err
-	}
-
-	if !d.stdin {
-		color.New(color.FgRed, color.Bold, color.BgWhite).Printf("------- END OUTPUT -------")
-		color.Unset()
-		fmt.Println()
-	}
-
-	if stat != 0 {
-		return "", fmt.Errorf("Command exited with status %d for container %q", stat, id)
-	}
-
-	return "", nil
-}
-
-type pullInfo struct {
-	status   string
-	progress float64
-}
-
-func printPull(tty bool, reader io.Reader) (string, error) {
-	idmap := map[string]pullInfo{}
-	idlist := []string{}
-	var retval string
-
-	buf := bufio.NewReader(reader)
-	for retval == "" {
-		line, err := buf.ReadBytes('\n')
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return "", err
-		}
-
-		var unpacked map[string]interface{}
-		if err := json.Unmarshal(line, &unpacked); err != nil {
-			return "", err
-		}
-
-		if stream, ok := unpacked["stream"].(string); ok {
-			// FIXME this is absolutely terrible
-			if strings.HasPrefix(stream, "Loaded image ID:") {
-				retval = strings.TrimSpace(strings.TrimPrefix(stream, "Loaded image ID:"))
-			}
-		}
-
-		progressCount := float64(0)
-		progress, pok := unpacked["progressDetail"].(map[string]interface{})
-		if pok {
-			current, cok := progress["current"]
-			total, tok := progress["total"]
-			if cok && tok {
-				progressCount = (current.(float64) / total.(float64)) * 100
-			}
-		}
-
-		status, _ := unpacked["status"].(string)
-		id, idok := unpacked["id"].(string)
-		if idok {
-			if _, ok := idmap[id]; !ok {
-				idlist = append(idlist, id)
-			}
-
-			idmap[id] = pullInfo{status, progressCount}
-		}
-
-		if tty {
-			for _, id := range idlist {
-				if idmap[id].progress == 0 {
-					fmt.Printf("\r\x1b[K%s %s\n", id, idmap[id].status)
-				} else {
-					fmt.Printf("\r\x1b[K%s %s %3.0f%%\n", id, idmap[id].status, idmap[id].progress)
-				}
-			}
-
-			if !idok && status != "" {
-				if pok { // image load only
-					fmt.Printf("\r\x1b[K%s %3.0f%%", status, progressCount)
-				} else {
-					fmt.Printf("\r\x1b[K%s\n", status)
-					fmt.Printf("\x1b[%dA", len(idmap)+1)
-				}
-			} else {
-				if len(idmap) != 0 {
-					fmt.Printf("\x1b[%dA", len(idmap))
-				}
-			}
-		}
-	}
-
-	if tty {
-		for i := 0; i < len(idmap)+1; i++ {
-			fmt.Println()
-		}
-
-		fmt.Println("Loaded image", retval)
-	}
-
-	return retval, nil
-}
-
-func doCopy(wtr io.Writer, rdr io.Reader, errChan chan error, stopChan chan struct{}) {
-	// repeat copy until error is returned. if error is not io.EOF, forward
-	// to channel. Return on any error.
-	for {
-		select {
-		case <-stopChan:
-			return
-		default:
-		}
-
-		if _, err := io.Copy(wtr, rdr); err == nil {
-			continue
-		} else if _, ok := err.(*net.OpError); ok {
-			continue
-		} else if err != io.EOF {
-			select {
-			case <-stopChan:
-			case errChan <- err:
-			default:
-			}
-		}
-
-		return
-	}
 }

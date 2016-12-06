@@ -339,9 +339,9 @@ func cmd(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 	return nil, nil
 }
 
-func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, error) {
 	if err := standardCheck(b, args, 2); err != nil {
-		return nil, createException(m, err.Error())
+		return "", "", err
 	}
 
 	source := filepath.Clean(args[0].String())
@@ -349,16 +349,16 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 
 	wd, err := os.Getwd()
 	if err != nil {
-		return nil, createException(m, err.Error())
+		return "", "", err
 	}
 
 	rel, err := filepath.Rel(wd, filepath.Join(wd, source))
 	if err != nil {
-		return nil, createException(m, err.Error())
+		return "", "", err
 	}
 
 	if strings.HasPrefix(rel, "..") {
-		return nil, createException(m, fmt.Sprintf("Cannot use relative path %s because it may fall below the root build directory", source))
+		return "", "", fmt.Errorf("cannot use relative path %s because it may fall below the root build directory", source)
 	}
 
 	workdir := b.exec.Config().WorkDir
@@ -372,13 +372,22 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 
 	fi, err := os.Lstat(source)
 	if err != nil {
-		return nil, createException(m, err.Error())
+		return "", "", err
 	}
 
 	if strings.HasSuffix(target, "/") || fi.IsDir() {
 		target = filepath.Clean(filepath.Join(targetWd, target, rel))
 	} else {
 		target = filepath.Clean(filepath.Join(targetWd, target))
+	}
+
+	return rel, target, nil
+}
+
+func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	rel, target, err := checkCopyArgs(b, args)
+	if err != nil {
+		return nil, createException(m, err.Error())
 	}
 
 	fn, err := tar.Archive(rel, target)
