@@ -84,7 +84,7 @@ func (d *Docker) downloadImage() (string, error) {
 //
 // It returns an error condition, if any.
 func (d *Docker) MakeImage() error {
-	// this is prinicipally an optimization so we can determine later if we
+	// this is principally an optimization so we can determine later if we
 	// need to reconstruct the image.
 	if len(d.skipLayers) == 0 {
 		return nil
