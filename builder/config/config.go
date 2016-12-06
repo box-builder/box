@@ -21,7 +21,7 @@ type StringState struct {
 }
 
 // Config is a basic configuration of an image at each step. It is kept in sync
-// by commit routines in the executor. Setting properties here will propogate
+// by commit routines in the executor. Setting properties here will propagate
 // them to various image-manipulating commands when needed.
 type Config struct {
 	Image      string           // Image Identifier, may be different across executors.

@@ -34,7 +34,7 @@ skip do
   run "pip -q install mkdocs mkdocs-bootswatch"
 
   copy ".", "/go/src/github.com/erikh/box"
-  run "cd /go/src/github.com/erikh/box && make clean all"
+  run "cd /go/src/github.com/erikh/box && make clean install"
 
   workdir "/go/src/github.com/erikh/box"
   set_exec entrypoint: ["/dind"], cmd: ["make", "docker-test"]

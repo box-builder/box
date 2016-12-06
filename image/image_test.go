@@ -75,12 +75,14 @@ func (is *imageSuite) TestMake(c *C) {
 	defer os.Remove(fn)
 
 	layers, dir, err := Unpack(fn)
+	c.Assert(err, IsNil)
 	defer os.RemoveAll(dir)
 
 	fn2 := is.download(c, "alpine")
 	defer os.Remove(fn2)
 
 	layers2, dir2, err := Unpack(fn2)
+	c.Assert(err, IsNil)
 	defer os.RemoveAll(dir2)
 
 	merged := []*Layer{}

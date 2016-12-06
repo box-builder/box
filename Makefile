@@ -1,6 +1,8 @@
 PACKAGES := "./cli-tests ./builder ./builder/executor/docker ./image ./tar"
 
-all:
+all: checks install
+
+install:
 	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell pwd)/mruby_config.rb make
 	go install -v .
 
@@ -18,6 +20,9 @@ bootstrap-image: bootstrap
 
 bootstrap-test: bootstrap-image
 	make run-test
+
+checks:
+	@sh checks.sh
  
 build:
 	go run main.go build.rb
@@ -31,9 +36,9 @@ run-test-ci:
 run-test:
 	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -it box-test
 
-test-ci: build-ci run-test-ci
+test-ci: checks build-ci run-test-ci
 
-test: build run-test
+test: checks build run-test
 
 release: clean all test
 	RELEASE=1 go run main.go -t erikh/box:${VERSION} build.rb

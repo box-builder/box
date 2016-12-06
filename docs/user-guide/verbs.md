@@ -195,7 +195,7 @@ end
 # notice how we are still root
 run "useradd -s /bin/sh -m -d /home/erikh erikh"
 
-# all commands from here on will run as `erikh`, overriden only by `with_user`
+# all commands from here on will run as `erikh`, overridden only by `with_user`
 # and other `user` calls.
 user "erikh"
 run "echo foo >/tmp/erikh-file"

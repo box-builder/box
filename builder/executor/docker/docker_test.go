@@ -31,6 +31,7 @@ func (ds *dockerSuite) SetUpSuite(c *C) {
 
 func (ds *dockerSuite) clearDockerPrefix(c *C, prefix string) {
 	d, err := NewDocker(true, ds.tty)
+	c.Assert(err, IsNil)
 	c.Assert(d.ImageID(), Equals, "")
 	// clear out any stale images
 
@@ -95,6 +96,7 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 	ds.clearDockerPrefix(c, "asdf")
 
 	d, err := NewDocker(true, ds.tty)
+	c.Assert(err, IsNil)
 	c.Assert(d.ImageID(), Equals, "")
 	ok, err := d.CheckCache("asdf")
 	c.Assert(err, IsNil)

@@ -7,19 +7,21 @@ import (
 	"math/rand"
 	"os"
 
-	. "gopkg.in/check.v1"
-
 	"github.com/erikh/box/image"
+
+	. "gopkg.in/check.v1"
 )
 
 func (ds *dockerSuite) TestMakeImage(c *C) {
+	imageName := "ubuntu"
+
 	d, err := NewDocker(true, ds.tty)
 	c.Assert(err, IsNil)
 
-	_, err = d.Fetch("debian")
+	_, err = d.Fetch(imageName)
 	c.Assert(err, IsNil)
 
-	rc, err := d.client.ImageSave(context.Background(), []string{"debian"})
+	rc, err := d.client.ImageSave(context.Background(), []string{imageName})
 	c.Assert(err, IsNil)
 
 	tf, err := ioutil.TempFile("", "box-test-debian-image")
@@ -35,23 +37,29 @@ func (ds *dockerSuite) TestMakeImage(c *C) {
 	defer os.RemoveAll(dir)
 	c.Assert(err, IsNil)
 
-	_, err = d.Fetch("debian")
+	_, err = d.Fetch(imageName)
 	c.Assert(err, IsNil)
 
-	omit := func(layers []*image.Layer) *image.Layer {
+	omit := func(layers []*image.Layer) (*image.Layer, []*image.Layer) {
+		c.Assert(len(layers), Not(Equals), 0)
 		omit1 := rand.Intn(len(layers))
 		omitLayer1 := layers[omit1]
 
+		var layerCopy []*image.Layer
+
 		if omit1 == 0 {
-			layers = layers[1:]
+			layerCopy = layers[1:]
 		} else {
-			layers = append(layers[:omit1-1], layers[omit1:]...)
+			layerCopy = append(layers[:omit1-1], layers[omit1:]...)
 		}
-		return omitLayer1
+
+		return omitLayer1, layerCopy
 	}
 
-	omitLayer1 := omit(layers)
-	omitLayer2 := omit(layers)
+	omitLayer1, layerCopy := omit(layers)
+	omitLayer2, layerCopy := omit(layerCopy)
+
+	layers = layerCopy
 
 	d.skipLayers = []string{omitLayer1.LayerID(), omitLayer2.LayerID()}
 	layerStrings := []string{}
@@ -64,7 +72,7 @@ func (ds *dockerSuite) TestMakeImage(c *C) {
 
 	c.Assert(d.MakeImage(), IsNil)
 
-	rc, err = d.client.ImageSave(context.Background(), []string{"debian"})
+	rc, err = d.client.ImageSave(context.Background(), []string{d.Config().Image})
 	c.Assert(err, IsNil)
 
 	tf2, err := ioutil.TempFile("", "box-test-debian-image")
@@ -89,5 +97,5 @@ func (ds *dockerSuite) TestMakeImage(c *C) {
 	layersOrig, _, err := image.Unpack(tf.Name())
 	c.Assert(err, IsNil)
 
-	c.Assert(len(layersOrig), Equals, len(layers))
+	c.Assert(len(layersOrig)-2, Equals, len(layers))
 }

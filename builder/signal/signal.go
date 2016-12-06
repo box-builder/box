@@ -23,7 +23,7 @@ func SetSignal(hook func()) {
 				hook()
 			}
 
-			fmt.Println("\n\n!!! SIGINT or SIGTERM recieved, crashing container...")
+			fmt.Println("\n\n!!! SIGINT or SIGTERM received, crashing container...")
 			os.Exit(1)
 		}
 	}()

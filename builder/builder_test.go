@@ -324,6 +324,7 @@ func (bs *builderSuite) TestRun(c *C) {
       run "echo -n foo >/test/bar"
     end
   `)
+	c.Assert(err, IsNil)
 
 	result = runContainerCommand(c, b, []string{"/bin/sh", "-c", "/usr/bin/stat -c %U /test/bar"})
 	c.Assert(string(result), Equals, "nobody\n")
@@ -335,6 +336,7 @@ func (bs *builderSuite) TestRun(c *C) {
     user "nobody"
     run "echo -n foo >/test/bar"
   `)
+	c.Assert(err, IsNil)
 
 	result = runContainerCommand(c, b, []string{"/bin/sh", "-c", "/usr/bin/stat -c %U /test/bar"})
 	c.Assert(string(result), Equals, "nobody\n")
@@ -695,6 +697,7 @@ func (bs *builderSuite) TestEnv(c *C) {
     from "builder-env-base"
     tag "builder-env"
   `)
+	c.Assert(err, IsNil)
 
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), "builder-env")
 	c.Assert(err, IsNil)
@@ -774,6 +777,7 @@ func (bs *builderSuite) TestExecPropagation(c *C) {
 	c.Assert(b.exec.Config().Cmd.Image, DeepEquals, []string{"/bin/bash"})
 
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "test")
+	c.Assert(err, IsNil)
 	c.Assert(strslice.StrSlice(b.exec.Config().Cmd.Image), DeepEquals, inspect.Config.Cmd)
 
 	// Docker rewrites a nil as the array below.
