@@ -185,8 +185,7 @@ run &quot;chown -R erikh:erikh /test&quot; # this will run after you close the s
 </code></pre>
 
 <h2 id="set95exec">set_exec</h2>
-<p><code>set_exec</code> sets both the entrypoint and cmd at the same time, allowing for no
-race between the operations.</p>
+<p><code>set_exec</code> sets both the entrypoint and cmd at the same time.</p>
 <p><code>set_exec</code> takes a dictionary consisting of two known elements as symbols:
 entrypoint and cmd. They each take a string array which is then propagated
 to the respective properties in the container's configuration.</p>
@@ -252,7 +251,7 @@ tag &quot;erikh/true&quot; # tag the latest image as &quot;erikh/true&quot;
 
 <h2 id="entrypoint">entrypoint</h2>
 <p>entrypoint sets the entrypoint for the image at runtime. It will not be
-used for run invocations. Note that setting this clears any previously set cmd.</p>
+used for run invocations.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
 entrypoint &quot;/bin/echo&quot; # all `docker run` commands will be preceded by this
@@ -307,7 +306,7 @@ end
 # notice how we are still root
 run &quot;useradd -s /bin/sh -m -d /home/erikh erikh&quot;
 
-# all commands from here on will run as `erikh`, overriden only by `with_user`
+# all commands from here on will run as `erikh`, overridden only by `with_user`
 # and other `user` calls.
 user &quot;erikh&quot;
 run &quot;echo foo &gt;/tmp/erikh-file&quot;
@@ -362,7 +361,6 @@ env GOPATH: &quot;/go&quot;, PATH: &quot;/usr/bin:/bin&quot; # equivalent if you
 <p>cmd, when provided with a string will set the docker image's Cmd property,
 which are the arguments that follow the entrypoint (and are overridden when
 you provide a command to <code>docker run</code>). It does not affect run invocations.</p>
-<p>Note that if you set this before entrypoint, it will be cleared.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
 # entrypoint is `/bin/sh -c` by default, so we will just run whatever command
@@ -375,6 +373,10 @@ cmd &quot;ls&quot;
 the current directory. The build cache is calculated by summing the tar
 result of edited files. Since mtime is also considered, changes to that will
 also bust the cache.</p>
+<p>NOTE: copy will not overwrite directories with files, this will abort the run.
+If you are trying to copy a file into a named directory, suffix it with <code>/</code>
+which will instruct it to put it into that directory instead of trying to
+replace it with the file you're copying.</p>
 <p>NOTE: copy does not respect user permissions when the <code>user</code> or <code>with_user</code>
 modifiers are applied. This will be fixed eventually.</p>
 <p>Example:</p>
@@ -383,6 +385,8 @@ modifiers are applied. This will be fixed eventually.</p>
 # recursively copies everything the cwd to test, which is relative to the
 # workdir inside the container (`/` by default).
 copy &quot;.&quot;, &quot;/test&quot;
+
+copy &quot;a_file&quot;, &quot;/tmp/&quot; # example of not overwriting directories with files
 </code></pre></div>
         </div>
 
