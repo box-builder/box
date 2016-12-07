@@ -345,7 +345,7 @@ func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, error) {
 	}
 
 	source := filepath.Clean(args[0].String())
-	target := filepath.Clean(args[1].String())
+	target := args[1].String()
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -370,18 +370,20 @@ func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, error) {
 		targetWd = workdir.Temporary
 	}
 
-	fi, err := os.Lstat(source)
-	if err != nil {
-		return "", "", err
-	}
-
-	if strings.HasSuffix(target, "/") || fi.IsDir() {
-		target = filepath.Clean(filepath.Join(targetWd, target, rel))
+	// special case .
+	if target == "." {
+		target = filepath.Join(targetWd, filepath.Base(rel))
 	} else {
-		target = filepath.Clean(filepath.Join(targetWd, target))
+		if strings.HasSuffix(target, "/") {
+			target = filepath.Join(target, filepath.Base(rel))
+		}
+
+		if !strings.HasPrefix(target, "/") {
+			target = filepath.Join(targetWd, target)
+		}
 	}
 
-	return rel, target, nil
+	return filepath.Clean(rel), target, nil
 }
 
 func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
