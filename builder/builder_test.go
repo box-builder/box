@@ -93,6 +93,23 @@ func (bs *builderSuite) TestCopyToRelativePathWithWorkdir(c *C) {
 	b.Close()
 }
 
+func (bs *builderSuite) TestCopyOverDir(c *C) {
+	testpath := filepath.Join(dockerfilePath, "test1.rb")
+
+	_, err := runBuilder(fmt.Sprintf(`
+    from "debian"
+    copy "%s", "/tmp"
+  `, testpath))
+	c.Assert(err, NotNil)
+
+	_, err = runBuilder(fmt.Sprintf(`
+    from "debian"
+    copy "%s", "/tmp/"
+    run "test -f /tmp/test1.rb"
+  `, testpath))
+	c.Assert(err, IsNil)
+}
+
 func (bs *builderSuite) TestCopy(c *C) {
 	testpath := filepath.Join(dockerfilePath, "test1.rb")
 

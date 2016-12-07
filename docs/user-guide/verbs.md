@@ -280,6 +280,11 @@ the current directory. The build cache is calculated by summing the tar
 result of edited files. Since mtime is also considered, changes to that will
 also bust the cache.
 
+NOTE: copy will not overwrite directories with files, this will abort the run.
+If you are trying to copy a file into a named directory, suffix it with `/`
+which will instruct it to put it into that directory instead of trying to
+replace it with the file you're copying.
+
 NOTE: copy does not respect user permissions when the `user` or `with_user`
 modifiers are applied. This will be fixed eventually.
 
@@ -291,4 +296,6 @@ from "debian"
 # recursively copies everything the cwd to test, which is relative to the
 # workdir inside the container (`/` by default).
 copy ".", "/test"
+
+copy "a_file", "/tmp/" # example of not overwriting directories with files
 ```

@@ -261,7 +261,7 @@ func (d *Docker) CopyFromContainer(id, path string) (io.Reader, int64, error) {
 // containerto the container so it can then be committed. It does not close the
 // reader.
 func (d *Docker) CopyToContainer(id string, r io.Reader) error {
-	return d.client.CopyToContainer(context.Background(), id, "/", r, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+	return d.client.CopyToContainer(context.Background(), id, "/", r, types.CopyToContainerOptions{})
 }
 
 // Flatten copies a tarred up series of files (passed in through the
