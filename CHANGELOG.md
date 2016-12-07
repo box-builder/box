@@ -1,3 +1,19 @@
+### v0.3.2
+
+* Fix TTY handling in debug modes
+* Improve signal handling in a few edge case scenarios in run statements
+* USER, WORKDIR, CMD and ENTRYPOINT inheritance is much better now. It should be less
+  surprising when issusing run statements the last layer in a series.
+* Box no longer takes a final step to commit the image after the run has
+  completed.
+* New progress meters for all copy/tar/summing operations. 
+* Tarring routines (copy, flatten etc) no longer attempt to tar special files
+  such as unix sockets.
+* Many fixes around copy, path handling and workdir. Note that now if you want
+  to copy files into a target that is a directory, it will fail. If you do wish
+  to copy them into the directory instead of over it, suffix the directory name
+  with a `/`.
+
 ### v0.3.1
 
 * Release version is reflected correctly in the binary

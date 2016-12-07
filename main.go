@@ -17,7 +17,7 @@ import (
 
 var (
 	// Version is the version of the application
-	Version = "0.3.1"
+	Version = "0.3.2"
 	// Name is the name of the application
 	Name = "box"
 	// Email is my email
