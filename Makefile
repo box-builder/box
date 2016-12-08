@@ -1,4 +1,4 @@
-PACKAGES := "./cli-tests ./builder ./builder/executor/docker ./image ./tar"
+PACKAGES := ./cli-tests ./builder ./builder/executor/docker ./image ./tar
 
 all: checks install
 
