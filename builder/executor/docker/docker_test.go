@@ -157,7 +157,7 @@ func (ds *dockerSuite) TestCopy(c *C) {
 	_, err = d.Fetch("debian:latest")
 	c.Assert(err, IsNil)
 
-	file, err := bt.Archive(".", ".")
+	file, _, err := bt.Archive(".", ".")
 	c.Assert(err, IsNil)
 
 	f, err := os.Open(file)

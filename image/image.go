@@ -68,13 +68,7 @@ func extractLayers(img *imageInfo, dir, file string) error {
 				return err
 			}
 
-			if err := copy.WithProgress(out, tr, fmt.Sprintf("Unpacking Layer ID %s", layerID[:8])); err != nil {
-				out.Close()
-				return err
-			}
-
-			out.Close()
-			sum, err := bt.SumFile(out.Name(), "Layer")
+			sum, err := bt.SumWithCopy(out, tr, fmt.Sprintf("Unpacking Layer ID %s", layerID[:12]))
 			if err != nil {
 				return err
 			}
@@ -347,14 +341,7 @@ func Flatten(config *config.Config, id string, size int64, tw io.Reader) (string
 
 	defer os.Remove(tf.Name())
 
-	if err := copy.WithProgress(tf, tw, "Downloading Image for Flatten"); err != nil {
-		tf.Close() // second close is fine here
-		return "", err
-	}
-
-	tf.Close()
-
-	sum, err := bt.SumFile(tf.Name(), "Flattened Image")
+	sum, err := bt.SumWithCopy(tf, tw, "Downloading Image for Flatten")
 	if err != nil {
 		return "", err
 	}
