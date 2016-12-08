@@ -392,18 +392,13 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		return nil, createException(m, err.Error())
 	}
 
-	fn, err := tar.Archive(rel, target)
+	fn, cacheKey, err := tar.Archive(rel, target)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
 
 	signal.SetSignal(func() { os.Remove(fn) })
 	defer os.Remove(fn)
-
-	cacheKey, err = tar.SumFile(fn, "items to copy")
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
 
 	cacheKey = fmt.Sprintf("box:copy %s", cacheKey)
 

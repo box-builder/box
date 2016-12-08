@@ -38,6 +38,7 @@ func archiveSingle(rel, target string, tw *tar.Writer) error {
 	}
 
 	defer p.Close()
+
 	return copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", rel))
 }
 
@@ -99,52 +100,82 @@ func archiveWalk(rel, target string, tw *tar.Writer) filepath.WalkFunc {
 // Archive takes a source and target directory and returns a filename and/or
 // error. The source will be archived relative to the target. The file will
 // live in the user's os.TempDir().
-func Archive(rel, target string) (string, error) {
+func Archive(rel, target string) (string, string, error) {
 	fi, err := os.Lstat(rel)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	f, err := ioutil.TempFile("", "box-copy.")
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	signal.SetSignal(func() { os.Remove(f.Name()) })
 	defer signal.SetSignal(nil)
 
-	tw := tar.NewWriter(f)
+	hash := sha256.New()
+	r, w := io.Pipe()
+	tw := tar.NewWriter(w)
+
+	tee := io.TeeReader(r, hash)
+	go io.Copy(f, tee)
 
 	if fi.IsDir() {
 		if err := filepath.Walk(rel, archiveWalk(rel, target, tw)); err != nil {
-			return "", err
+			return "", "", err
 		}
 	} else {
 		if err := archiveSingle(rel, target, tw); err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 
 	tw.Close()
 	f.Close()
 
-	return f.Name(), nil
+	return f.Name(), hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-// SumFile reads a file an returns a hex-encoded sha512/256.
-func SumFile(fn, fileType string) (string, error) {
-	f, err := os.Open(fn)
-	if err != nil {
+// SumWithCopy simultaneously sums and copies a stream.
+func SumWithCopy(writer io.WriteCloser, reader io.Reader, fileType string) (string, error) {
+	hashReader, hashWriter := io.Pipe()
+	tarReader := io.TeeReader(reader, hashWriter)
+
+	sumChan := make(chan string, 1)
+	errChan := make(chan error, 1)
+
+	go func() {
+		sum, err := SumReader(hashReader)
+		if err != nil {
+			errChan <- err
+		} else {
+			sumChan <- sum
+		}
+	}()
+
+	if err := copy.WithProgress(writer, tarReader, fileType); err != nil {
+		writer.Close()
 		return "", err
 	}
 
+	writer.Close()
+	hashWriter.Close()
+
+	var sum string
+
+	select {
+	case err := <-errChan:
+		return "", err
+	case sum = <-sumChan:
+	}
+
+	return sum, nil
+}
+
+// SumReader sums an io.Reader
+func SumReader(reader io.Reader) (string, error) {
 	hash := sha256.New()
-	err = copy.WithProgress(hash, f, fmt.Sprintf("Summing %s", fileType))
-	if err != nil && err != io.EOF {
-		f.Close()
-		return "", err
-	}
-	f.Close()
-
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	_, err := io.Copy(hash, reader)
+	return hex.EncodeToString(hash.Sum(nil)), err
 }
