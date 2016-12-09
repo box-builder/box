@@ -18,8 +18,8 @@ import (
 
 // Builder implements the builder core.
 type Builder struct {
-	useCache  bool
 	mrb       *mruby.Mrb
+	useCache  bool
 	exec      executor.Executor
 	fromImage string
 }
@@ -53,11 +53,9 @@ func NewBuilder(tty bool, omitFuncs []string) (*Builder, error) {
 		exec:     exec,
 	}
 
-	builder.mrb.DisableGC()
-
 	for name, def := range verbJumpTable {
 		if keep(omitFuncs, name) {
-			builder.AddVerb(name, def.verbFunc, def.argSpec)
+			builder.AddVerb(name, def)
 		}
 	}
 
@@ -96,13 +94,9 @@ func (b *Builder) ImageID() string {
 	return b.exec.ImageID()
 }
 
-// AddVerb adds a function to the mruby dispatch as well as adding hooks around
-// the call to ensure containers are committed and intermediate layers are
-// cleared.
-func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
-	builderFunc := func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-		args := m.GetArgs()
-		strArgs := extractStringArgs(args)
+func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
+	return func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+		strArgs := extractStringArgs(m.GetArgs())
 		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")
 		cacheKey = base64.StdEncoding.EncodeToString([]byte(cacheKey))
 
@@ -120,13 +114,36 @@ func (b *Builder) AddVerb(name string, fn verbFunc, args mruby.ArgSpec) {
 
 		// if we don't do this for debug, we will step past it on successive runs
 		if !cached || name == "debug" {
-			return fn(b, cacheKey, args, m, self)
+			return vd.verbFunc(b, cacheKey, m.GetArgs(), m, self)
 		}
 
 		return nil, nil
 	}
+}
 
-	b.mrb.TopSelf().SingletonClass().DefineMethod(name, builderFunc, args)
+// AddVerb adds a function to the mruby dispatch as well as adding hooks around
+// the call to ensure containers are committed and intermediate layers are
+// cleared.
+func (b *Builder) AddVerb(name string, vd *verbDefinition) {
+	b.mrb.TopSelf().SingletonClass().DefineMethod(name, b.wrapVerbFunc(name, vd), vd.argSpec)
+}
+
+// RunCode runs the ruby value (a proc) and returns the result.
+func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (*mruby.MrbValue, int, error) {
+	keep, res, err := b.mrb.RunWithContext(val, b.mrb.TopSelf(), stackKeep)
+	if err != nil {
+		return nil, keep, err
+	}
+
+	if res != nil {
+		return res, keep, err
+	}
+
+	if err := b.exec.MakeImage(); err != nil {
+		return nil, keep, err
+	}
+
+	return mruby.String(b.exec.ImageID()).MrbValue(b.mrb), keep, nil
 }
 
 // Run the script.
@@ -135,18 +152,16 @@ func (b *Builder) Run(script string) (*mruby.MrbValue, error) {
 		return nil, err
 	}
 
-	id, err := b.exec.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	defer b.exec.Destroy(id)
-
 	if err := b.exec.MakeImage(); err != nil {
 		return nil, err
 	}
 
 	return mruby.String(b.exec.ImageID()).MrbValue(b.mrb), nil
+}
+
+// Mrb returns the mrb (mruby) instance the builder is using.
+func (b *Builder) Mrb() *mruby.Mrb {
+	return b.mrb
 }
 
 // Close tears down all functions of the builder, preparing it for exit.

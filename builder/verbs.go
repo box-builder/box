@@ -31,8 +31,8 @@ type verbDefinition struct {
 }
 
 // verbJumpTable is the dispatch instructions sent to the builder at preparation time.
-var verbJumpTable = map[string]verbDefinition{
-	"debug":      {debug, mruby.ArgsOpt(1)},
+var verbJumpTable = map[string]*verbDefinition{
+	"debug":      {debug, mruby.ArgsNone()},
 	"flatten":    {flatten, mruby.ArgsNone()},
 	"tag":        {tag, mruby.ArgsReq(1)},
 	"copy":       {doCopy, mruby.ArgsReq(2)},

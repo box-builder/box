@@ -11,6 +11,11 @@ import (
 	mruby "github.com/mitchellh/go-mruby"
 )
 
+const (
+	normalPrompt    = "box> "
+	multilinePrompt = "box*> "
+)
+
 // Repl encapsulates a series of items used to create a read-evaluate-print
 // loop so that end users can manually enter build instructions.
 type Repl struct {
@@ -20,7 +25,7 @@ type Repl struct {
 
 // NewRepl constructs a new Repl.
 func NewRepl() (*Repl, error) {
-	rl, err := readline.New("box> ")
+	rl, err := readline.New(normalPrompt)
 	if err != nil {
 		return nil, err
 	}
@@ -44,6 +49,13 @@ func (r *Repl) Loop() error {
 	}()
 
 	var line string
+	var stackKeep int
+	var val *mruby.MrbValue
+
+	p := mruby.NewParser(r.builder.Mrb())
+	context := mruby.NewCompileContext(r.builder.Mrb())
+	context.CaptureErrors(true)
+
 	for {
 		tmp, err := r.readline.Readline()
 		if err == io.EOF {
@@ -51,7 +63,12 @@ func (r *Repl) Loop() error {
 		}
 
 		if err != nil && err.Error() == "Interrupt" {
-			fmt.Println("You can press ^D or type \"quit\", \"exit\" to exit the shell")
+			if line != "" {
+				r.readline.SetPrompt(normalPrompt)
+			} else {
+				fmt.Println("You can press ^D or type \"quit\", \"exit\" to exit the shell")
+			}
+
 			line = ""
 			continue
 		}
@@ -61,7 +78,7 @@ func (r *Repl) Loop() error {
 			os.Exit(1)
 		}
 
-		line += tmp
+		line += tmp + "\n"
 
 		switch strings.TrimSpace(line) {
 		case "quit":
@@ -70,18 +87,21 @@ func (r *Repl) Loop() error {
 			os.Exit(0)
 		}
 
-		p := mruby.NewParser(mruby.NewMrb())
-		if _, err := p.Parse(line, nil); err != nil {
+		if _, err := p.Parse(line, context); err != nil {
+			r.readline.SetPrompt(multilinePrompt)
 			continue
 		}
 
-		val, err := r.builder.Run(line)
+		val, stackKeep, err = r.builder.RunCode(p.GenerateCode(), stackKeep)
 		line = ""
+		r.readline.SetPrompt(normalPrompt)
 		if err != nil {
 			fmt.Printf("+++ Error: %v\n", err)
 			continue
 		}
 
-		fmt.Println(val)
+		if val.String() != "" {
+			fmt.Println(val)
+		}
 	}
 }
