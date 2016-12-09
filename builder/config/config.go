@@ -29,13 +29,15 @@ type Config struct {
 	WorkDir    StringState      // the current working directory on entering a container
 	Cmd        StringSliceState // the secondary execution form, it is provided to images if given to docker run, otherwise this is used.
 	Entrypoint StringSliceState // the primary execution form, the first arguments and the exec() jumping-off point.
-	Env        []string
+	Env        []string         // Environment variables
+	Volumes    []string         // Volume paths
 }
 
 // NewConfig initializes a new configuration.
 func NewConfig() *Config {
 	return &Config{
 		Env:     []string{},
+		Volumes: []string{},
 		User:    StringState{"", "root"},
 		WorkDir: StringState{"", "/"},
 		Image:   "",
@@ -93,6 +95,10 @@ func (c *Config) FromDocker(cont *container.Config) {
 	c.Cmd.Image = cont.Cmd
 	c.User.Image = cont.User
 	c.WorkDir.Image = cont.WorkingDir
+
+	for volume := range cont.Volumes {
+		c.Volumes = append(c.Volumes, volume)
+	}
 
 	if c.User.Image == "" {
 		c.User.Image = "root"

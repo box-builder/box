@@ -1,0 +1,2 @@
+from debian
+volume /tmp

@@ -392,6 +392,12 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		return nil, createException(m, err.Error())
 	}
 
+	for _, volume := range b.exec.Config().Volumes {
+		if strings.HasPrefix(target, volume) {
+			return nil, createException(m, fmt.Sprintf("Volume %q cannot be copied into (you tried %q). This is caused by a bug in docker. We are working with docker on a fix.", volume, target))
+		}
+	}
+
 	fn, cacheKey, err := tar.Archive(rel, target)
 	if err != nil {
 		return nil, createException(m, err.Error())
