@@ -13,7 +13,7 @@ docs:
 	mkdocs gh-deploy --clean
 
 bootstrap:
-	docker run -i -w ${PWD} -v /var/run/docker.sock:/var/run/docker.sock -v ${PWD}:${PWD} erikh/box:latest /dev/stdin < build.rb
+	docker run --rm -i -w ${PWD} -v /var/run/docker.sock:/var/run/docker.sock -v ${PWD}:${PWD} erikh/box:latest /dev/stdin < build.rb
 
 bootstrap-test: bootstrap run-test
 

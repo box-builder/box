@@ -2,8 +2,10 @@ package tar
 
 import (
 	"archive/tar"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	. "testing"
@@ -85,4 +87,44 @@ func (ts *tarSuite) TestArchiveSpecialFile(c *C) {
 	}
 
 	c.Assert(count, Equals, 2, Commentf("%v", names))
+}
+
+func (ts *tarSuite) TestArchiveGlob(c *C) {
+	prefixes := []string{"foo", "bar"}
+
+	dir, err := ioutil.TempDir("", "tar-test")
+	c.Assert(err, IsNil)
+	defer os.RemoveAll(dir)
+
+	for i := 0; i < 20; i++ {
+		for _, prefix := range prefixes {
+			c.Assert(ioutil.WriteFile(fmt.Sprintf("%s/%s%d", dir, prefix, i), nil, 0666), IsNil)
+		}
+	}
+
+	for _, prefix := range prefixes {
+
+		tarball, _, err := Archive(fmt.Sprintf("%s/%s*", dir, prefix), "/")
+		c.Assert(err, IsNil)
+		defer os.Remove(tarball)
+
+		f, err := os.Open(tarball)
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		r := tar.NewReader(f)
+
+		for {
+			header, err := r.Next()
+			if err != nil {
+				break
+			}
+
+			if header.Name == "/" {
+				continue
+			}
+
+			c.Assert(strings.HasPrefix(path.Base(header.Name), prefix), Equals, true, Commentf("%s", header.Name))
+		}
+	}
 }
