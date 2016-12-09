@@ -280,6 +280,10 @@ the current directory. The build cache is calculated by summing the tar
 result of edited files. Since mtime is also considered, changes to that will
 also bust the cache.
 
+copy accepts globbing on the local side (LHS of arguments) according to
+[these rules](https://golang.org/pkg/path/filepath/#Match). For example, it
+supports `*` but not the zsh extended `**` syntax.
+
 NOTE: copy will not overwrite directories with files, this will abort the run.
 If you are trying to copy a file into a named directory, suffix it with `/`
 which will instruct it to put it into that directory instead of trying to
@@ -295,7 +299,10 @@ from "debian"
 
 # recursively copies everything the cwd to test, which is relative to the
 # workdir inside the container (`/` by default).
-copy ".", "/test"
+workdir "/tmp", do
+  copy ".", "/test"
+end
 
 copy "a_file", "/tmp/" # example of not overwriting directories with files
+copy "files*", "/var/lib" # example of globbing
 ```

@@ -101,7 +101,7 @@ func archiveWalk(rel, target string, tw *tar.Writer) filepath.WalkFunc {
 // error. The source will be archived relative to the target. The file will
 // live in the user's os.TempDir().
 func Archive(rel, target string) (string, string, error) {
-	fi, err := os.Lstat(rel)
+	entries, err := filepath.Glob(rel)
 	if err != nil {
 		return "", "", err
 	}
@@ -121,13 +121,19 @@ func Archive(rel, target string) (string, string, error) {
 	tee := io.TeeReader(r, hash)
 	go io.Copy(f, tee)
 
-	if fi.IsDir() {
-		if err := filepath.Walk(rel, archiveWalk(rel, target, tw)); err != nil {
+	for _, entry := range entries {
+		fi, err := os.Lstat(entry)
+		if err != nil {
 			return "", "", err
 		}
-	} else {
-		if err := archiveSingle(rel, target, tw); err != nil {
-			return "", "", err
+		if fi.IsDir() {
+			if err := filepath.Walk(entry, archiveWalk(entry, target, tw)); err != nil {
+				return "", "", err
+			}
+		} else {
+			if err := archiveSingle(entry, target, tw); err != nil {
+				return "", "", err
+			}
 		}
 	}
 
