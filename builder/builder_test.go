@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	. "testing"
 
@@ -108,6 +109,19 @@ func (bs *builderSuite) TestCopyOverDir(c *C) {
     run "test -f /tmp/test1.rb"
   `, testpath))
 	c.Assert(err, IsNil)
+}
+
+func (bs *builderSuite) TestCopyOverVolume(c *C) {
+	// box deliberately does not support image volumes, so we must build from docker first.
+	cmd := exec.Command("docker", "build", "-t", "volumes", "-f", "testdata/dockerfiles/Dockerfile.volumes", ".")
+	out, err := cmd.CombinedOutput()
+	c.Assert(err, IsNil, Commentf("%v", string(out)))
+
+	_, err = runBuilder(`
+  from "volumes"
+  copy ".", "/tmp/"
+  `)
+	c.Assert(err, NotNil)
 }
 
 func (bs *builderSuite) TestCopy(c *C) {
