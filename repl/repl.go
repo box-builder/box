@@ -8,7 +8,6 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/erikh/box/builder"
-	mruby "github.com/mitchellh/go-mruby"
 )
 
 // Repl encapsulates a series of items used to create a read-evaluate-print
@@ -68,11 +67,6 @@ func (r *Repl) Loop() error {
 			fallthrough
 		case "exit":
 			os.Exit(0)
-		}
-
-		p := mruby.NewParser(mruby.NewMrb())
-		if _, err := p.Parse(line, nil); err != nil {
-			continue
 		}
 
 		val, err := r.builder.Run(line)
