@@ -1,3 +1,11 @@
+### v0.3.3
+
+* Summing performance has improved across the board, which should drastically
+	affect copy, flatten, and skip operations.
+* Globbing on the left-hand-side of copy statements is now supported. Consult
+	the documentation for more.
+* The REPL/Shell now handles multi-line input more appropriately.
+
 ### v0.3.2
 
 * Fix TTY handling in debug modes

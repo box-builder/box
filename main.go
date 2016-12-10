@@ -17,7 +17,7 @@ import (
 
 var (
 	// Version is the version of the application
-	Version = "0.3.2"
+	Version = "0.3.3"
 	// Name is the name of the application
 	Name = "box"
 	// Email is my email
@@ -38,7 +38,7 @@ func main() {
 
 	app.Name = Name
 	app.Email = Email
-	app.Version = "0.3.1"
+	app.Version = "0.3.3"
 	app.Usage = Usage
 	app.Author = Author
 	app.Copyright = Copyright
