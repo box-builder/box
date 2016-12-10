@@ -373,6 +373,9 @@ cmd &quot;ls&quot;
 the current directory. The build cache is calculated by summing the tar
 result of edited files. Since mtime is also considered, changes to that will
 also bust the cache.</p>
+<p>copy accepts globbing on the local side (LHS of arguments) according to
+<a href="https://golang.org/pkg/path/filepath/#Match">these rules</a>. For example, it
+supports <code>*</code> but not the zsh extended <code>**</code> syntax.</p>
 <p>NOTE: copy will not overwrite directories with files, this will abort the run.
 If you are trying to copy a file into a named directory, suffix it with <code>/</code>
 which will instruct it to put it into that directory instead of trying to
@@ -384,9 +387,12 @@ modifiers are applied. This will be fixed eventually.</p>
 
 # recursively copies everything the cwd to test, which is relative to the
 # workdir inside the container (`/` by default).
-copy &quot;.&quot;, &quot;/test&quot;
+workdir &quot;/tmp&quot;, do
+  copy &quot;.&quot;, &quot;/test&quot;
+end
 
 copy &quot;a_file&quot;, &quot;/tmp/&quot; # example of not overwriting directories with files
+copy &quot;files*&quot;, &quot;/var/lib&quot; # example of globbing
 </code></pre></div>
         </div>
 
