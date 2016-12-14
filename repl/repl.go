@@ -42,9 +42,9 @@ func NewRepl() (*Repl, error) {
 // Loop runs the loop. Returns nil on io.EOF, otherwise errors are forwarded.
 func (r *Repl) Loop() error {
 	defer func() {
-		if recover() != nil {
-			// interpreter signal or other badness, just abort.
-			os.Exit(0)
+		if err := recover(); err != nil {
+			fmt.Printf("Aborting due to interpreter error: %v\n", err)
+			os.Exit(2)
 		}
 	}()
 
