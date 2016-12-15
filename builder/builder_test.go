@@ -415,7 +415,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
     end
   `)
 
-	c.Assert(err, NotNil)
+	c.Assert(err, IsNil)
 	b.Close()
 
 	b, err = runBuilder(`
