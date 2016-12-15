@@ -232,7 +232,13 @@ end
 
 inside, when provided with a directory name string and block, invokes
 commands within the context of the working directory being set to the
-string. It does not affect the final image.
+string.
+
+It will affect the final image if a file-modification event occurs inside a
+directory which has been specified but not created manually yet. This is a side
+effect of the docker engine's relationship to how we use `workdir` directives
+within docker itself. **Docker will create any workdir that does not exist when
+a build container is started.**
 
 Example:
 
@@ -241,6 +247,16 @@ from "debian"
 
 inside "/dev" do
   run "mknod webscale c 1 3"
+end
+```
+
+When given a relative path, it assumes the workdir as well as any other
+additional inside statements. For example:
+
+```ruby
+workdir "/etc"
+inside "apt" do # will travel into /etc/apt/
+  run "rm sources.list"
 end
 ```
 
