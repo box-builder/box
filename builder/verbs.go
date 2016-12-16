@@ -286,11 +286,26 @@ func inside(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		return nil, createException(m, fmt.Sprintf("Arg %q was not block!", args[1].String()))
 	}
 
-	if !path.IsAbs(args[0].String()) {
+	currentDir := args[0].String()
+
+	if !path.IsAbs(currentDir) {
+		currentDir = b.exec.Config().WorkDir.Temporary
+		if currentDir == "" {
+			currentDir = b.exec.Config().WorkDir.Image
+		}
+
+		if currentDir != "" {
+			currentDir = path.Join(currentDir, args[0].String())
+		} else {
+			currentDir = args[0].String()
+		}
+	}
+
+	if !path.IsAbs(filepath.Clean(currentDir)) {
 		return nil, createException(m, fmt.Sprintf("path %q is not absolute in workdir", args[0].String()))
 	}
 
-	b.exec.Config().WorkDir.Temporary = args[0].String()
+	b.exec.Config().WorkDir.Temporary = currentDir
 
 	val, err := m.Yield(args[1], args[0])
 	if err != nil {

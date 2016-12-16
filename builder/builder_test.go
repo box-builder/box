@@ -415,7 +415,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
     end
   `)
 
-	c.Assert(err, NotNil)
+	c.Assert(err, IsNil)
 	b.Close()
 
 	b, err = runBuilder(`
@@ -815,4 +815,46 @@ func (bs *builderSuite) TestExecPropagation(c *C) {
 	c.Assert(strslice.StrSlice{"/bin/sh", "-c"}, DeepEquals, inspect.Config.Entrypoint)
 
 	b.Close()
+}
+
+func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
+	_, err := runBuilder(`
+		from "debian"
+		workdir "/etc"
+		inside "apt" do
+			run "ls"
+		end
+	`)
+
+	c.Assert(err, IsNil)
+
+	_, err = runBuilder(`
+		from "debian"
+		inside "/etc" do
+			inside "apt" do
+				run "ls"
+			end
+		end
+	`)
+	c.Assert(err, IsNil)
+
+	// work dir is the default for debian here which is `/`. This should pass.
+	_, err = runBuilder(`
+		from "debian"
+		inside "etc" do
+			inside "apt" do
+				run "ls"
+			end
+		end
+	`)
+	c.Assert(err, IsNil)
+
+	_, err = runBuilder(`
+		from "debian"
+		workdir "/etc"
+		inside "/" do
+			run "cd tmp"
+		end
+	`)
+	c.Assert(err, IsNil)
 }
