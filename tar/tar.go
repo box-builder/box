@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/erikh/box/builder/signal"
 	"github.com/erikh/box/copy"
@@ -20,13 +21,16 @@ func archiveSingle(rel, target string, tw *tar.Writer) error {
 		return err
 	}
 
+	if strings.HasSuffix(target, "/") {
+		target = filepath.Join(target, filepath.Base(rel))
+	}
+
 	header, err := tar.FileInfoHeader(fi, target)
 	if err != nil {
 		return err
 	}
 
 	header.Name = target
-	header.Linkname = target
 
 	if err := tw.WriteHeader(header); err != nil {
 		return err
@@ -48,7 +52,17 @@ func archiveWalk(rel, target string, tw *tar.Writer) filepath.WalkFunc {
 			return err
 		}
 
-		header, err := tar.FileInfoHeader(fi, path)
+		path, err = filepath.Abs(path)
+		if err != nil {
+			return err
+		}
+
+		relpath, err := filepath.Rel(rel, path)
+		if err != nil {
+			return err
+		}
+
+		header, err := tar.FileInfoHeader(fi, filepath.Join(target, relpath))
 		if err != nil {
 			return err
 		}
@@ -59,32 +73,31 @@ func archiveWalk(rel, target string, tw *tar.Writer) filepath.WalkFunc {
 
 		realpath, err := filepath.EvalSymlinks(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("evaluating (probably dangling) symlink %q: %v", path, err)
 		}
 
-		relpath, err := filepath.Rel(rel, path)
+		realrel, err := filepath.Rel(rel, realpath)
 		if err != nil {
 			return err
 		}
 
-		realpath, err = filepath.Rel(rel, realpath)
-		if err != nil {
-			return err
+		if strings.HasPrefix(realrel, "..") {
+			return fmt.Errorf("path %q (symlink: %q) falls below the box working directory", realpath, path)
 		}
 
-		header.Linkname = filepath.Join(target, relpath)
-		header.Name = filepath.Join(target, realpath)
+		header.Name = filepath.Join(target, realrel)
+
 		if err := tw.WriteHeader(header); err != nil {
 			return err
 		}
 
 		if header.Typeflag == tar.TypeReg {
-			p, err := os.Open(path)
+			p, err := os.Open(realpath)
 			if err != nil {
 				return err
 			}
 
-			err = copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", path))
+			err = copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", realpath))
 			if err != nil && err != io.EOF {
 				p.Close()
 				return err
@@ -122,12 +135,34 @@ func Archive(rel, target string) (string, string, error) {
 	go io.Copy(f, tee)
 
 	for _, entry := range entries {
-		fi, err := os.Lstat(entry)
+		absentry, err := filepath.Abs(entry)
+		if err != nil {
+			return "", "", err
+		}
+
+		fi, err := os.Lstat(absentry)
 		if err != nil {
 			return "", "", err
 		}
 		if fi.IsDir() {
-			if err := filepath.Walk(entry, archiveWalk(entry, target, tw)); err != nil {
+			header, err := tar.FileInfoHeader(fi, absentry)
+			if err != nil {
+				return "", "", err
+			}
+
+			if entry == "." {
+				header.Linkname = target
+			} else {
+				header.Linkname = filepath.Join(target, entry)
+			}
+
+			header.Name = header.Linkname
+
+			if err := tw.WriteHeader(header); err != nil {
+				return "", "", err
+			}
+
+			if err := filepath.Walk(entry, archiveWalk(absentry, target, tw)); err != nil {
 				return "", "", err
 			}
 		} else {

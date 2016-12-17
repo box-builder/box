@@ -359,7 +359,11 @@ func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, error) {
 		return "", "", err
 	}
 
-	source := filepath.Clean(args[0].String())
+	source, err := filepath.Abs(args[0].String())
+	if err != nil {
+		return "", "", err
+	}
+
 	target := args[1].String()
 
 	wd, err := os.Getwd()
@@ -367,7 +371,7 @@ func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, error) {
 		return "", "", err
 	}
 
-	rel, err := filepath.Rel(wd, filepath.Join(wd, source))
+	rel, err := filepath.Rel(wd, source)
 	if err != nil {
 		return "", "", err
 	}
@@ -385,14 +389,10 @@ func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, error) {
 		targetWd = workdir.Temporary
 	}
 
-	// special case .
+	// special case `.`
 	if target == "." {
-		target = filepath.Join(targetWd, filepath.Base(rel))
+		target = filepath.Join(targetWd, rel)
 	} else {
-		if strings.HasSuffix(target, "/") {
-			target = filepath.Join(target, filepath.Base(rel))
-		}
-
 		if !strings.HasPrefix(target, "/") {
 			target = filepath.Join(targetWd, target)
 		}

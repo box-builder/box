@@ -857,4 +857,56 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 		end
 	`)
 	c.Assert(err, IsNil)
+
+	_, err = runBuilder(`
+		from "debian"
+		workdir "/etc"
+		inside "/" do
+			run "cd tmp"
+		end
+	`)
+	c.Assert(err, IsNil)
+
+	_, err = runBuilder(`
+		from "debian"
+		workdir "/home/erikh"
+		copy ".", "box/"
+	`)
+	c.Assert(err, IsNil)
+
+	_, err = runBuilder(`
+		from "debian"
+		workdir "/home/erikh"
+		copy ".", "box"
+	`)
+	c.Assert(err, IsNil)
+
+	path, err := filepath.Abs("..")
+	c.Assert(err, IsNil)
+
+	defer os.Remove("test")
+	c.Assert(os.Symlink(path, "test"), IsNil)
+
+	_, err = runBuilder(`
+		from "debian"
+		workdir "/home/erikh"
+		copy ".", "box"
+	`)
+	c.Assert(err, NotNil)
+
+	os.Remove("test")
+
+	_, err = runBuilder(`
+		from "debian"
+		workdir "/home/erikh"
+		copy "builder.go", "/builder.go"
+	`)
+	c.Assert(err, IsNil)
+
+	_, err = runBuilder(`
+		from "debian"
+		copy ".", "/go/src/github.com/erikh/box/builder/"
+		run "ls /go/src/github.com/erikh/box/builder/"
+	`)
+	c.Assert(err, IsNil)
 }
