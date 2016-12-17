@@ -86,7 +86,7 @@ func (ts *tarSuite) TestArchiveSpecialFile(c *C) {
 		names = append(names, header.Name)
 	}
 
-	c.Assert(count, Equals, 2, Commentf("%v", names))
+	c.Assert(count, Equals, 3, Commentf("%v", names))
 }
 
 func (ts *tarSuite) TestArchiveGlob(c *C) {
