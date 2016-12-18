@@ -30,7 +30,7 @@ func (ds *dockerSuite) SetUpSuite(c *C) {
 }
 
 func (ds *dockerSuite) clearDockerPrefix(c *C, prefix string) {
-	d, err := NewDocker(true, ds.tty)
+	d, err := NewDocker(false, false)
 	c.Assert(err, IsNil)
 	c.Assert(d.ImageID(), Equals, "")
 	// clear out any stale images
@@ -95,7 +95,7 @@ func (ds *dockerSuite) TestCreate(c *C) {
 func (ds *dockerSuite) TestCommitCache(c *C) {
 	ds.clearDockerPrefix(c, "asdf")
 
-	d, err := NewDocker(true, ds.tty)
+	d, err := NewDocker(false, false)
 	c.Assert(err, IsNil)
 	c.Assert(d.ImageID(), Equals, "")
 	ok, err := d.CheckCache("asdf")
@@ -109,7 +109,7 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 
-	d, err = NewDocker(true, ds.tty)
+	d, err = NewDocker(false, false)
 	c.Assert(err, IsNil)
 
 	ok, err = d.CheckCache("asdf")
@@ -123,7 +123,7 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 	c.Assert(d.Commit("asdf3", nil), IsNil)
 	c.Assert(d.ImageID(), Not(Equals), "")
 
-	d, err = NewDocker(true, ds.tty)
+	d, err = NewDocker(false, false)
 	c.Assert(err, IsNil)
 
 	ok, err = d.CheckCache("asdf")
@@ -137,7 +137,7 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 }
 
 func (ds *dockerSuite) TestFetch(c *C) {
-	d, err := NewDocker(true, ds.tty)
+	d, err := NewDocker(false, false)
 	c.Assert(err, IsNil)
 
 	id, err := d.Fetch("debian:latest")
@@ -151,7 +151,7 @@ func (ds *dockerSuite) TestFetch(c *C) {
 }
 
 func (ds *dockerSuite) TestCopy(c *C) {
-	d, err := NewDocker(true, ds.tty)
+	d, err := NewDocker(false, false)
 	c.Assert(err, IsNil)
 
 	_, err = d.Fetch("debian:latest")
@@ -199,7 +199,7 @@ func (ds *dockerSuite) TestCopy(c *C) {
 }
 
 func (ds *dockerSuite) TestTag(c *C) {
-	d, err := NewDocker(true, ds.tty)
+	d, err := NewDocker(false, false)
 	c.Assert(err, IsNil)
 
 	// clear old state
