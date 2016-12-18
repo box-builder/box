@@ -96,7 +96,8 @@ func (b *Builder) ImageID() string {
 
 func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
 	return func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-		strArgs := extractStringArgs(m.GetArgs())
+		args := m.GetArgs()
+		strArgs := extractStringArgs(args)
 		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")
 		cacheKey = base64.StdEncoding.EncodeToString([]byte(cacheKey))
 
@@ -114,7 +115,7 @@ func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
 
 		// if we don't do this for debug, we will step past it on successive runs
 		if !cached || name == "debug" {
-			return vd.verbFunc(b, cacheKey, m.GetArgs(), m, self)
+			return vd.verbFunc(b, cacheKey, args, m, self)
 		}
 
 		return nil, nil
