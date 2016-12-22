@@ -63,7 +63,7 @@ func (s *cliSuite) TestOmit(c *C) {
 	c.Assert(err, IsNil)
 	checkFailure(c, cmd)
 
-	c.Assert(cmd.Stdout(), Equals, "\n\n!!! Error: undefined method 'from' for main\n")
+	c.Assert(cmd.Stdout(), Equals, "!!! Error: undefined method 'from' for main\n")
 }
 
 func (s *cliSuite) TestTag(c *C) {

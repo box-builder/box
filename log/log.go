@@ -14,6 +14,14 @@ func printNotice() {
 	color.New(color.FgYellow).Printf("--- ")
 }
 
+// Error prints an error to the terminal all fancy-like.
+func Error(err interface{}) {
+	color.New(color.Bold, color.FgRed).Printf("!!! ")
+	color.New(color.FgWhite).Printf("Error: %v", err)
+	color.Unset()
+	fmt.Println()
+}
+
 // BuildStep logs a build step.
 func BuildStep(step, command string) {
 	printGood()

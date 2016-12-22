@@ -11,7 +11,6 @@ import (
 	"github.com/erikh/box/builder"
 	"github.com/erikh/box/log"
 	"github.com/erikh/box/repl"
-	"github.com/fatih/color"
 	"github.com/urfave/cli"
 )
 
@@ -114,12 +113,12 @@ func main() {
 			content, err = ioutil.ReadFile(args[0])
 		} else {
 			cli.ShowAppHelp(ctx)
-			color.Red("!!! Please provide a filename to process!\n\n")
+			log.Error("Please provide a filename to process!")
 			os.Exit(1)
 		}
 
 		if err != nil {
-			fmt.Printf("\n\n!!! Error: %v\n", err.Error())
+			log.Error(err)
 			os.Exit(2)
 		}
 
@@ -129,7 +128,7 @@ func main() {
 
 		response, err := b.Run(string(content))
 		if err != nil {
-			fmt.Printf("\n\n!!! Error: %v\n", err.Error())
+			log.Error(err)
 			os.Exit(1)
 		}
 
@@ -141,7 +140,7 @@ func main() {
 
 		if tag != "" {
 			if err := b.Tag(tag); err != nil {
-				fmt.Printf("!!! Can't tag with tag %q: %v\n", tag, err)
+				log.Error(fmt.Sprintf("Can't tag with tag %q: %v", tag, err))
 				os.Exit(1)
 			}
 			log.Tag(tag)
@@ -157,7 +156,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintf(os.Stderr, "\n\n!!! Error: %v\n", err)
+		log.Error(err)
 		os.Exit(1)
 	}
 }
@@ -165,12 +164,12 @@ func main() {
 func runRepl(ctx *cli.Context) {
 	r, err := repl.NewRepl()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\n\n!!! Error bootstrapping repl: %v\n", err)
+		log.Error(fmt.Sprintf("bootstrapping repl: %v\n", err))
 		os.Exit(1)
 	}
 
 	if err := r.Loop(); err != nil {
-		fmt.Printf("\n\n!!! Error: %v\n", err)
+		log.Error(err)
 		os.Exit(1)
 	}
 }
