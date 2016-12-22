@@ -234,7 +234,6 @@ func from(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 		return nil, createException(m, err.Error())
 	}
 
-	b.fromImage = id
 	b.exec.Config().Image = id
 
 	return mruby.String(id), nil
