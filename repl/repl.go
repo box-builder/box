@@ -24,13 +24,19 @@ type Repl struct {
 }
 
 // NewRepl constructs a new Repl.
-func NewRepl() (*Repl, error) {
+func NewRepl(omit []string) (*Repl, error) {
 	rl, err := readline.New(normalPrompt)
 	if err != nil {
 		return nil, err
 	}
 
-	b, err := builder.NewBuilder(true, []string{})
+	fmt.Println(omit)
+
+	b, err := builder.NewBuilder(builder.BuildConfig{
+		OmitFuncs: omit,
+		TTY:       true,
+		Cache:     false,
+	})
 	if err != nil {
 		rl.Close()
 		return nil, err

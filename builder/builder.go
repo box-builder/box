@@ -16,11 +16,17 @@ import (
 	mruby "github.com/mitchellh/go-mruby"
 )
 
+// BuildConfig is a struct containing the configuration for the builder.
+type BuildConfig struct {
+	Cache     bool
+	TTY       bool
+	OmitFuncs []string
+}
+
 // Builder implements the builder core.
 type Builder struct {
-	mrb      *mruby.Mrb
-	useCache bool
-	exec     executor.Executor
+	mrb  *mruby.Mrb
+	exec executor.Executor
 }
 
 func keep(omitFuncs []string, name string) bool {
@@ -33,33 +39,30 @@ func keep(omitFuncs []string, name string) bool {
 }
 
 // NewBuilder creates a new builder. Returns error on docker or mruby issues.
-func NewBuilder(tty bool, omitFuncs []string) (*Builder, error) {
-	useCache := os.Getenv("NO_CACHE") == ""
-
-	if !tty {
+func NewBuilder(bc BuildConfig) (*Builder, error) {
+	if !bc.TTY {
 		color.NoColor = true
 		copy.NoTTY = true
 	}
 
-	exec, err := NewExecutor("docker", useCache, tty)
+	exec, err := NewExecutor("docker", bc.Cache, bc.TTY)
 	if err != nil {
 		return nil, err
 	}
 
 	builder := &Builder{
-		useCache: useCache,
-		mrb:      mruby.NewMrb(),
-		exec:     exec,
+		mrb:  mruby.NewMrb(),
+		exec: exec,
 	}
 
 	for name, def := range verbJumpTable {
-		if keep(omitFuncs, name) {
+		if keep(bc.OmitFuncs, name) {
 			builder.AddVerb(name, def)
 		}
 	}
 
 	for name, def := range funcJumpTable {
-		if keep(omitFuncs, name) {
+		if keep(bc.OmitFuncs, name) {
 			inner := def.fun
 			fn := func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 				return inner(builder, m, self)
@@ -77,14 +80,6 @@ func NewBuilder(tty bool, omitFuncs []string) (*Builder, error) {
 // Tag tags the last image yielded by the builder with the provided name.
 func (b *Builder) Tag(name string) error {
 	return b.exec.Tag(name)
-}
-
-// SetCache sets the caching strategy for builds. Turn on to use caching, off
-// to not. The default is set to whether or not the environment variable
-// (NO_CACHE) is non-empty.
-func (b *Builder) SetCache(useCache bool) {
-	b.useCache = useCache
-	b.exec.UseCache(useCache)
 }
 
 // ImageID returns the latest known Image identifier that we committed. At the
