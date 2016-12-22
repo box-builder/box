@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"os"
 
 	. "gopkg.in/check.v1"
 
@@ -14,7 +15,7 @@ import (
 )
 
 func runBuilder(script string) (*Builder, error) {
-	b, err := NewBuilder(term.IsTerminal(0), []string{})
+	b, err := NewBuilder(BuildConfig{Cache: os.Getenv("NO_CACHE") == ""})
 	if err != nil {
 		return nil, err
 	}

@@ -101,12 +101,21 @@ func main() {
 			tty = ctx.Bool("force-tty")
 		}
 
-		b, err := builder.NewBuilder(tty, ctx.StringSlice("omit"))
+		cache := os.Getenv("NO_CACHE") == ""
+		if ctx.Bool("no-cache") {
+			cache = false
+		}
+
+		b, err := builder.NewBuilder(builder.BuildConfig{
+			TTY:       tty,
+			OmitFuncs: ctx.StringSlice("omit"),
+			Cache:     cache,
+		})
+
 		if err != nil {
 			panic(err)
 		}
 		defer b.Close()
-
 		var content []byte
 
 		if len(args) == 1 {
@@ -120,10 +129,6 @@ func main() {
 		if err != nil {
 			log.Error(err)
 			os.Exit(2)
-		}
-
-		if ctx.Bool("no-cache") {
-			b.SetCache(false)
 		}
 
 		response, err := b.Run(string(content))
@@ -162,7 +167,7 @@ func main() {
 }
 
 func runRepl(ctx *cli.Context) {
-	r, err := repl.NewRepl()
+	r, err := repl.NewRepl(ctx.GlobalStringSlice("omit"))
 	if err != nil {
 		log.Error(fmt.Sprintf("bootstrapping repl: %v\n", err))
 		os.Exit(1)
