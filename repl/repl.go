@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/chzyer/readline"
 	"github.com/erikh/box/builder"
+	bs "github.com/erikh/box/signal"
 	mruby "github.com/mitchellh/go-mruby"
 )
 
@@ -20,8 +23,9 @@ const (
 // Repl encapsulates a series of items used to create a read-evaluate-print
 // loop so that end users can manually enter build instructions.
 type Repl struct {
-	readline *readline.Instance
-	builder  *builder.Builder
+	readline      *readline.Instance
+	builder       *builder.Builder
+	signalHandler *bs.Cancellable
 }
 
 // NewRepl constructs a new Repl.
@@ -31,20 +35,30 @@ func NewRepl(omit []string) (*Repl, error) {
 		return nil, err
 	}
 
-	fmt.Println(omit)
+	signalHandler := bs.NewCancellable()
+	signalHandler.Exit = false
+	signalHandler.IgnoreRunners = true
+	signals := make(chan os.Signal, 1)
+	go signalHandler.SignalHandler(signals)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	b, err := builder.NewBuilder(builder.BuildConfig{
 		OmitFuncs: omit,
 		TTY:       true,
 		Cache:     false,
-		Context:   context.Background(),
+		Context:   ctx,
 	})
+
 	if err != nil {
+		cancel()
 		rl.Close()
 		return nil, err
 	}
 
-	return &Repl{readline: rl, builder: b}, nil
+	signalHandler.AddFunc(cancel)
+
+	return &Repl{signalHandler: signalHandler, readline: rl, builder: b}, nil
 }
 
 // Loop runs the loop. Returns nil on io.EOF, otherwise errors are forwarded.
@@ -61,8 +75,8 @@ func (r *Repl) Loop() error {
 	var val *mruby.MrbValue
 
 	p := mruby.NewParser(r.builder.Mrb())
-	context := mruby.NewCompileContext(r.builder.Mrb())
-	context.CaptureErrors(true)
+	compileContext := mruby.NewCompileContext(r.builder.Mrb())
+	compileContext.CaptureErrors(true)
 
 	for {
 		tmp, err := r.readline.Readline()
@@ -95,10 +109,14 @@ func (r *Repl) Loop() error {
 			os.Exit(0)
 		}
 
-		if _, err := p.Parse(line, context); err != nil {
+		if _, err := p.Parse(line, compileContext); err != nil {
 			r.readline.SetPrompt(multilinePrompt)
 			continue
 		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		r.builder.SetContext(ctx)
+		r.signalHandler.AddFunc(cancel)
 
 		val, stackKeep, err = r.builder.RunCode(p.GenerateCode(), stackKeep)
 		line = ""

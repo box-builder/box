@@ -30,7 +30,7 @@ func (ds *dockerSuite) SetUpSuite(c *C) {
 }
 
 func (ds *dockerSuite) clearDockerPrefix(c *C, prefix string) {
-	d, err := NewDocker(true, ds.tty)
+	d, err := NewDocker(context.Background(), true, ds.tty)
 	c.Assert(err, IsNil)
 	c.Assert(d.ImageID(), Equals, "")
 	// clear out any stale images
@@ -60,17 +60,17 @@ func (ds *dockerSuite) clearDockerPrefix(c *C, prefix string) {
 }
 
 func (ds *dockerSuite) TestParameters(c *C) {
-	d, err := NewDocker(false, false)
+	d, err := NewDocker(context.Background(), false, false)
 	c.Assert(err, IsNil)
 	c.Assert(d.tty, Equals, false)
 	c.Assert(d.useCache, Equals, false)
 
-	d, err = NewDocker(true, true)
+	d, err = NewDocker(context.Background(), true, true)
 	c.Assert(err, IsNil)
 	c.Assert(d.tty, Equals, true)
 	c.Assert(d.useCache, Equals, true)
 
-	d, err = NewDocker(false, false)
+	d, err = NewDocker(context.Background(), false, false)
 	c.Assert(err, IsNil)
 	d.SetStdin(true)
 	c.Assert(d.stdin, Equals, true)
@@ -81,7 +81,7 @@ func (ds *dockerSuite) TestParameters(c *C) {
 }
 
 func (ds *dockerSuite) TestCreate(c *C) {
-	d, err := NewDocker(false, ds.tty)
+	d, err := NewDocker(context.Background(), false, ds.tty)
 	c.Assert(err, IsNil)
 
 	id, err := d.Create()
@@ -95,7 +95,7 @@ func (ds *dockerSuite) TestCreate(c *C) {
 func (ds *dockerSuite) TestCommitCache(c *C) {
 	ds.clearDockerPrefix(c, "asdf")
 
-	d, err := NewDocker(true, ds.tty)
+	d, err := NewDocker(context.Background(), true, ds.tty)
 	c.Assert(err, IsNil)
 	c.Assert(d.ImageID(), Equals, "")
 	ok, err := d.CheckCache("asdf")
@@ -109,7 +109,7 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 
-	d, err = NewDocker(true, ds.tty)
+	d, err = NewDocker(context.Background(), true, ds.tty)
 	c.Assert(err, IsNil)
 
 	ok, err = d.CheckCache("asdf")
@@ -123,7 +123,7 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 	c.Assert(d.Commit("asdf3", nil), IsNil)
 	c.Assert(d.ImageID(), Not(Equals), "")
 
-	d, err = NewDocker(true, ds.tty)
+	d, err = NewDocker(context.Background(), true, ds.tty)
 	c.Assert(err, IsNil)
 
 	ok, err = d.CheckCache("asdf")
@@ -137,7 +137,7 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 }
 
 func (ds *dockerSuite) TestFetch(c *C) {
-	d, err := NewDocker(true, ds.tty)
+	d, err := NewDocker(context.Background(), true, ds.tty)
 	c.Assert(err, IsNil)
 
 	id, err := d.Fetch("debian:latest")
@@ -151,13 +151,13 @@ func (ds *dockerSuite) TestFetch(c *C) {
 }
 
 func (ds *dockerSuite) TestCopy(c *C) {
-	d, err := NewDocker(true, ds.tty)
+	d, err := NewDocker(context.Background(), true, ds.tty)
 	c.Assert(err, IsNil)
 
 	_, err = d.Fetch("debian:latest")
 	c.Assert(err, IsNil)
 
-	file, _, err := bt.Archive(".", ".")
+	file, _, err := bt.Archive(context.Background(), ".", ".")
 	c.Assert(err, IsNil)
 
 	f, err := os.Open(file)
@@ -199,7 +199,7 @@ func (ds *dockerSuite) TestCopy(c *C) {
 }
 
 func (ds *dockerSuite) TestTag(c *C) {
-	d, err := NewDocker(true, ds.tty)
+	d, err := NewDocker(context.Background(), true, ds.tty)
 	c.Assert(err, IsNil)
 
 	// clear old state

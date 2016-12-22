@@ -8,6 +8,7 @@ package builder
 */
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,7 +17,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/erikh/box/builder/signal"
 	"github.com/erikh/box/copy"
 	"github.com/erikh/box/log"
 	"github.com/erikh/box/tar"
@@ -412,12 +412,11 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		}
 	}
 
-	fn, cacheKey, err := tar.Archive(rel, target)
+	fn, cacheKey, err := tar.Archive(b.context, rel, target)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	signal.SetSignal(func() { os.Remove(fn) })
 	defer os.Remove(fn)
 
 	cacheKey = fmt.Sprintf("box:copy %s", cacheKey)
@@ -440,7 +439,7 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 
 	defer f.Close()
 
-	hook := func(id string) (string, error) {
+	hook := func(ctx context.Context, id string) (string, error) {
 		return "", b.exec.CopyToContainer(id, f)
 	}
 

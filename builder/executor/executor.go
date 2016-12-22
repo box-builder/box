@@ -1,17 +1,21 @@
 package executor
 
 import (
+	"context"
 	"io"
 
 	"github.com/erikh/box/builder/config"
 )
 
 // Hook is a hook used in commit calls
-type Hook func(id string) (string, error)
+type Hook func(context.Context, string) (string, error)
 
 // Executor is an engine for talking to different layering/execution context
 // subsystems. It is the meat-and-potatoes of image building.
 type Executor interface {
+	// SetContext sets the context for subsequent calls.
+	SetContext(context.Context)
+
 	// LoadConfig loads the configuration into the executor.
 	LoadConfig(*config.Config) error
 
@@ -57,7 +61,7 @@ type Executor interface {
 
 	// RunHook is used to manage run invocations, and is processed by the run
 	// statement.
-	RunHook(string) (string, error)
+	RunHook(context.Context, string) (string, error)
 
 	// SetStdin turns on the stdin features during run invocations. It is used to
 	// facilitate debugging.

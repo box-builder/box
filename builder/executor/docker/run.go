@@ -10,7 +10,6 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/term"
 	"github.com/docker/engine-api/types"
-	"github.com/erikh/box/builder/signal"
 	"github.com/erikh/box/log"
 )
 
@@ -27,29 +26,25 @@ func (d *Docker) stdinCopy(conn net.Conn, errChan chan error, stopChan chan stru
 	}
 }
 
-func (d *Docker) handleRunError(id string, errChan chan error, cancel context.CancelFunc) {
-	err, ok := <-errChan
-	if ok {
-		fmt.Printf("\n\n+++ Run Error: %#v\n", err)
-		cancel()
+func (d *Docker) handleRunError(ctx context.Context, id string, errChan chan error) {
+	select {
+	case <-ctx.Done():
 		d.Destroy(id)
+	case err, ok := <-errChan:
+		if ok {
+			fmt.Printf("\n\n+++ Run Error: %#v\n", err)
+			d.Destroy(id)
+		}
 	}
 }
 
 // RunHook is the run hook for docker agents.
-func (d *Docker) RunHook(id string) (string, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	signal.SetSignal(func() {
-		cancel()
-		d.Destroy(id)
-	})
-	defer signal.SetSignal(nil)
-
+func (d *Docker) RunHook(ctx context.Context, id string) (string, error) {
 	stopChan := make(chan struct{})
 
 	errChan := make(chan error, 1)
 	defer close(errChan)
-	go d.handleRunError(id, errChan, cancel)
+	go d.handleRunError(ctx, id, errChan)
 
 	cearesp, err := d.client.ContainerAttach(ctx, id, types.ContainerAttachOptions{Stream: true, Stdin: d.stdin, Stdout: true, Stderr: true})
 	if err != nil {

@@ -17,13 +17,14 @@ import (
 func runBuilder(script string) (*Builder, error) {
 	b, err := NewBuilder(BuildConfig{
 		Context: context.Background(),
+		Running: make(chan struct{}),
 		Cache:   os.Getenv("NO_CACHE") == "",
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = b.Run(script)
+	_, err = b.Run(script, true)
 	return b, err
 }
 

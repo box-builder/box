@@ -1,28 +1,29 @@
 package docker
 
 import (
+	"context"
 	"errors"
 
 	. "gopkg.in/check.v1"
 )
 
 func (ds *dockerSuite) TestRunCommit(c *C) {
-	commit := func(id string) (string, error) {
+	commit := func(ctx context.Context, id string) (string, error) {
 		return "cachekey", nil
 	}
 
-	fail := func(id string) (string, error) {
+	fail := func(ctx context.Context, id string) (string, error) {
 		return "", errors.New("an error")
 	}
 
-	d, err := NewDocker(false, false)
+	d, err := NewDocker(context.Background(), false, false)
 	c.Assert(err, IsNil)
 	id, err := d.Fetch("debian:latest")
 	c.Assert(err, IsNil)
 	c.Assert(d.Commit("", commit), IsNil)
 	c.Assert(d.config.Image, Not(Equals), id)
 
-	d, err = NewDocker(false, false)
+	d, err = NewDocker(context.Background(), false, false)
 	c.Assert(err, IsNil)
 	id, err = d.Fetch("debian:latest")
 	c.Assert(err, IsNil)
@@ -31,7 +32,7 @@ func (ds *dockerSuite) TestRunCommit(c *C) {
 }
 
 func (ds *dockerSuite) TestRunHook(c *C) {
-	d, err := NewDocker(false, false)
+	d, err := NewDocker(context.Background(), false, false)
 	c.Assert(err, IsNil)
 	id, err := d.Fetch("debian:latest")
 	c.Assert(err, IsNil)
@@ -41,7 +42,7 @@ func (ds *dockerSuite) TestRunHook(c *C) {
 	c.Assert(d.Commit("test", d.RunHook), IsNil)
 	c.Assert(d.config.Image, Not(Equals), id)
 
-	d, err = NewDocker(false, false)
+	d, err = NewDocker(context.Background(), false, false)
 	c.Assert(err, IsNil)
 	id, err = d.Fetch("debian:latest")
 	c.Assert(err, IsNil)

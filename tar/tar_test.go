@@ -2,6 +2,7 @@ package tar
 
 import (
 	"archive/tar"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -24,7 +25,7 @@ func TestTar(t *T) {
 }
 
 func (ts *tarSuite) TestArchive(c *C) {
-	tarball, sum, err := Archive(".", "/")
+	tarball, sum, err := Archive(context.Background(), ".", "/")
 	c.Assert(err, IsNil)
 	c.Assert(sum, Not(Equals), "")
 	c.Assert(tarball, Not(Equals), "")
@@ -57,7 +58,7 @@ func (ts *tarSuite) TestArchiveSpecialFile(c *C) {
 	c.Assert(os.Symlink(tmp.Name(), filepath.Join(dir, "testsym")), IsNil)
 	c.Assert(unix.Mkfifo(filepath.Join(dir, "test.fifo"), 0666), IsNil)
 
-	tarball, _, err := Archive(dir, "/")
+	tarball, _, err := Archive(context.Background(), dir, "/")
 	c.Assert(err, IsNil)
 	c.Assert(tarball, Not(Equals), "")
 	defer os.Remove(tarball)
@@ -104,7 +105,7 @@ func (ts *tarSuite) TestArchiveGlob(c *C) {
 
 	for _, prefix := range prefixes {
 
-		tarball, _, err := Archive(fmt.Sprintf("%s/%s*", dir, prefix), "/")
+		tarball, _, err := Archive(context.Background(), fmt.Sprintf("%s/%s*", dir, prefix), "/")
 		c.Assert(err, IsNil)
 		defer os.Remove(tarball)
 
