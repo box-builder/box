@@ -14,7 +14,6 @@ import (
 	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/builder/config"
 	"github.com/erikh/box/builder/executor"
-	"github.com/erikh/box/builder/signal"
 	"github.com/erikh/box/copy"
 	"github.com/erikh/box/image"
 	"github.com/erikh/box/log"
@@ -32,11 +31,12 @@ type Docker struct {
 	skipLayers   []string
 	doSkipLayers bool
 	layerSet     map[string]struct{}
+	context      context.Context
 }
 
 // NewDocker constructs a new docker instance, for executing against docker
 // engines.
-func NewDocker(useCache, tty bool) (*Docker, error) {
+func NewDocker(ctx context.Context, useCache, tty bool) (*Docker, error) {
 	client, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
@@ -50,6 +50,7 @@ func NewDocker(useCache, tty bool) (*Docker, error) {
 		layerSet:   map[string]struct{}{},
 		layers:     []string{},
 		skipLayers: []string{},
+		context:    ctx,
 	}, nil
 }
 
@@ -58,7 +59,7 @@ func NewDocker(useCache, tty bool) (*Docker, error) {
 func (d *Docker) addImage(image string) error {
 	d.config.Image = image
 
-	resp, _, err := d.client.ImageInspectWithRaw(context.Background(), image)
+	resp, _, err := d.client.ImageInspectWithRaw(d.context, image)
 	if err != nil {
 		return err
 	}
@@ -116,6 +117,11 @@ func (d *Docker) UseTTY(arg bool) {
 	d.tty = arg
 }
 
+// SetContext sets the context for subsequent calls.
+func (d *Docker) SetContext(ctx context.Context) {
+	d.context = ctx
+}
+
 // LoadConfig loads the configuration into the executor.
 func (d *Docker) LoadConfig(c *config.Config) error {
 	d.config = c
@@ -127,20 +133,32 @@ func (d *Docker) Config() *config.Config {
 	return d.config
 }
 
+func (d *Docker) checkContext() error {
+	select {
+	case <-d.context.Done():
+		return d.context.Err()
+	default:
+	}
+
+	return nil
+}
+
 // Commit commits an entry to the layer list.
 func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
+	if err := d.checkContext(); err != nil {
+		return err
+	}
+
 	id, err := d.Create()
 	if err != nil {
 		return err
 	}
 
-	signal.SetSignal(func() { d.Destroy(id) })
-	defer signal.SetSignal(nil)
 	defer d.Destroy(id)
 
 	if hook != nil {
 		// FIXME this cache key handling is terrible.
-		tmp, err := hook(id)
+		tmp, err := hook(d.context, id)
 		if err != nil {
 			return err
 		}
@@ -150,13 +168,17 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 		}
 	}
 
-	commitResp, err := d.client.ContainerCommit(context.Background(), id, types.ContainerCommitOptions{Config: d.config.ToDocker(false, d.tty, d.stdin), Comment: cacheKey})
+	if err := d.checkContext(); err != nil {
+		return err
+	}
+
+	commitResp, err := d.client.ContainerCommit(d.context, id, types.ContainerCommitOptions{Config: d.config.ToDocker(false, d.tty, d.stdin), Comment: cacheKey})
 	if err != nil {
 		return fmt.Errorf("Error during commit: %v", err)
 	}
 
 	// try a clean remove first, otherwise the defer above will take over in a last-ditch attempt
-	err = d.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{})
+	err = d.client.ContainerRemove(d.context, id, types.ContainerRemoveOptions{})
 	if err != nil {
 		return fmt.Errorf("Could not remove intermediate container %q: %v", id, err)
 	}
@@ -205,7 +227,7 @@ func (d *Docker) CopyOneFileFromContainer(fn string) ([]byte, error) {
 
 	defer d.Destroy(id)
 
-	rc, _, err := d.client.CopyFromContainer(context.Background(), id, fn)
+	rc, _, err := d.client.CopyFromContainer(d.context, id, fn)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +262,7 @@ func (d *Docker) CopyOneFileFromContainer(fn string) ([]byte, error) {
 // Create creates a new container based on the existing configuration.
 func (d *Docker) Create() (string, error) {
 	cont, err := d.client.ContainerCreate(
-		context.Background(),
+		d.context,
 		d.config.ToDocker(true, d.tty, d.stdin),
 		nil,
 		nil,
@@ -252,13 +274,13 @@ func (d *Docker) Create() (string, error) {
 
 // Destroy destroys a container for the given id.
 func (d *Docker) Destroy(id string) error {
-	return d.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
+	return d.client.ContainerRemove(d.context, id, types.ContainerRemoveOptions{Force: true})
 }
 
 // CopyFromContainer copies a series of files in a similar fashion to
 // CopyToContainer, just in reverse.
 func (d *Docker) CopyFromContainer(id, path string) (io.Reader, int64, error) {
-	rc, stat, err := d.client.CopyFromContainer(context.Background(), id, path)
+	rc, stat, err := d.client.CopyFromContainer(d.context, id, path)
 	return rc, stat.Size, err
 }
 
@@ -266,7 +288,7 @@ func (d *Docker) CopyFromContainer(id, path string) (io.Reader, int64, error) {
 // containerto the container so it can then be committed. It does not close the
 // reader.
 func (d *Docker) CopyToContainer(id string, r io.Reader) error {
-	return d.client.CopyToContainer(context.Background(), id, "/", r, types.CopyToContainerOptions{})
+	return d.client.CopyToContainer(d.context, id, "/", r, types.CopyToContainerOptions{})
 }
 
 // Flatten copies a tarred up series of files (passed in through the
@@ -296,7 +318,7 @@ func (d *Docker) Flatten(id string, size int64, tw io.Reader) error {
 		}
 	}()
 
-	resp, err := d.client.ImageLoad(context.Background(), r, true)
+	resp, err := d.client.ImageLoad(d.context, r, true)
 	if err != nil {
 		return err
 	}
@@ -319,14 +341,14 @@ func (d *Docker) Flatten(id string, size int64, tw io.Reader) error {
 
 // Tag an image with the provided string.
 func (d *Docker) Tag(tag string) error {
-	return d.client.ImageTag(context.Background(), d.config.Image, tag)
+	return d.client.ImageTag(d.context, d.config.Image, tag)
 }
 
 // Fetch retrieves a docker image, overwrites the container configuration, and returns its id.
 func (d *Docker) Fetch(name string) (string, error) {
-	inspect, _, err := d.client.ImageInspectWithRaw(context.Background(), name)
+	inspect, _, err := d.client.ImageInspectWithRaw(d.context, name)
 	if err != nil {
-		reader, err := d.client.ImagePull(context.Background(), name, types.ImagePullOptions{})
+		reader, err := d.client.ImagePull(d.context, name, types.ImagePullOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -344,7 +366,7 @@ func (d *Docker) Fetch(name string) (string, error) {
 		}
 
 		// this will fallthrough to the assignment below
-		inspect, _, err = d.client.ImageInspectWithRaw(context.Background(), name)
+		inspect, _, err = d.client.ImageInspectWithRaw(d.context, name)
 		if err != nil {
 			return "", err
 		}

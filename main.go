@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/erikh/box/builder"
 	"github.com/erikh/box/log"
 	"github.com/erikh/box/repl"
+	bs "github.com/erikh/box/signal"
 	"github.com/urfave/cli"
 )
 
@@ -94,6 +97,11 @@ func main() {
 			os.Exit(0)
 		}
 
+		signalHandler := bs.NewCancellable()
+		signals := make(chan os.Signal, 1)
+		go signalHandler.SignalHandler(signals)
+		signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
 		args := ctx.Args()
 
 		tty := !ctx.Bool("no-tty")
@@ -107,12 +115,19 @@ func main() {
 			cache = false
 		}
 
+		cancelCtx, cancel := context.WithCancel(context.Background())
+		runChan := make(chan struct{})
+
 		b, err := builder.NewBuilder(builder.BuildConfig{
 			TTY:       tty,
 			OmitFuncs: ctx.StringSlice("omit"),
 			Cache:     cache,
-			Context:   context.Background(),
+			Context:   cancelCtx,
+			Running:   runChan,
 		})
+
+		signalHandler.AddFunc(cancel)
+		signalHandler.AddRunner(runChan)
 
 		if err != nil {
 			panic(err)
@@ -135,7 +150,7 @@ func main() {
 			os.Exit(2)
 		}
 
-		response, err := b.Run(string(content))
+		response, err := b.Run(string(content), true)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)

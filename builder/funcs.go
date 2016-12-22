@@ -51,7 +51,7 @@ func importFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mr
 		return nil, createException(m, err.Error())
 	}
 
-	val, err := b.Run(string(content))
+	val, err := b.Run(string(content), false)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}

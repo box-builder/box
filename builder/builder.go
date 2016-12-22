@@ -10,7 +10,6 @@ import (
 
 	"github.com/erikh/box/builder/executor"
 	"github.com/erikh/box/builder/executor/docker"
-	"github.com/erikh/box/builder/signal"
 	"github.com/erikh/box/copy"
 	"github.com/erikh/box/log"
 	"github.com/fatih/color"
@@ -23,13 +22,16 @@ type BuildConfig struct {
 	TTY       bool
 	OmitFuncs []string
 	Context   context.Context
+	Running   chan struct{}
 }
 
 // Builder implements the builder core.
 type Builder struct {
+	context context.Context
+
 	mrb     *mruby.Mrb
 	exec    executor.Executor
-	context context.Context
+	runChan chan struct{}
 }
 
 func keep(omitFuncs []string, name string) bool {
@@ -48,7 +50,7 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 		copy.NoTTY = true
 	}
 
-	exec, err := NewExecutor("docker", bc.Cache, bc.TTY)
+	exec, err := NewExecutor(bc.Context, "docker", bc.Cache, bc.TTY)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +59,7 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 		mrb:     mruby.NewMrb(),
 		exec:    exec,
 		context: bc.Context,
+		runChan: bc.Running,
 	}
 
 	for name, def := range verbJumpTable {
@@ -75,8 +78,6 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 			builder.mrb.TopSelf().SingletonClass().DefineMethod(name, fn, def.argSpec)
 		}
 	}
-
-	signal.SetSignal(nil)
 
 	return builder, nil
 }
@@ -151,7 +152,13 @@ func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (*mruby.MrbValue, 
 }
 
 // Run the script.
-func (b *Builder) Run(script string) (*mruby.MrbValue, error) {
+func (b *Builder) Run(script string, closeChan bool) (*mruby.MrbValue, error) {
+	defer func() {
+		if closeChan {
+			close(b.runChan)
+		}
+	}()
+
 	if _, err := b.mrb.LoadString(script); err != nil {
 		return nil, err
 	}
@@ -168,6 +175,12 @@ func (b *Builder) Mrb() *mruby.Mrb {
 	return b.mrb
 }
 
+// SetContext sets the execution context.
+func (b *Builder) SetContext(ctx context.Context) {
+	b.context = ctx
+	b.exec.SetContext(ctx)
+}
+
 // Close tears down all functions of the builder, preparing it for exit.
 func (b *Builder) Close() error {
 	b.mrb.EnableGC()
@@ -177,10 +190,10 @@ func (b *Builder) Close() error {
 }
 
 // NewExecutor returns a valid executor for the given name, or error.
-func NewExecutor(name string, useCache, tty bool) (executor.Executor, error) {
+func NewExecutor(ctx context.Context, name string, useCache, tty bool) (executor.Executor, error) {
 	switch name {
 	case "docker":
-		return docker.NewDocker(useCache, tty)
+		return docker.NewDocker(ctx, useCache, tty)
 	}
 
 	return nil, fmt.Errorf("Executor %q not found", name)

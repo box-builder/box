@@ -8,10 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	. "testing"
 	"time"
 
 	"github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/strslice"
 
 	. "gopkg.in/check.v1"
@@ -46,10 +48,31 @@ func (bs *builderSuite) SetUpTest(c *C) {
 	os.Setenv("NO_CACHE", "1")
 }
 
+func (bs *builderSuite) TearDownSuite(c *C) {
+	if os.Getenv("DIND") != "" {
+		containers, err := dockerClient.ContainerList(context.Background(), types.ContainerListOptions{})
+		c.Assert(err, IsNil)
+
+		for _, container := range containers {
+			err := dockerClient.ContainerRemove(context.Background(), container.ID, types.ContainerRemoveOptions{Force: true})
+			c.Assert(err, IsNil)
+		}
+
+		images, err := dockerClient.ImageList(context.Background(), types.ImageListOptions{})
+		c.Assert(err, IsNil)
+
+		for i := 0; i < 2; i++ {
+			for _, image := range images {
+				dockerClient.ImageRemove(context.Background(), image.ID, types.ImageRemoveOptions{Force: true})
+			}
+		}
+	}
+}
+
 func (bs *builderSuite) TestContext(c *C) {
 	toCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 
-	b, err := NewBuilder(BuildConfig{Context: toCtx})
+	b, err := NewBuilder(BuildConfig{Context: toCtx, Running: make(chan struct{})})
 	c.Assert(err, IsNil)
 
 	errChan := make(chan error)
@@ -59,16 +82,16 @@ func (bs *builderSuite) TestContext(c *C) {
 			from "debian"
 			run "sleep 2"
 			run "ls"
-		`)
+		`, true)
 		errChan <- err
 		cancel()
 	}()
 
-	c.Assert((<-errChan).Error(), Equals, context.DeadlineExceeded.Error())
+	c.Assert(strings.Contains((<-errChan).Error(), "context deadline exceeded"), Equals, true)
 	b.Close()
 
-	cancelCtx, cancel := context.WithTimeout(context.Background(), time.Second)
-	b, err = NewBuilder(BuildConfig{Context: cancelCtx})
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	b, err = NewBuilder(BuildConfig{Context: cancelCtx, Running: make(chan struct{})})
 	c.Assert(err, IsNil)
 
 	go func() {
@@ -76,7 +99,7 @@ func (bs *builderSuite) TestContext(c *C) {
 			from "debian"
 			run "sleep 2"
 			run "ls"
-		`)
+		`, true)
 		errChan <- err
 	}()
 
@@ -85,8 +108,7 @@ func (bs *builderSuite) TestContext(c *C) {
 		cancel()
 	}()
 
-	c.Assert((<-errChan).Error(), Equals, context.DeadlineExceeded.Error())
-
+	c.Assert(strings.Contains((<-errChan).Error(), "context canceled"), Equals, true)
 	b.Close()
 }
 

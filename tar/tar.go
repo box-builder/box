@@ -2,6 +2,7 @@ package tar
 
 import (
 	"archive/tar"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/erikh/box/builder/signal"
 	"github.com/erikh/box/copy"
 )
 
@@ -110,10 +110,25 @@ func archiveWalk(rel, target string, tw *tar.Writer) filepath.WalkFunc {
 	}
 }
 
+// FIXME move to utility lib
+func checkContext(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	return nil
+}
+
 // Archive takes a source and target directory and returns a filename and/or
 // error. The source will be archived relative to the target. The file will
 // live in the user's os.TempDir().
-func Archive(rel, target string) (string, string, error) {
+func Archive(ctx context.Context, rel, target string) (string, string, error) {
+	if err := checkContext(ctx); err != nil {
+		return "", "", err
+	}
+
 	entries, err := filepath.Glob(rel)
 	if err != nil {
 		return "", "", err
@@ -124,9 +139,6 @@ func Archive(rel, target string) (string, string, error) {
 		return "", "", err
 	}
 
-	signal.SetSignal(func() { os.Remove(f.Name()) })
-	defer signal.SetSignal(nil)
-
 	hash := sha256.New()
 	r, w := io.Pipe()
 	tw := tar.NewWriter(w)
@@ -135,6 +147,11 @@ func Archive(rel, target string) (string, string, error) {
 	go io.Copy(f, tee)
 
 	for _, entry := range entries {
+		if err := checkContext(ctx); err != nil {
+			os.Remove(f.Name())
+			return "", "", err
+		}
+
 		absentry, err := filepath.Abs(entry)
 		if err != nil {
 			return "", "", err
