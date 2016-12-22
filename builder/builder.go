@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -21,12 +22,14 @@ type BuildConfig struct {
 	Cache     bool
 	TTY       bool
 	OmitFuncs []string
+	Context   context.Context
 }
 
 // Builder implements the builder core.
 type Builder struct {
-	mrb  *mruby.Mrb
-	exec executor.Executor
+	mrb     *mruby.Mrb
+	exec    executor.Executor
+	context context.Context
 }
 
 func keep(omitFuncs []string, name string) bool {
@@ -51,8 +54,9 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 	}
 
 	builder := &Builder{
-		mrb:  mruby.NewMrb(),
-		exec: exec,
+		mrb:     mruby.NewMrb(),
+		exec:    exec,
+		context: bc.Context,
 	}
 
 	for name, def := range verbJumpTable {
@@ -90,6 +94,12 @@ func (b *Builder) ImageID() string {
 
 func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
 	return func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+		select {
+		case <-b.context.Done():
+			return nil, createException(m, b.context.Err().Error())
+		default:
+		}
+
 		strArgs := extractStringArgs(m.GetArgs())
 		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")
 		cacheKey = base64.StdEncoding.EncodeToString([]byte(cacheKey))

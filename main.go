@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -110,12 +111,15 @@ func main() {
 			TTY:       tty,
 			OmitFuncs: ctx.StringSlice("omit"),
 			Cache:     cache,
+			Context:   context.Background(),
 		})
 
 		if err != nil {
 			panic(err)
 		}
+
 		defer b.Close()
+
 		var content []byte
 
 		if len(args) == 1 {

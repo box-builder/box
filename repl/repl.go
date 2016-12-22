@@ -1,6 +1,7 @@
 package repl
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -36,6 +37,7 @@ func NewRepl(omit []string) (*Repl, error) {
 		OmitFuncs: omit,
 		TTY:       true,
 		Cache:     false,
+		Context:   context.Background(),
 	})
 	if err != nil {
 		rl.Close()
@@ -68,7 +70,7 @@ func (r *Repl) Loop() error {
 			return nil
 		}
 
-		if err != nil && err.Error() == "Interrupt" {
+		if _, ok := err.(*readline.InterruptError); ok || err != nil {
 			if line != "" {
 				r.readline.SetPrompt(normalPrompt)
 			} else {
