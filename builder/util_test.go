@@ -15,7 +15,10 @@ import (
 )
 
 func runBuilder(script string) (*Builder, error) {
-	b, err := NewBuilder(BuildConfig{Cache: os.Getenv("NO_CACHE") == ""})
+	b, err := NewBuilder(BuildConfig{
+		Context: context.Background(),
+		Cache:   os.Getenv("NO_CACHE") == "",
+	})
 	if err != nil {
 		return nil, err
 	}

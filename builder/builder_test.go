@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	. "testing"
+	"time"
 
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types/strslice"
@@ -43,6 +44,50 @@ func (bs *builderSuite) SetUpSuite(c *C) {
 
 func (bs *builderSuite) SetUpTest(c *C) {
 	os.Setenv("NO_CACHE", "1")
+}
+
+func (bs *builderSuite) TestContext(c *C) {
+	toCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+
+	b, err := NewBuilder(BuildConfig{Context: toCtx})
+	c.Assert(err, IsNil)
+
+	errChan := make(chan error)
+
+	go func() {
+		_, err := b.Run(`
+			from "debian"
+			run "sleep 2"
+			run "ls"
+		`)
+		errChan <- err
+		cancel()
+	}()
+
+	c.Assert((<-errChan).Error(), Equals, context.DeadlineExceeded.Error())
+	b.Close()
+
+	cancelCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	b, err = NewBuilder(BuildConfig{Context: cancelCtx})
+	c.Assert(err, IsNil)
+
+	go func() {
+		_, err := b.Run(`
+			from "debian"
+			run "sleep 2"
+			run "ls"
+		`)
+		errChan <- err
+	}()
+
+	go func() {
+		time.Sleep(time.Second)
+		cancel()
+	}()
+
+	c.Assert((<-errChan).Error(), Equals, context.DeadlineExceeded.Error())
+
+	b.Close()
 }
 
 func (bs *builderSuite) TestImport(c *C) {
