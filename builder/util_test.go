@@ -24,7 +24,7 @@ func runBuilder(script string) (*Builder, error) {
 		return nil, err
 	}
 
-	_, err = b.Run(script, true)
+	_, err = b.RunScript(script)
 	return b, err
 }
 

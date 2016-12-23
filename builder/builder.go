@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -23,15 +24,17 @@ type BuildConfig struct {
 	OmitFuncs []string
 	Context   context.Context
 	Runner    chan struct{}
+	FileName  string
 }
 
 // Builder implements the builder core.
 type Builder struct {
 	context context.Context
 
-	mrb     *mruby.Mrb
-	exec    executor.Executor
-	runChan chan struct{}
+	mrb      *mruby.Mrb
+	exec     executor.Executor
+	runChan  chan struct{}
+	fileName string
 }
 
 func keep(omitFuncs []string, name string) bool {
@@ -56,10 +59,11 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 	}
 
 	builder := &Builder{
-		mrb:     mruby.NewMrb(),
-		exec:    exec,
-		context: bc.Context,
-		runChan: bc.Runner,
+		mrb:      mruby.NewMrb(),
+		exec:     exec,
+		context:  bc.Context,
+		runChan:  bc.Runner,
+		fileName: bc.FileName,
 	}
 
 	for name, def := range verbJumpTable {
@@ -133,7 +137,8 @@ func (b *Builder) AddVerb(name string, vd *verbDefinition) {
 	b.mrb.TopSelf().SingletonClass().DefineMethod(name, b.wrapVerbFunc(name, vd), vd.argSpec)
 }
 
-// RunCode runs the ruby value (a proc) and returns the result.
+// RunCode runs the ruby value (a proc) and returns the result. It does not
+// close the run channel.
 func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (*mruby.MrbValue, int, error) {
 	keep, res, err := b.mrb.RunWithContext(val, b.mrb.TopSelf(), stackKeep)
 	if err != nil {
@@ -151,14 +156,22 @@ func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (*mruby.MrbValue, 
 	return mruby.String(b.exec.ImageID()).MrbValue(b.mrb), keep, nil
 }
 
-// Run the script.
-func (b *Builder) Run(script string, closeChan bool) (*mruby.MrbValue, error) {
-	defer func() {
-		if closeChan {
-			close(b.runChan)
-		}
-	}()
+// Run runs the script set by the BuildConfig. It closes the run channel when
+// it finishes.
+func (b *Builder) Run() (*mruby.MrbValue, error) {
+	defer close(b.runChan)
 
+	// consolidate this and runscript
+	script, err := ioutil.ReadFile(b.fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.RunScript(string(script))
+}
+
+// RunScript runs the provided script. It does not close the run channel.
+func (b *Builder) RunScript(script string) (*mruby.MrbValue, error) {
 	if _, err := b.mrb.LoadString(script); err != nil {
 		return nil, err
 	}
