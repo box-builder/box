@@ -180,6 +180,8 @@ func (b *Builder) RunScript(script string) (*mruby.MrbValue, error) {
 		return nil, err
 	}
 
+	b.exec.CleanupImages()
+
 	return mruby.String(b.exec.ImageID()).MrbValue(b.mrb), nil
 }
 
