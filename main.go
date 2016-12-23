@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"strings"
@@ -104,6 +103,12 @@ func main() {
 
 		args := ctx.Args()
 
+		if len(args) < 1 {
+			cli.ShowAppHelp(ctx)
+			log.Error("Please provide a filename to process!")
+			os.Exit(1)
+		}
+
 		tty := !ctx.Bool("no-tty")
 
 		if !term.IsTerminal(0) {
@@ -123,7 +128,8 @@ func main() {
 			OmitFuncs: ctx.StringSlice("omit"),
 			Cache:     cache,
 			Context:   cancelCtx,
-			Running:   runChan,
+			Runner:    runChan,
+			FileName:  args[0],
 		})
 
 		signalHandler.AddFunc(cancel)
@@ -135,22 +141,7 @@ func main() {
 
 		defer b.Close()
 
-		var content []byte
-
-		if len(args) == 1 {
-			content, err = ioutil.ReadFile(args[0])
-		} else {
-			cli.ShowAppHelp(ctx)
-			log.Error("Please provide a filename to process!")
-			os.Exit(1)
-		}
-
-		if err != nil {
-			log.Error(err)
-			os.Exit(2)
-		}
-
-		response, err := b.Run(string(content), true)
+		response, err := b.Run()
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
