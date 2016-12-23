@@ -34,7 +34,7 @@ run-test:
 
 test-ci: checks build-ci run-test-ci
 
-test: checks build run-test
+test: checks all build run-test
 
 release: clean all test
 	RELEASE=1 go run main.go -t erikh/box:${VERSION} build.rb
