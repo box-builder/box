@@ -85,4 +85,7 @@ type Executor interface {
 	// layers must be pre-recorded within the executor.
 	// It returns an error condition, if any.
 	MakeImage() error
+
+	// CleanupImages cleans up all intermediate images.
+	CleanupImages()
 }

@@ -32,6 +32,8 @@ type Docker struct {
 	doSkipLayers bool
 	layerSet     map[string]struct{}
 	context      context.Context
+	images       []string
+	protect      []string
 }
 
 // NewDocker constructs a new docker instance, for executing against docker
@@ -50,6 +52,8 @@ func NewDocker(ctx context.Context, useCache, tty bool) (*Docker, error) {
 		layerSet:   map[string]struct{}{},
 		layers:     []string{},
 		skipLayers: []string{},
+		images:     []string{},
+		protect:    []string{},
 		context:    ctx,
 	}, nil
 }
@@ -58,6 +62,7 @@ func NewDocker(ctx context.Context, useCache, tty bool) (*Docker, error) {
 // appearance. Any existing layers are skipped over, removing them from the list.
 func (d *Docker) addImage(image string) error {
 	d.config.Image = image
+	d.images = append(d.images, image)
 
 	resp, _, err := d.client.ImageInspectWithRaw(d.context, image)
 	if err != nil {
@@ -341,6 +346,7 @@ func (d *Docker) Flatten(id string, size int64, tw io.Reader) error {
 
 // Tag an image with the provided string.
 func (d *Docker) Tag(tag string) error {
+	d.protect = append(d.protect, d.config.Image)
 	return d.client.ImageTag(d.context, d.config.Image, tag)
 }
 
@@ -374,6 +380,24 @@ func (d *Docker) Fetch(name string) (string, error) {
 
 	d.config.FromDocker(inspect.Config)
 	d.config.Image = inspect.ID
+	d.protect = append(d.protect, inspect.ID)
 	d.layers = inspect.RootFS.Layers
 	return inspect.ID, nil
+}
+
+// CleanupImages cleans up all intermediate images.
+func (d *Docker) CleanupImages() {
+	if len(d.images) > 1 {
+		for _, image := range d.images[:len(d.images)-2] {
+			for _, protect := range d.protect {
+				if image == protect {
+					goto skip
+				}
+			}
+			// do not check errors because sometimes, the layers can't be deleted and
+			// we want to ignore that behavior.
+			d.client.ImageRemove(d.context, image, types.ImageRemoveOptions{PruneChildren: true})
+		skip:
+		}
+	}
 }
