@@ -22,7 +22,7 @@ type BuildConfig struct {
 	TTY       bool
 	OmitFuncs []string
 	Context   context.Context
-	Running   chan struct{}
+	Runner    chan struct{}
 }
 
 // Builder implements the builder core.
@@ -59,7 +59,7 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 		mrb:     mruby.NewMrb(),
 		exec:    exec,
 		context: bc.Context,
-		runChan: bc.Running,
+		runChan: bc.Runner,
 	}
 
 	for name, def := range verbJumpTable {

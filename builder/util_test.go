@@ -17,7 +17,7 @@ import (
 func runBuilder(script string) (*Builder, error) {
 	b, err := NewBuilder(BuildConfig{
 		Context: context.Background(),
-		Running: make(chan struct{}),
+		Runner:  make(chan struct{}),
 		Cache:   os.Getenv("NO_CACHE") == "",
 	})
 	if err != nil {

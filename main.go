@@ -123,7 +123,7 @@ func main() {
 			OmitFuncs: ctx.StringSlice("omit"),
 			Cache:     cache,
 			Context:   cancelCtx,
-			Running:   runChan,
+			Runner:    runChan,
 		})
 
 		signalHandler.AddFunc(cancel)

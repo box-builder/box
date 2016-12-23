@@ -72,7 +72,7 @@ func (bs *builderSuite) TearDownSuite(c *C) {
 func (bs *builderSuite) TestContext(c *C) {
 	toCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 
-	b, err := NewBuilder(BuildConfig{Context: toCtx, Running: make(chan struct{})})
+	b, err := NewBuilder(BuildConfig{Context: toCtx, Runner: make(chan struct{})})
 	c.Assert(err, IsNil)
 
 	errChan := make(chan error)
@@ -91,7 +91,7 @@ func (bs *builderSuite) TestContext(c *C) {
 	b.Close()
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
-	b, err = NewBuilder(BuildConfig{Context: cancelCtx, Running: make(chan struct{})})
+	b, err = NewBuilder(BuildConfig{Context: cancelCtx, Runner: make(chan struct{})})
 	c.Assert(err, IsNil)
 
 	go func() {
