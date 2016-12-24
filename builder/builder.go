@@ -29,16 +29,13 @@ type BuildConfig struct {
 
 // Builder implements the builder core.
 type Builder struct {
-	context context.Context
-
-	mrb      *mruby.Mrb
-	exec     executor.Executor
-	runChan  chan struct{}
-	fileName string
+	config *BuildConfig
+	mrb    *mruby.Mrb
+	exec   executor.Executor
 }
 
-func keep(omitFuncs []string, name string) bool {
-	for _, fun := range omitFuncs {
+func (b *Builder) keep(name string) bool {
+	for _, fun := range b.config.OmitFuncs {
 		if name == fun {
 			return false
 		}
@@ -59,21 +56,19 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 	}
 
 	builder := &Builder{
-		mrb:      mruby.NewMrb(),
-		exec:     exec,
-		context:  bc.Context,
-		runChan:  bc.Runner,
-		fileName: bc.FileName,
+		config: &bc,
+		mrb:    mruby.NewMrb(),
+		exec:   exec,
 	}
 
 	for name, def := range verbJumpTable {
-		if keep(bc.OmitFuncs, name) {
+		if builder.keep(name) {
 			builder.AddVerb(name, def)
 		}
 	}
 
 	for name, def := range funcJumpTable {
-		if keep(bc.OmitFuncs, name) {
+		if builder.keep(name) {
 			inner := def.fun
 			fn := func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 				return inner(builder, m, self)
@@ -100,8 +95,8 @@ func (b *Builder) ImageID() string {
 func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
 	return func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 		select {
-		case <-b.context.Done():
-			return nil, createException(m, b.context.Err().Error())
+		case <-b.config.Context.Done():
+			return nil, createException(m, b.config.Context.Err().Error())
 		default:
 		}
 
@@ -159,10 +154,10 @@ func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (*mruby.MrbValue, 
 // Run runs the script set by the BuildConfig. It closes the run channel when
 // it finishes.
 func (b *Builder) Run() (*mruby.MrbValue, error) {
-	defer close(b.runChan)
+	defer close(b.config.Runner)
 
 	// consolidate this and runscript
-	script, err := ioutil.ReadFile(b.fileName)
+	script, err := ioutil.ReadFile(b.config.FileName)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +187,7 @@ func (b *Builder) Mrb() *mruby.Mrb {
 
 // SetContext sets the execution context.
 func (b *Builder) SetContext(ctx context.Context) {
-	b.context = ctx
+	b.config.Context = ctx
 	b.exec.SetContext(ctx)
 }
 
