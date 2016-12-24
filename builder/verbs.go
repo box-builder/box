@@ -412,7 +412,7 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		}
 	}
 
-	fn, cacheKey, err := tar.Archive(b.context, rel, target)
+	fn, cacheKey, err := tar.Archive(b.config.Context, rel, target)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
