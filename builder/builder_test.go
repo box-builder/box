@@ -78,12 +78,12 @@ func (bs *builderSuite) TestContext(c *C) {
 	errChan := make(chan error)
 
 	go func() {
-		_, err := b.RunScript(`
+		result := b.RunScript(`
 			from "debian"
 			run "sleep 2"
 			run "ls"
 		`)
-		errChan <- err
+		errChan <- result.Err
 		cancel()
 	}()
 
@@ -95,12 +95,12 @@ func (bs *builderSuite) TestContext(c *C) {
 	c.Assert(err, IsNil)
 
 	go func() {
-		_, err := b.RunScript(`
+		result := b.RunScript(`
 			from "debian"
 			run "sleep 2"
 			run "ls"
 		`)
-		errChan <- err
+		errChan <- result.Err
 	}()
 
 	go func() {

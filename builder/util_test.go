@@ -24,8 +24,8 @@ func runBuilder(script string) (*Builder, error) {
 		return nil, err
 	}
 
-	_, err = b.RunScript(script)
-	return b, err
+	result := b.RunScript(script)
+	return b, result.Err
 }
 
 func readContainerFile(c *C, b *Builder, fn string) []byte {
