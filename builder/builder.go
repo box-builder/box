@@ -20,15 +20,24 @@ import (
 // BuildConfig is a struct containing the configuration for the builder.
 type BuildConfig struct {
 	Cache     bool
-	TTY       bool
+	TTY       bool // controls terminal codes
+	ShowRun   bool
 	OmitFuncs []string
 	Context   context.Context
 	Runner    chan struct{}
 	FileName  string
 }
 
+// BuildResult is an encapsulated tuple of *mruby.MrbValue and error used for
+// communicating... build results.
+type BuildResult struct {
+	Value *mruby.MrbValue
+	Err   error
+}
+
 // Builder implements the builder core.
 type Builder struct {
+	result BuildResult
 	config *BuildConfig
 	mrb    *mruby.Mrb
 	exec   executor.Executor
@@ -50,7 +59,7 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 		copy.NoTTY = true
 	}
 
-	exec, err := NewExecutor(bc.Context, "docker", bc.Cache, bc.TTY)
+	exec, err := NewExecutor(bc.Context, "docker", bc.ShowRun, bc.Cache, bc.TTY)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +105,11 @@ func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
 	return func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 		select {
 		case <-b.config.Context.Done():
-			return nil, createException(m, b.config.Context.Err().Error())
+			if b.config.Context.Err() != nil {
+				return nil, createException(m, b.config.Context.Err().Error())
+			}
+
+			return nil, nil
 		default:
 		}
 
@@ -134,55 +147,90 @@ func (b *Builder) AddVerb(name string, vd *verbDefinition) {
 
 // RunCode runs the ruby value (a proc) and returns the result. It does not
 // close the run channel.
-func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (*mruby.MrbValue, int, error) {
+func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (BuildResult, int) {
 	keep, res, err := b.mrb.RunWithContext(val, b.mrb.TopSelf(), stackKeep)
+
+	b.result = BuildResult{
+		Value: res,
+		Err:   err,
+	}
+
 	if err != nil {
-		return nil, keep, err
+		return b.result, keep
 	}
 
 	if res != nil {
-		return res, keep, err
+		b.result = BuildResult{
+			Value: res,
+		}
+		return b.result, keep
 	}
 
 	if err := b.exec.MakeImage(); err != nil {
-		return nil, keep, err
+		b.result.Value = nil
+		b.result.Err = err
+		return b.result, keep
 	}
 
-	return mruby.String(b.exec.ImageID()).MrbValue(b.mrb), keep, nil
+	b.result.Value = mruby.String(b.exec.ImageID()).MrbValue(b.mrb)
+	b.result.Err = nil
+
+	return b.result, keep
+}
+
+// Result returns the latest cached result from any run invocation. The
+// behavior is undefined if called before any Run()-style invocation.
+func (b *Builder) Result() BuildResult {
+	return b.result
 }
 
 // Run runs the script set by the BuildConfig. It closes the run channel when
 // it finishes.
-func (b *Builder) Run() (*mruby.MrbValue, error) {
+func (b *Builder) Run() BuildResult {
 	defer close(b.config.Runner)
 
 	// consolidate this and runscript
 	script, err := ioutil.ReadFile(b.config.FileName)
 	if err != nil {
-		return nil, err
+		return BuildResult{Err: err}
 	}
 
 	return b.RunScript(string(script))
 }
 
 // RunScript runs the provided script. It does not close the run channel.
-func (b *Builder) RunScript(script string) (*mruby.MrbValue, error) {
+func (b *Builder) RunScript(script string) BuildResult {
+	b.result = BuildResult{}
 	if _, err := b.mrb.LoadString(script); err != nil {
-		return nil, err
+		b.result.Err = err
+		return b.result
 	}
 
 	if err := b.exec.MakeImage(); err != nil {
-		return nil, err
+		b.result.Err = err
+		return b.result
 	}
 
 	b.exec.CleanupImages()
 
-	return mruby.String(b.exec.ImageID()).MrbValue(b.mrb), nil
+	b.result.Value = mruby.String(b.exec.ImageID()).MrbValue(b.mrb)
+	return b.result
 }
 
 // Mrb returns the mrb (mruby) instance the builder is using.
 func (b *Builder) Mrb() *mruby.Mrb {
 	return b.mrb
+}
+
+// FileName returns the filename that invoked the build.
+func (b *Builder) FileName() string {
+	return b.config.FileName
+}
+
+// Wait waits for the build to complete.
+func (b *Builder) Wait() BuildResult {
+	<-b.config.Runner
+	return b.result
 }
 
 // SetContext sets the execution context.
@@ -200,10 +248,10 @@ func (b *Builder) Close() error {
 }
 
 // NewExecutor returns a valid executor for the given name, or error.
-func NewExecutor(ctx context.Context, name string, useCache, tty bool) (executor.Executor, error) {
+func NewExecutor(ctx context.Context, name string, showRun, useCache, tty bool) (executor.Executor, error) {
 	switch name {
 	case "docker":
-		return docker.NewDocker(ctx, useCache, tty)
+		return docker.NewDocker(ctx, showRun, useCache, tty)
 	}
 
 	return nil, fmt.Errorf("Executor %q not found", name)

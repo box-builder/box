@@ -16,14 +16,14 @@ func (ds *dockerSuite) TestRunCommit(c *C) {
 		return "", errors.New("an error")
 	}
 
-	d, err := NewDocker(context.Background(), false, false)
+	d, err := NewDocker(context.Background(), true, false, false)
 	c.Assert(err, IsNil)
 	id, err := d.Fetch("debian:latest")
 	c.Assert(err, IsNil)
 	c.Assert(d.Commit("", commit), IsNil)
 	c.Assert(d.config.Image, Not(Equals), id)
 
-	d, err = NewDocker(context.Background(), false, false)
+	d, err = NewDocker(context.Background(), true, false, false)
 	c.Assert(err, IsNil)
 	id, err = d.Fetch("debian:latest")
 	c.Assert(err, IsNil)
@@ -32,7 +32,7 @@ func (ds *dockerSuite) TestRunCommit(c *C) {
 }
 
 func (ds *dockerSuite) TestRunHook(c *C) {
-	d, err := NewDocker(context.Background(), false, false)
+	d, err := NewDocker(context.Background(), true, false, false)
 	c.Assert(err, IsNil)
 	id, err := d.Fetch("debian:latest")
 	c.Assert(err, IsNil)
@@ -42,7 +42,7 @@ func (ds *dockerSuite) TestRunHook(c *C) {
 	c.Assert(d.Commit("test", d.RunHook), IsNil)
 	c.Assert(d.config.Image, Not(Equals), id)
 
-	d, err = NewDocker(context.Background(), false, false)
+	d, err = NewDocker(context.Background(), true, false, false)
 	c.Assert(err, IsNil)
 	id, err = d.Fetch("debian:latest")
 	c.Assert(err, IsNil)

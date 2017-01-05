@@ -72,7 +72,7 @@ func (r *Repl) Loop() error {
 
 	var line string
 	var stackKeep int
-	var val *mruby.MrbValue
+	var result builder.BuildResult
 
 	p := mruby.NewParser(r.builder.Mrb())
 	compileContext := mruby.NewCompileContext(r.builder.Mrb())
@@ -118,16 +118,16 @@ func (r *Repl) Loop() error {
 		r.builder.SetContext(ctx)
 		r.signalHandler.AddFunc(cancel)
 
-		val, stackKeep, err = r.builder.RunCode(p.GenerateCode(), stackKeep)
+		result, stackKeep = r.builder.RunCode(p.GenerateCode(), stackKeep)
 		line = ""
 		r.readline.SetPrompt(normalPrompt)
-		if err != nil {
-			fmt.Printf("+++ Error: %v\n", err)
+		if result.Err != nil {
+			fmt.Printf("+++ Error: %v\n", result.Err)
 			continue
 		}
 
-		if val.String() != "" {
-			fmt.Println(val)
+		if result.Value.String() != "" {
+			fmt.Println(result.Value)
 		}
 	}
 }

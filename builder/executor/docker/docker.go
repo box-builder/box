@@ -21,6 +21,7 @@ import (
 
 // Docker implements an executor that talks to docker to achieve its goals.
 type Docker struct {
+	showRun      bool
 	client       *client.Client
 	config       *config.Config
 	from         string
@@ -38,13 +39,14 @@ type Docker struct {
 
 // NewDocker constructs a new docker instance, for executing against docker
 // engines.
-func NewDocker(ctx context.Context, useCache, tty bool) (*Docker, error) {
+func NewDocker(ctx context.Context, showRun, useCache, tty bool) (*Docker, error) {
 	client, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
 	}
 
 	return &Docker{
+		showRun:    showRun,
 		tty:        tty,
 		useCache:   useCache,
 		client:     client,

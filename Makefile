@@ -1,9 +1,11 @@
-PACKAGES := ./cli-tests ./builder ./builder/executor/docker ./image ./tar
+PACKAGES := ./cli-tests ./builder ./builder/executor/docker ./image ./tar ./multi
 
 all: checks install
 
-install:
+fetch:
 	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell pwd)/mruby_config.rb make
+
+install: fetch
 	go install -v .
 
 clean:
@@ -17,7 +19,7 @@ bootstrap:
 
 bootstrap-test: bootstrap run-test
 
-checks:
+checks: fetch
 	@sh checks.sh
  
 build:

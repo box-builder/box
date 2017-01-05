@@ -51,12 +51,12 @@ func importFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mr
 		return nil, createException(m, err.Error())
 	}
 
-	val, err := b.RunScript(string(content))
-	if err != nil {
-		return nil, createException(m, err.Error())
+	result := b.RunScript(string(content))
+	if result.Err != nil {
+		return nil, createException(m, result.Err.Error())
 	}
 
-	return val, nil
+	return result.Value, nil
 }
 
 // getenv retrieves a value from the building environment (passed in as string)

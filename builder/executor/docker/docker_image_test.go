@@ -15,7 +15,7 @@ import (
 func (ds *dockerSuite) TestMakeImage(c *C) {
 	imageName := "ubuntu"
 
-	d, err := NewDocker(context.Background(), true, ds.tty)
+	d, err := NewDocker(context.Background(), true, true, ds.tty)
 	c.Assert(err, IsNil)
 
 	_, err = d.Fetch(imageName)
