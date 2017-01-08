@@ -18,7 +18,6 @@ import (
 	"strings"
 
 	"github.com/erikh/box/copy"
-	"github.com/erikh/box/log"
 	"github.com/erikh/box/tar"
 	mruby "github.com/mitchellh/go-mruby"
 )
@@ -203,7 +202,7 @@ func tag(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		return nil, createException(m, err.Error())
 	}
 
-	log.Tag(name)
+	b.logger.Tag(name)
 
 	return nil, nil
 }

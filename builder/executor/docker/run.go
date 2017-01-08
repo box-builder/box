@@ -11,7 +11,6 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/term"
 	"github.com/docker/engine-api/types"
-	"github.com/erikh/box/log"
 )
 
 func (d *Docker) stdinCopy(conn net.Conn, errChan chan error, stopChan chan struct{}) {
@@ -31,12 +30,12 @@ func (d *Docker) handleRunError(ctx context.Context, id string, errChan chan err
 	select {
 	case <-ctx.Done():
 		if err := ctx.Err(); err != nil {
-			log.Error(err)
+
 		}
 		d.Destroy(id)
 	case err, ok := <-errChan:
 		if ok {
-			log.Error(err)
+			d.logger.Error(err)
 			d.Destroy(id)
 		}
 	}
@@ -108,8 +107,8 @@ func (d *Docker) startAndWait(ctx context.Context, id string, reader io.Reader, 
 	var writer io.Writer = os.Stdout
 
 	if !d.stdin && d.showRun {
-		log.BeginOutput()
-		defer log.EndOutput()
+		d.logger.BeginOutput()
+		defer d.logger.EndOutput()
 	}
 
 	if !d.showRun {

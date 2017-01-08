@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/erikh/box/builder"
-	"github.com/erikh/box/log"
+	"github.com/erikh/box/logger"
 )
 
 // Builder is the entrypoint to the multi-build system. It contains several
@@ -27,6 +27,8 @@ func (b *Builder) Build() {
 
 // Wait waits for all builds to complete.
 func (b *Builder) Wait() error {
+	log := logger.New("multi")
+
 	resChan := make(chan builder.BuildResult, len(b.builders))
 
 	for _, br := range b.builders {
