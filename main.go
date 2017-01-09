@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/erikh/box/builder"
+	"github.com/erikh/box/copy"
 	"github.com/erikh/box/logger"
 	"github.com/erikh/box/multi"
 	"github.com/erikh/box/repl"
@@ -186,6 +187,8 @@ func main() {
 }
 
 func runMulti(ctx *cli.Context) {
+	copy.NoOut = true
+
 	builders := []*builder.Builder{}
 	log := logger.New("main")
 
