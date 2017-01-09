@@ -13,6 +13,9 @@ import (
 // NoTTY turns the progress meters off
 var NoTTY bool
 
+// NoOut turns copy output off entirely
+var NoOut bool
+
 const megaByte = float64(1024 * 1024)
 const readerSize = 4096
 
@@ -51,6 +54,10 @@ func WithProgress(writer io.Writer, reader io.Reader, prefix string) error {
 		}
 		if err != nil {
 			return err
+		}
+
+		if NoOut {
+			goto write
 		}
 
 		if time.Since(t) > 100*time.Millisecond && !NoTTY && wsz.Width != 0 {
