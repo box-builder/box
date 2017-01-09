@@ -8,6 +8,8 @@ Some features that differentiate it from `docker build`:
 * Unique general features:
     * mruby syntax
     * filtering of keywords to secure builds
+    * Simultaneous build of multiple projects
+    * Read-Eval-Print-Loop (Shell) mode
 * In the build plan itself:
     * Tagging
     * Flattening
@@ -73,6 +75,20 @@ For additional flags and functionality, see the help:
 ```bash
 $ box --help
 ```
+
+### With Multiple Plans
+
+To initiate multi-plan builds (where all builds are done at the same time) just
+invoke `box multi` and specify all the plans you want, e.g.:
+
+```
+$ box multi *.rb
+```
+
+Which will build all the `.rb` files in the current dir.
+
+**Note**: it is important to use the [tag](/user-guide/verbs/#tag) verb to
+avoid losing track of your images!
 
 ## Making Box Scripts
 
