@@ -12,7 +12,7 @@ import (
 	"github.com/erikh/box/builder/executor"
 	"github.com/erikh/box/builder/executor/docker"
 	"github.com/erikh/box/copy"
-	"github.com/erikh/box/log"
+	"github.com/erikh/box/logger"
 	"github.com/fatih/color"
 	mruby "github.com/mitchellh/go-mruby"
 )
@@ -41,6 +41,7 @@ type Builder struct {
 	config *BuildConfig
 	mrb    *mruby.Mrb
 	exec   executor.Executor
+	logger *logger.Logger
 }
 
 func (b *Builder) keep(name string) bool {
@@ -59,7 +60,9 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 		copy.NoTTY = true
 	}
 
-	exec, err := NewExecutor(bc.Context, "docker", bc.ShowRun, bc.Cache, bc.TTY)
+	log := logger.New(bc.FileName)
+
+	exec, err := NewExecutor(bc.Context, "docker", log, bc.ShowRun, bc.Cache, bc.TTY)
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +71,7 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 		config: &bc,
 		mrb:    mruby.NewMrb(),
 		exec:   exec,
+		logger: log,
 	}
 
 	for name, def := range verbJumpTable {
@@ -117,7 +121,7 @@ func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
 		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")
 		cacheKey = base64.StdEncoding.EncodeToString([]byte(cacheKey))
 
-		log.BuildStep(name, strings.Join(strArgs, ", "))
+		b.logger.BuildStep(name, strings.Join(strArgs, ", "))
 
 		if os.Getenv("BOX_DEBUG") != "" {
 			content, _ := json.MarshalIndent(b.exec.Config(), "", "  ")
@@ -248,10 +252,10 @@ func (b *Builder) Close() error {
 }
 
 // NewExecutor returns a valid executor for the given name, or error.
-func NewExecutor(ctx context.Context, name string, showRun, useCache, tty bool) (executor.Executor, error) {
+func NewExecutor(ctx context.Context, name string, log *logger.Logger, showRun, useCache, tty bool) (executor.Executor, error) {
 	switch name {
 	case "docker":
-		return docker.NewDocker(ctx, showRun, useCache, tty)
+		return docker.NewDocker(ctx, log, showRun, useCache, tty)
 	}
 
 	return nil, fmt.Errorf("Executor %q not found", name)

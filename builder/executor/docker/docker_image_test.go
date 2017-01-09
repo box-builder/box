@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/erikh/box/image"
+	"github.com/erikh/box/logger"
 
 	. "gopkg.in/check.v1"
 )
@@ -15,7 +16,7 @@ import (
 func (ds *dockerSuite) TestMakeImage(c *C) {
 	imageName := "ubuntu"
 
-	d, err := NewDocker(context.Background(), true, true, ds.tty)
+	d, err := NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
 	c.Assert(err, IsNil)
 
 	_, err = d.Fetch(imageName)

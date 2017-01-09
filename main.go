@@ -11,7 +11,7 @@ import (
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/erikh/box/builder"
-	"github.com/erikh/box/log"
+	"github.com/erikh/box/logger"
 	"github.com/erikh/box/multi"
 	"github.com/erikh/box/repl"
 	bs "github.com/erikh/box/signal"
@@ -106,6 +106,8 @@ func main() {
 		},
 	}
 
+	log := logger.New("main")
+
 	app.Action = func(ctx *cli.Context) {
 		if ctx.Bool("help") {
 			cli.ShowAppHelp(ctx)
@@ -113,6 +115,8 @@ func main() {
 		}
 
 		args := ctx.Args()
+
+		log := logger.New(args[0])
 
 		if len(args) < 1 {
 			cli.ShowAppHelp(ctx)
@@ -183,6 +187,7 @@ func main() {
 
 func runMulti(ctx *cli.Context) {
 	builders := []*builder.Builder{}
+	log := logger.New("main")
 
 	args := ctx.Args()
 	if len(args) < 1 {
@@ -231,6 +236,7 @@ func getCache(ctx *cli.Context) bool {
 }
 
 func runRepl(ctx *cli.Context) {
+	log := logger.New("repl")
 	r, err := repl.NewRepl(ctx.GlobalStringSlice("omit"))
 	if err != nil {
 		log.Error(fmt.Sprintf("bootstrapping repl: %v\n", err))

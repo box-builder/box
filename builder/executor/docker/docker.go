@@ -16,7 +16,7 @@ import (
 	"github.com/erikh/box/builder/executor"
 	"github.com/erikh/box/copy"
 	"github.com/erikh/box/image"
-	"github.com/erikh/box/log"
+	"github.com/erikh/box/logger"
 )
 
 // Docker implements an executor that talks to docker to achieve its goals.
@@ -35,11 +35,12 @@ type Docker struct {
 	context      context.Context
 	images       []string
 	protect      []string
+	logger       *logger.Logger
 }
 
 // NewDocker constructs a new docker instance, for executing against docker
 // engines.
-func NewDocker(ctx context.Context, showRun, useCache, tty bool) (*Docker, error) {
+func NewDocker(ctx context.Context, log *logger.Logger, showRun, useCache, tty bool) (*Docker, error) {
 	client, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
@@ -57,6 +58,7 @@ func NewDocker(ctx context.Context, showRun, useCache, tty bool) (*Docker, error
 		images:     []string{},
 		protect:    []string{},
 		context:    ctx,
+		logger:     log,
 	}, nil
 }
 
@@ -214,7 +216,7 @@ func (d *Docker) CheckCache(cacheKey string) (bool, error) {
 			}
 
 			if inspect.Comment == cacheKey {
-				log.CacheHit(img.ID)
+				d.logger.CacheHit(img.ID)
 				d.config.FromDocker(inspect.Config)
 				return true, d.addImage(img.ID)
 			}
