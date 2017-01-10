@@ -146,8 +146,10 @@ func (ms *multiSuite) TestBuilderBasic(c *C) {
 	filtered := []types.Image{}
 
 	for _, img := range images {
-		if strings.HasPrefix(img.RepoTags[0], "success") {
-			filtered = append(filtered, img)
+		if len(img.RepoTags) != 0 {
+			if strings.HasPrefix(img.RepoTags[0], "success") {
+				filtered = append(filtered, img)
+			}
 		}
 	}
 
@@ -169,8 +171,10 @@ func (ms *multiSuite) TestBuilderBasic(c *C) {
 	filtered = []types.Image{}
 
 	for _, img := range images {
-		if strings.HasPrefix(img.RepoTags[0], "fail") {
-			filtered = append(filtered, img)
+		if len(img.RepoTags) != 0 {
+			if strings.HasPrefix(img.RepoTags[0], "fail") {
+				filtered = append(filtered, img)
+			}
 		}
 	}
 
