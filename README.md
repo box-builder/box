@@ -13,6 +13,7 @@ before, writing a box build plan is easy.
   * mruby syntax
   * filtering of keywords to secure builds
   * REPL (shell) for interactive building (see video below)
+  * Multiple builds at once: build whole projects worth of images
 * In the build plan itself:
   * Tagging
   * Flattening
