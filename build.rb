@@ -1,7 +1,7 @@
 from "golang"
 
 skip do
-  DOCKER_VERSION = "1.12.4"
+  DOCKER_VERSION = "1.12.6"
 
   PACKAGES = %w[
     build-essential
