@@ -117,13 +117,15 @@ func main() {
 
 		args := ctx.Args()
 
-		log := logger.New(args[0])
+		log := logger.New("main")
 
 		if len(args) < 1 {
 			cli.ShowAppHelp(ctx)
 			log.Error("Please provide a filename to process!")
 			os.Exit(1)
 		}
+
+		log = logger.New(args[0])
 
 		tty := !ctx.Bool("no-tty")
 
