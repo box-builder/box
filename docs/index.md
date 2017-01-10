@@ -49,7 +49,7 @@ This video gives a quick demo of the shell:
 
 <iframe width="100%" height="640" src="https://www.youtube.com/embed/znCfrabMUs0" frameborder="0" allowfullscreen></iframe>
 
-### With a plan
+### With a Plan 
 
 The commandline tool `box` accepts a file (your "build plan") as a commandline
 argument:
@@ -90,16 +90,16 @@ Which will build all the `.rb` files in the current dir.
 **Note**: it is important to use the [tag](/user-guide/verbs/#tag) verb to
 avoid losing track of your images!
 
-## Making Box Scripts
+## Making Box Plans
 
-Box scripts are written in mruby, an embedded, smaller variant of ruby. If you
+Box plans are written in mruby, an embedded, smaller variant of ruby. If you
 are new to ruby, here is a tutorial that only [covers the basics](https://github.com/jhotta/chef-fundamentals-ja/blob/master/slides/just-enough-ruby-for-chef/01_slide.md#variables)
 You will not need to be an advanced ruby user to leverage Box.
 
-Box script terms are either functions or verbs.
+Box plan terms are either functions or verbs.
 
 Verbs typically create a layer and are meant to run at the top level of the
-script; they are not intended to return a sane value other than success/fail.
+plan; they are not intended to return a sane value other than success/fail.
 Operations like `run` and `copy` fit into the "verb" category. These are very
 similar to the verbs you'd find in `docker build`.
 
@@ -111,7 +111,7 @@ container sees it, for the purposes of using it for future operations.
 Please take a look at our [verbs reference](/user-guide/verbs) and [functions
 reference](/user-guide/functions) for more information.
 
-## Example Box Script
+## Example Box Plan
 
 Here's a basic example that downloads the newest (1.7.3) version of golang with
 curl and unpacks it. If you set an environment variable called
@@ -148,9 +148,9 @@ $ box --no-cache myplan.rb
 ```
 
 
-## Example Box Script (advanced version)
+## Example Box Plan (advanced version)
 
-This is the Box script we use to build Box itself. It uses many of its
+This is the Box plan we use to build Box itself. It uses many of its
 features. Be sure to check the [verbs](https://erikh.github.io/box/verbs/) to
 refer to different constructs used in the file.
 
@@ -160,49 +160,49 @@ You can find the latest version of it
 ```ruby
 from "golang"
 
-packages = %w[
-  build-essential
-  g++
-  git
-  wget
-  curl
-  ruby
-  bison
-  flex
-  iptables
-  psmisc
-]
+skip do
+  DOCKER_VERSION = "1.12.4"
 
-run "apt-get update"
-run "apt-get install -y #{packages.join(" ")}"
-env "GOPATH" => "/go"
+  PACKAGES = %w[
+    build-essential
+    g++
+    git
+    wget
+    curl
+    ruby
+    bison
+    flex
+    iptables
+    psmisc
+    python-pip
+  ]
 
-if getenv("RELEASE") == ""
-  run "wget https://get.docker.com/builds/Linux/x86_64/docker-1.12.1.tgz"
-  run "tar -xpf docker-1.12.1.tgz --strip-components=1 -C /usr/bin/"
-  run "rm docker-1.12.1.tgz"
+  workdir "/"
+  
+  qq = getenv("CI_BUILD") != "" ? "-qq" : ""
+
+  run "apt-get update #{qq}"
+  run "apt-get install -y #{qq} #{PACKAGES.join(" ")}"
+  env "GOPATH" => "/go"
+
+  docker_path = "docker-#{DOCKER_VERSION}.tgz"
+  run "wget -q https://get.docker.com/builds/Linux/x86_64/#{docker_path}"
+  run "tar -xpf #{docker_path} --strip-components=1 -C /usr/bin/"
+  run "rm #{docker_path}"
   copy "dind", "/dind"
-end
 
-copy ".", "/go/src/github.com/erikh/box"
+  run "pip -q install mkdocs mkdocs-bootswatch"
 
-if getenv("IGNORE_LIBMRUBY") == ""
-  run "cd /go/src/github.com/erikh/box && make"
-end
+  copy ".", "/go/src/github.com/erikh/box"
+  run "cd /go/src/github.com/erikh/box && make clean install"
 
-if getenv("RELEASE") != ""
-  run "mv /go/bin/box /box"
-  set_exec entrypoint: ["/box"], cmd: []
-  run "apt-get purge -y #{packages.join(" ")}"
-  run "apt-get autoclean"
-  run "rm -rf /usr/local /go /var/cache/apt /var/lib/apt"
-  flatten
-  tag "erikh/box:latest"
-else
   workdir "/go/src/github.com/erikh/box"
   set_exec entrypoint: ["/dind"], cmd: ["make", "docker-test"]
   tag "box-test"
 end
+
+run "mv /go/bin/box /box"
+set_exec entrypoint: ["/box"], cmd: []
 ```
 
 ## Caveats

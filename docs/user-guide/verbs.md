@@ -161,7 +161,7 @@ from "sha256:deadbeefcafebabeaddedbeef"
 run runs a command provided as a string, and saves the layer.
 
 It respects user and workdir, but not entrypoint and command. It does this
-so it can respect the values provided in the script instead of what was
+so it can respect the values provided in the plan instead of what was
 intended for the final image.
 
 Cache keys are generated based on the command name, so to be certain your

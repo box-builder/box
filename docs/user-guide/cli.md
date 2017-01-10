@@ -4,6 +4,11 @@ options shape your build and suit it for use in many group environments.
 In the documentation below, each long option is in the heading with the short
 option (if any) in parentheses.
 
+## REPL Mode
+
+`box repl` or `box shell` will initiate REPL mode, a line-by-line interpreter
+with instant results.
+
 ## Multi Mode
 
 `box multi` will initiate multi-mode, which invokes multiple builds at the same
