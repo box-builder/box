@@ -13,6 +13,7 @@ func (s *cliSuite) TestBasic(c *C) {
 	cmd, err := build("", "test.rb")
 	c.Assert(err, IsNil)
 	checkSuccess(c, cmd)
+
 }
 
 func (s *cliSuite) TestCache(c *C) {
@@ -81,6 +82,10 @@ func (s *cliSuite) TestTag(c *C) {
 
 func (s *cliSuite) TestHelp(c *C) {
 	cmd := testcli.Command("box", "--help")
+	cmd.Run()
+	c.Assert(strings.Contains(cmd.Stdout(), "USAGE:"), Equals, true)
+
+	cmd = testcli.Command("box")
 	cmd.Run()
 	c.Assert(strings.Contains(cmd.Stdout(), "USAGE:"), Equals, true)
 }
