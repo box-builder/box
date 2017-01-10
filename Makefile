@@ -43,9 +43,10 @@ release: clean all test
 	sh release/release.sh ${VERSION}
 	@echo File to release is RELEASE.tmp.md
 
-release-osx: clean all
-	# test directly on mac
+test-local: clean all
 	for i in $(PACKAGES); do go test -v $$i -check.vv; done
+
+release-osx: test-local # test directly on mac
 	sh release/release.sh ${VERSION}
 
 docker-test:

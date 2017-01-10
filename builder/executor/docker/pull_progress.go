@@ -63,8 +63,8 @@ func readProgress(reader io.Reader, readerFunc func(*idInfo, map[string]interfac
 func processProgressEntry(info *idInfo, unpacked map[string]interface{}) (string, *progressInfo) {
 	if stream, ok := unpacked["stream"].(string); ok {
 		// FIXME this is absolutely terrible
-		if strings.HasPrefix(stream, "Loaded image ID:") {
-			return strings.TrimSpace(strings.TrimPrefix(stream, "Loaded image ID:")), nil
+		if strings.HasPrefix(stream, "Loaded image ID: ") {
+			return strings.TrimSpace(strings.TrimPrefix(stream, "Loaded image ID: ")), nil
 		}
 	}
 
@@ -138,7 +138,6 @@ func printPull(tty bool, reader io.Reader) (string, error) {
 		for i := 0; i < len(info.idmap)+1; i++ {
 			fmt.Println()
 		}
-
 	}
 
 	if retval != "" {

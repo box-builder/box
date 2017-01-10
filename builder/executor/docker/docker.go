@@ -3,6 +3,8 @@ package docker
 import (
 	"archive/tar"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -339,13 +341,27 @@ func (d *Docker) Flatten(id string, size int64, tw io.Reader) error {
 		return err
 	}
 
-	parts := strings.SplitN(string(content), ":", 2)
-	if len(parts) != 2 {
-		return fmt.Errorf("Invalid value returned from docker: %s", string(content))
+	res := map[string]string{}
+
+	if err := json.Unmarshal(content, &res); err != nil {
+		parts := strings.SplitN(string(content), ":", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("Invalid value returned from docker: %s", string(content))
+		}
+
+		d.config.Image = strings.TrimSpace(parts[1])
+		return nil
 	}
 
-	d.config.Image = strings.TrimSpace(parts[1])
-	return nil
+	if stream, ok := res["stream"]; ok {
+		// FIXME this is absolutely terrible
+		if strings.HasPrefix(stream, "Loaded image ID: ") {
+			d.config.Image = strings.TrimSpace(strings.TrimPrefix(stream, "Loaded image ID: "))
+			return nil
+		}
+	}
+
+	return errors.New("invalid image ID returned")
 }
 
 // Tag an image with the provided string.

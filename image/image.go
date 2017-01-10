@@ -63,6 +63,11 @@ func extractLayers(img *imageInfo, dir, file string) error {
 				return fmt.Errorf("Layer ID contains invalid characters: %v", layerID)
 			}
 
+			l, ok := img.layerMap[layerID]
+			if !ok {
+				return errors.New("layer not found")
+			}
+
 			out, err := os.Create(filepath.Join(dir, layerID))
 			if err != nil {
 				return err
@@ -71,11 +76,6 @@ func extractLayers(img *imageInfo, dir, file string) error {
 			sum, err := bt.SumWithCopy(out, tr, fmt.Sprintf("Unpacking Layer ID %s", layerID[:12]))
 			if err != nil {
 				return err
-			}
-
-			l, ok := img.layerMap[layerID]
-			if !ok {
-				return errors.New("layer not found")
 			}
 
 			l.layer = sum
@@ -120,12 +120,18 @@ func extractManifest(file string) (*imageInfo, error) {
 				return nil, err
 			}
 
-			tmp, ok := manifest[0]["Layers"].([]interface{}) // FIXME how to handle multiple images?
-			if !ok {
-				return nil, fmt.Errorf("Manifest is broken: %#v", manifest)
+			layers := []interface{}{}
+
+			for _, mf := range manifest {
+				tmp, ok := mf["Layers"].([]interface{}) // FIXME how to handle multiple images?
+				if !ok {
+					return nil, fmt.Errorf("Manifest is broken: %#v", manifest)
+				}
+
+				layers = append(layers, tmp...)
 			}
 
-			for _, layer := range tmp {
+			for _, layer := range layers {
 				layerID := strings.TrimSuffix(filepath.Base(filepath.Dir(layer.(string))), "/")
 				img.layerOrder = append(img.layerOrder, layerID)
 				img.layerMap[layerID] = &Layer{
@@ -255,7 +261,18 @@ func tmpfile() (*os.File, error) {
 // files kept so it can be removed later. The dir will always be returned if
 // possible; even when a later operation returns an error.
 func Unpack(file string) ([]*Layer, string, error) {
+	var err error
+	file, err = filepath.EvalSymlinks(file)
+	if err != nil {
+		return nil, "", err
+	}
+
 	dir, err := ioutil.TempDir("", "box-image-tmp")
+	if err != nil {
+		return nil, dir, err
+	}
+
+	dir, err = filepath.EvalSymlinks(dir)
 	if err != nil {
 		return nil, dir, err
 	}
@@ -320,7 +337,12 @@ func Make(config *config.Config, layers []*Layer) (string, error) {
 		f.Close()
 	}
 
-	return out.Name(), nil
+	name, err := filepath.EvalSymlinks(out.Name())
+	if err != nil {
+		return "", err
+	}
+
+	return name, nil
 }
 
 // Flatten copies a tarred up series of files (passed in through the io.Reader

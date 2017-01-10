@@ -121,6 +121,36 @@ func checkContext(ctx context.Context) error {
 	return nil
 }
 
+type lstatInfo struct {
+	filename string
+	fi       os.FileInfo
+}
+
+func processEntries(entries []string) ([]lstatInfo, error) {
+	lstatEntries := []lstatInfo{}
+
+	for _, entry := range entries {
+		evaledentry, err := filepath.EvalSymlinks(entry)
+		if err != nil {
+			return lstatEntries, err
+		}
+
+		evaledentry, err = filepath.Abs(evaledentry)
+		if err != nil {
+			return lstatEntries, err
+		}
+
+		fi, err := os.Lstat(evaledentry)
+		if err != nil {
+			return lstatEntries, err
+		}
+
+		lstatEntries = append(lstatEntries, lstatInfo{evaledentry, fi})
+	}
+
+	return lstatEntries, nil
+}
+
 // Archive takes a source and target directory and returns a filename and/or
 // error. The source will be archived relative to the target. The file will
 // live in the user's os.TempDir().
@@ -130,6 +160,11 @@ func Archive(ctx context.Context, rel, target string) (string, string, error) {
 	}
 
 	entries, err := filepath.Glob(rel)
+	if err != nil {
+		return "", "", err
+	}
+
+	lstatEntries, err := processEntries(entries)
 	if err != nil {
 		return "", "", err
 	}
@@ -146,44 +181,34 @@ func Archive(ctx context.Context, rel, target string) (string, string, error) {
 	tee := io.TeeReader(r, hash)
 	go io.Copy(f, tee)
 
-	for _, entry := range entries {
+	for _, li := range lstatEntries {
 		if err := checkContext(ctx); err != nil {
 			os.Remove(f.Name())
 			return "", "", err
 		}
 
-		absentry, err := filepath.Abs(entry)
-		if err != nil {
-			return "", "", err
-		}
-
-		fi, err := os.Lstat(absentry)
-		if err != nil {
-			return "", "", err
-		}
-		if fi.IsDir() {
-			header, err := tar.FileInfoHeader(fi, absentry)
+		if li.fi.IsDir() {
+			header, err := tar.FileInfoHeader(li.fi, li.filename)
 			if err != nil {
 				return "", "", err
 			}
 
-			if entry == "." {
-				header.Linkname = target
-			} else {
-				header.Linkname = filepath.Join(target, entry)
+			if target == "." {
+				target = li.filename
+				fmt.Println("here")
 			}
 
+			header.Linkname = target
 			header.Name = header.Linkname
 
 			if err := tw.WriteHeader(header); err != nil {
 				return "", "", err
 			}
-
-			if err := filepath.Walk(entry, archiveWalk(absentry, target, tw)); err != nil {
+			if err := filepath.Walk(li.filename, archiveWalk(li.filename, target, tw)); err != nil {
 				return "", "", err
 			}
 		} else {
-			if err := archiveSingle(entry, target, tw); err != nil {
+			if err := archiveSingle(li.filename, target, tw); err != nil {
 				return "", "", err
 			}
 		}
