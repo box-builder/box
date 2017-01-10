@@ -204,7 +204,7 @@ func runMulti(ctx *cli.Context) {
 		runChan := make(chan struct{})
 		buildConfig := builder.BuildConfig{
 			TTY:       true,
-			OmitFuncs: ctx.StringSlice("omit"),
+			OmitFuncs: append(ctx.StringSlice("omit"), "debug"),
 			Cache:     getCache(ctx),
 			Context:   cancelCtx,
 			Runner:    runChan,
