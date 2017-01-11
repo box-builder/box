@@ -300,6 +300,14 @@ copy accepts globbing on the local side (LHS of arguments) according to
 [these rules](https://golang.org/pkg/path/filepath/#Match). For example, it
 supports `*` but not the zsh extended `**` syntax.
 
+Parameters may be specified after the target directory; the following options
+are supported:
+
+* `ignore_list`: the provided array of file patterns will be ignored from the
+  copied product.
+* `ignore_file`: similar to `ignore_list`, it will reap the values from the
+  filename specified.
+
 NOTE: copy will not overwrite directories with files, this will abort the run.
 If you are trying to copy a file into a named directory, suffix it with `/`
 which will instruct it to put it into that directory instead of trying to
@@ -321,4 +329,7 @@ end
 
 copy "a_file", "/tmp/" # example of not overwriting directories with files
 copy "files*", "/var/lib" # example of globbing
+
+# copy all files named `files*`, but ignore the ones that start with `files1*`.
+copy "files*", "/var/lib", ignore_list: ["files1*"] 
 ```

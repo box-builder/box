@@ -134,6 +134,14 @@ url = "https://storage.googleapis.com/golang/go#{go_version}.linux-amd64.tar.gz"
 run "curl -sSL '#{url}' | tar -xvz -C /usr/local"
 ```
 
+### Ignoring files
+
+Just like Docker, if a `.dockerignore` file exists, the patterns, filenames,
+and directories specified in this file will be ignored from all copy operations.
+
+The [copy](/user-guide/verbs/#copy) verb also has additional functionality to
+scope ignore rules down to specific copy statements.
+
 ### The Build Cache
 
 The build cache is enabled by default. It is not an exact cache but constructs

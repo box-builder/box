@@ -9,12 +9,15 @@ import (
 	. "testing"
 
 	"github.com/docker/docker/pkg/term"
+	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/logger"
 	bt "github.com/erikh/box/tar"
 
 	. "gopkg.in/check.v1"
 )
+
+var dockerClient *client.Client
 
 type dockerSuite struct {
 	tty bool
@@ -27,7 +30,31 @@ func TestDocker(t *T) {
 }
 
 func (ds *dockerSuite) SetUpSuite(c *C) {
+	var err error
 	ds.tty = term.IsTerminal(0)
+	dockerClient, err = client.NewEnvClient()
+	c.Assert(err, IsNil)
+}
+
+func (ds *dockerSuite) TearDownSuite(c *C) {
+	if os.Getenv("DIND") != "" {
+		containers, err := dockerClient.ContainerList(context.Background(), types.ContainerListOptions{})
+		c.Assert(err, IsNil)
+
+		for _, container := range containers {
+			err := dockerClient.ContainerRemove(context.Background(), container.ID, types.ContainerRemoveOptions{Force: true})
+			c.Assert(err, IsNil)
+		}
+
+		images, err := dockerClient.ImageList(context.Background(), types.ImageListOptions{})
+		c.Assert(err, IsNil)
+
+		for i := 0; i < 2; i++ {
+			for _, image := range images {
+				dockerClient.ImageRemove(context.Background(), image.ID, types.ImageRemoveOptions{Force: true})
+			}
+		}
+	}
 }
 
 func (ds *dockerSuite) clearDockerPrefix(c *C, prefix string) {
@@ -158,7 +185,7 @@ func (ds *dockerSuite) TestCopy(c *C) {
 	_, err = d.Fetch("debian:latest")
 	c.Assert(err, IsNil)
 
-	file, _, err := bt.Archive(context.Background(), ".", ".")
+	file, _, err := bt.Archive(context.Background(), ".", ".", []string{})
 	c.Assert(err, IsNil)
 
 	f, err := os.Open(file)

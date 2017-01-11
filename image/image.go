@@ -123,7 +123,7 @@ func extractManifest(file string) (*imageInfo, error) {
 			layers := []interface{}{}
 
 			for _, mf := range manifest {
-				tmp, ok := mf["Layers"].([]interface{}) // FIXME how to handle multiple images?
+				tmp, ok := mf["Layers"].([]interface{})
 				if !ok {
 					return nil, fmt.Errorf("Manifest is broken: %#v", manifest)
 				}
