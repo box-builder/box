@@ -280,7 +280,7 @@ from &quot;sha256:deadbeefcafebabeaddedbeef&quot;
 <h2 id="run">run</h2>
 <p>run runs a command provided as a string, and saves the layer.</p>
 <p>It respects user and workdir, but not entrypoint and command. It does this
-so it can respect the values provided in the script instead of what was
+so it can respect the values provided in the plan instead of what was
 intended for the final image.</p>
 <p>Cache keys are generated based on the command name, so to be certain your
 command is run in the event of it hitting cache, run box with NO_CACHE=1.</p>
@@ -338,12 +338,25 @@ end
 <h2 id="inside">inside</h2>
 <p>inside, when provided with a directory name string and block, invokes
 commands within the context of the working directory being set to the
-string. It does not affect the final image.</p>
+string.</p>
+<p>It will affect the final image if a file-modification event occurs inside a
+directory which has been specified but not created manually yet. This is a side
+effect of the docker engine's relationship to how we use <code>workdir</code> directives
+within docker itself. <strong>Docker will create any workdir that does not exist when
+a build container is started.</strong></p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
 
 inside &quot;/dev&quot; do
   run &quot;mknod webscale c 1 3&quot;
+end
+</code></pre>
+
+<p>When given a relative path, it assumes the workdir as well as any other
+additional inside statements. For example:</p>
+<pre><code class="ruby">workdir &quot;/etc&quot;
+inside &quot;apt&quot; do # will travel into /etc/apt/
+  run &quot;rm sources.list&quot;
 end
 </code></pre>
 
