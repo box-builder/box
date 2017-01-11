@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,6 +15,8 @@ import (
 
 	"github.com/erikh/box/copy"
 )
+
+var errIgnore = errors.New("ignore this file")
 
 func archiveSingle(rel, target string, tw *tar.Writer) error {
 	fi, err := os.Lstat(rel)
@@ -46,7 +49,24 @@ func archiveSingle(rel, target string, tw *tar.Writer) error {
 	return copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", rel))
 }
 
-func archiveWalk(rel, target string, tw *tar.Writer) filepath.WalkFunc {
+func checkIgnore(rel, path string, ignoreList []string) error {
+	for _, ignore := range ignoreList {
+		entries, err := filepath.Glob(filepath.Join(rel, ignore))
+		if err != nil {
+			return err
+		}
+
+		for _, entry := range entries {
+			if ok, err := filepath.Rel(entry, path); err == nil && !strings.HasPrefix(ok, "..") {
+				return errIgnore
+			}
+		}
+	}
+
+	return nil
+}
+
+func archiveWalk(rel, target string, ignoreList []string, tw *tar.Writer) filepath.WalkFunc {
 	return func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -59,6 +79,12 @@ func archiveWalk(rel, target string, tw *tar.Writer) filepath.WalkFunc {
 
 		relpath, err := filepath.Rel(rel, path)
 		if err != nil {
+			return err
+		}
+
+		if err := checkIgnore(rel, path, ignoreList); err == errIgnore {
+			return nil
+		} else if err != nil {
 			return err
 		}
 
@@ -87,27 +113,31 @@ func archiveWalk(rel, target string, tw *tar.Writer) filepath.WalkFunc {
 
 		header.Name = filepath.Join(target, realrel)
 
-		if err := tw.WriteHeader(header); err != nil {
+		return writeTarFile(tw, header, realpath)
+	}
+}
+
+func writeTarFile(tw *tar.Writer, header *tar.Header, realpath string) error {
+	if err := tw.WriteHeader(header); err != nil {
+		return err
+	}
+
+	if header.Typeflag == tar.TypeReg {
+		p, err := os.Open(realpath)
+		if err != nil {
 			return err
 		}
 
-		if header.Typeflag == tar.TypeReg {
-			p, err := os.Open(realpath)
-			if err != nil {
-				return err
-			}
-
-			err = copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", realpath))
-			if err != nil && err != io.EOF {
-				p.Close()
-				return err
-			}
-
+		err = copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", realpath))
+		if err != nil && err != io.EOF {
 			p.Close()
+			return err
 		}
 
-		return nil
+		p.Close()
 	}
+
+	return nil
 }
 
 // FIXME move to utility lib
@@ -154,7 +184,7 @@ func processEntries(entries []string) ([]lstatInfo, error) {
 // Archive takes a source and target directory and returns a filename and/or
 // error. The source will be archived relative to the target. The file will
 // live in the user's os.TempDir().
-func Archive(ctx context.Context, rel, target string) (string, string, error) {
+func Archive(ctx context.Context, rel, target string, ignoreList []string) (string, string, error) {
 	if err := checkContext(ctx); err != nil {
 		return "", "", err
 	}
@@ -195,7 +225,6 @@ func Archive(ctx context.Context, rel, target string) (string, string, error) {
 
 			if target == "." {
 				target = li.filename
-				fmt.Println("here")
 			}
 
 			header.Linkname = target
@@ -204,11 +233,16 @@ func Archive(ctx context.Context, rel, target string) (string, string, error) {
 			if err := tw.WriteHeader(header); err != nil {
 				return "", "", err
 			}
-			if err := filepath.Walk(li.filename, archiveWalk(li.filename, target, tw)); err != nil {
+			if err := filepath.Walk(li.filename, archiveWalk(li.filename, target, ignoreList, tw)); err != nil {
 				return "", "", err
 			}
 		} else {
-			if err := archiveSingle(li.filename, target, tw); err != nil {
+			err := checkIgnore(li.filename, li.filename, ignoreList)
+			if err == nil {
+				if err := archiveSingle(li.filename, target, tw); err != nil {
+					return "", "", err
+				}
+			} else if err != errIgnore {
 				return "", "", err
 			}
 		}

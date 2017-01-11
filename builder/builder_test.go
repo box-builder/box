@@ -161,6 +161,51 @@ func (bs *builderSuite) TestCopyToRelativePathWithWorkdir(c *C) {
 	b.Close()
 }
 
+func (bs *builderSuite) TestCopyWithIgnore(c *C) {
+	b, err := runBuilder(`
+		from "debian"
+		copy ".", "builder", ignore_list: ["builder.go"]
+		run "ls /builder"
+		run "test -f /builder/builder.go"
+	`)
+	c.Assert(err, NotNil)
+	b.Close()
+
+	f, err := os.Create("filelist")
+	c.Assert(err, IsNil)
+
+	_, err = f.Write([]byte("builder.go\nutil.go\n"))
+	c.Assert(err, IsNil)
+	f.Close()
+
+	b, err = runBuilder(`
+		from "debian"
+		copy ".", "builder", ignore_file: "filelist"
+		run "test -f /builder/builder.go || test -f /builder/util.go"
+	`)
+	c.Assert(err, NotNil)
+	b.Close()
+
+	os.Remove(f.Name())
+
+	f, err = os.Create(".dockerignore")
+	c.Assert(err, IsNil)
+
+	_, err = f.Write([]byte("builder.go\nutil.go\n"))
+	c.Assert(err, IsNil)
+	f.Close()
+
+	b, err = runBuilder(`
+		from "debian"
+		copy ".", "builder"
+		run "test -f /builder/builder.go || test -f /builder/util.go"
+	`)
+	c.Assert(err, NotNil)
+	b.Close()
+
+	os.Remove(f.Name())
+}
+
 func (bs *builderSuite) TestCopyOverDir(c *C) {
 	testpath := filepath.Join(dockerfilePath, "test1.rb")
 

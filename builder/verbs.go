@@ -9,6 +9,7 @@ package builder
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -352,30 +353,134 @@ func cmd(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 	return nil, nil
 }
 
-func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, error) {
-	if err := standardCheck(b, args, 2); err != nil {
-		return "", "", err
-	}
-
-	source, err := filepath.Abs(args[0].String())
+func parseCopyList(hash *mruby.Hash, arg *mruby.MrbValue) ([]string, error) {
+	ignoreList := []string{}
+	val, err := hash.Get(arg)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
-	target := args[1].String()
+	if val.Type() != mruby.TypeArray {
+		return nil, errors.New("ignore list is not type array")
+	}
+
+	ary := val.Array()
+
+	for i := 0; i < ary.Len(); i++ {
+		innerVal, err := ary.Get(i)
+		if err != nil {
+			return nil, err
+		}
+
+		ignoreList = append(ignoreList, innerVal.String())
+	}
+
+	return ignoreList, nil
+}
+
+func parseCopyFile(hash *mruby.Hash, arg *mruby.MrbValue) ([]string, error) {
+	val, err := hash.Get(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	if val.Type() != mruby.TypeString {
+		return nil, errors.New("ignore filename is not type string")
+	}
+
+	f, err := os.Open(arg.String())
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	content, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	contentStr := string(content)
+	return strings.Split(strings.TrimSpace(contentStr), "\n"), nil
+}
+
+func parseCopyArgs(args []*mruby.MrbValue) (string, string, []string, error) {
+	var source, target string
+	ignoreList := []string{}
+
+	for _, arg := range args {
+		switch arg.Type() {
+		case mruby.TypeString:
+			if source != "" {
+				target = arg.String()
+				continue
+			}
+			source = arg.String()
+		case mruby.TypeHash:
+			hash := arg.Hash()
+			keys, err := hash.Keys()
+			if err != nil {
+				return "", "", nil, err
+			}
+
+			keyary := keys.Array()
+			for i := 0; i < keyary.Len(); i++ {
+				arg, err := keyary.Get(i)
+				if err != nil {
+					return "", "", nil, err
+				}
+
+				switch arg.String() {
+				case "ignore_list":
+					lines, err := parseCopyList(hash, arg)
+					if err != nil {
+						return "", "", nil, err
+					}
+
+					ignoreList = append(ignoreList, lines...)
+				case "ignore_file":
+					lines, err := parseCopyFile(hash, arg)
+					if err != nil {
+						return "", "", nil, err
+					}
+
+					ignoreList = append(ignoreList, lines...)
+				default:
+					return "", "", nil, fmt.Errorf("invalid key in copy statement: %q", arg.String())
+				}
+			}
+		}
+	}
+
+	return source, target, ignoreList, nil
+}
+
+func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, []string, error) {
+	if err := checkImage(b); err != nil {
+		return "", "", nil, err
+	}
+
+	source, target, ignoreList, err := parseCopyArgs(args)
+	if err != nil {
+		return "", "", nil, err
+	}
+
+	source, err = filepath.Abs(source)
+	if err != nil {
+		return "", "", nil, err
+	}
 
 	wd, err := os.Getwd()
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 
 	rel, err := filepath.Rel(wd, source)
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 
 	if strings.HasPrefix(rel, "..") {
-		return "", "", fmt.Errorf("cannot use relative path %s because it may fall below the root build directory", source)
+		return "", "", nil, fmt.Errorf("cannot use relative path %s because it may fall below the root build directory", source)
 	}
 
 	workdir := b.exec.Config().WorkDir
@@ -396,14 +501,38 @@ func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, error) {
 		}
 	}
 
-	return filepath.Clean(rel), target, nil
+	return filepath.Clean(rel), target, ignoreList, nil
+}
+
+func readDockerIgnore() ([]string, error) {
+	di, err := os.Open(".dockerignore")
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	} else if err == nil {
+		content, err := ioutil.ReadAll(di)
+		di.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		return strings.Split(strings.TrimSpace(string(content)), "\n"), nil
+	}
+
+	return []string{}, nil
 }
 
 func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	rel, target, err := checkCopyArgs(b, args)
+	rel, target, ignoreList, err := checkCopyArgs(b, args)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
+
+	list, err := readDockerIgnore()
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	ignoreList = append(ignoreList, list...)
 
 	for _, volume := range b.exec.Config().Volumes {
 		if strings.HasPrefix(target, volume) {
@@ -411,7 +540,7 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		}
 	}
 
-	fn, cacheKey, err := tar.Archive(b.config.Context, rel, target)
+	fn, cacheKey, err := tar.Archive(b.config.Context, rel, target, ignoreList)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
