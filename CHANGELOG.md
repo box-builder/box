@@ -1,3 +1,10 @@
+### v0.4
+
+* multi-build mode! Now build whole projects full of multiple images at once!
+* many stability enhancements
+  * in particular, you should not get random unpreventable panics when invoking
+    box anymore. 
+
 ### v0.3.3
 
 * Summing performance has improved across the board, which should drastically
