@@ -39,8 +39,8 @@ test-ci: checks build-ci run-test-ci
 test: checks all build run-test
 
 release: clean all test
-	RELEASE=1 go run main.go -t erikh/box:${VERSION} build.rb
 	sh release/release.sh ${VERSION}
+	RELEASE=1 go run main.go -t erikh/box:${VERSION} build.rb
 	@echo File to release is RELEASE.tmp.md
 
 test-local: clean all
