@@ -95,6 +95,11 @@ func (d *Docker) addImage(image string) error {
 	return nil
 }
 
+// ShowRun toggles the visibility of run output.
+func (d *Docker) ShowRun(ok bool) {
+	d.showRun = ok
+}
+
 // SetSkipLayers toggles whether or not to skip layers when building the
 // final image.
 func (d *Docker) SetSkipLayers(ok bool) {

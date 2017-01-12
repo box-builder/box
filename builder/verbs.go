@@ -8,18 +8,14 @@ package builder
 */
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 
 	"github.com/erikh/box/copy"
-	"github.com/erikh/box/tar"
 	mruby "github.com/mitchellh/go-mruby"
 )
 
@@ -35,7 +31,7 @@ var verbJumpTable = map[string]*verbDefinition{
 	"debug":      {debug, mruby.ArgsNone()},
 	"flatten":    {flatten, mruby.ArgsNone()},
 	"tag":        {tag, mruby.ArgsReq(1)},
-	"copy":       {doCopy, mruby.ArgsReq(2)},
+	"copy":       {doCopy, mruby.ArgsReq(2)}, // see builder/copy.go
 	"from":       {from, mruby.ArgsReq(1)},
 	"run":        {run, mruby.ArgsAny()},
 	"user":       {user, mruby.ArgsReq(1)},
@@ -250,13 +246,37 @@ func from(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 }
 
 func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	if err := standardCheck(b, args, 1); err != nil {
+	if err := checkImage(b); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	stringArgs := extractStringArgs(args)
+	if len(args) < 1 {
+		return nil, createException(m, "no command to run in run statement")
+	} else if args[0].Type() != mruby.TypeString {
+		return nil, createException(m, "no command to run in run statement")
+	}
 
-	b.exec.Config().TemporaryCommand([]string{"/bin/sh", "-c"}, stringArgs)
+	output := true
+
+	if len(args) > 1 {
+		if args[1].Type() == mruby.TypeHash {
+			hash, err := coerceHash(args[1].Hash())
+			if err != nil {
+				return nil, createException(m, err.Error())
+			}
+
+			outstr, ok := hash["output"].(string)
+			if ok && outstr == "false" {
+				output = false
+			}
+		} else {
+			return nil, createException(m, fmt.Sprintf("invalid argument %q for run statement", args[1].String()))
+		}
+	}
+
+	b.exec.Config().TemporaryCommand([]string{"/bin/sh", "-c"}, []string{args[0].String()})
+
+	b.exec.ShowRun(output)
 
 	if err := b.exec.Commit(cacheKey, b.exec.RunHook); err != nil {
 		return nil, createException(m, err.Error())
@@ -357,231 +377,6 @@ func cmd(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 	b.exec.Config().Cmd.Image = stringArgs
 
 	if err := b.exec.Commit(cacheKey, nil); err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	return nil, nil
-}
-
-func parseCopyList(hash *mruby.Hash, arg *mruby.MrbValue) ([]string, error) {
-	ignoreList := []string{}
-	val, err := hash.Get(arg)
-	if err != nil {
-		return nil, err
-	}
-
-	if val.Type() != mruby.TypeArray {
-		return nil, errors.New("ignore list is not type array")
-	}
-
-	ary := val.Array()
-
-	for i := 0; i < ary.Len(); i++ {
-		innerVal, err := ary.Get(i)
-		if err != nil {
-			return nil, err
-		}
-
-		ignoreList = append(ignoreList, innerVal.String())
-	}
-
-	return ignoreList, nil
-}
-
-func parseCopyFile(hash *mruby.Hash, arg *mruby.MrbValue) ([]string, error) {
-	val, err := hash.Get(arg)
-	if err != nil {
-		return nil, err
-	}
-
-	if val.Type() != mruby.TypeString {
-		return nil, errors.New("ignore filename is not type string")
-	}
-
-	f, err := os.Open(arg.String())
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	content, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
-
-	contentStr := string(content)
-	return strings.Split(strings.TrimSpace(contentStr), "\n"), nil
-}
-
-func parseCopyArgs(args []*mruby.MrbValue) (string, string, []string, error) {
-	var source, target string
-	ignoreList := []string{}
-
-	for _, arg := range args {
-		switch arg.Type() {
-		case mruby.TypeString:
-			if source != "" {
-				target = arg.String()
-				continue
-			}
-			source = arg.String()
-		case mruby.TypeHash:
-			hash := arg.Hash()
-			keys, err := hash.Keys()
-			if err != nil {
-				return "", "", nil, err
-			}
-
-			keyary := keys.Array()
-			for i := 0; i < keyary.Len(); i++ {
-				arg, err := keyary.Get(i)
-				if err != nil {
-					return "", "", nil, err
-				}
-
-				switch arg.String() {
-				case "ignore_list":
-					lines, err := parseCopyList(hash, arg)
-					if err != nil {
-						return "", "", nil, err
-					}
-
-					ignoreList = append(ignoreList, lines...)
-				case "ignore_file":
-					lines, err := parseCopyFile(hash, arg)
-					if err != nil {
-						return "", "", nil, err
-					}
-
-					ignoreList = append(ignoreList, lines...)
-				default:
-					return "", "", nil, fmt.Errorf("invalid key in copy statement: %q", arg.String())
-				}
-			}
-		}
-	}
-
-	return source, target, ignoreList, nil
-}
-
-func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, []string, error) {
-	if err := checkImage(b); err != nil {
-		return "", "", nil, err
-	}
-
-	source, target, ignoreList, err := parseCopyArgs(args)
-	if err != nil {
-		return "", "", nil, err
-	}
-
-	source, err = filepath.Abs(source)
-	if err != nil {
-		return "", "", nil, err
-	}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", "", nil, err
-	}
-
-	rel, err := filepath.Rel(wd, source)
-	if err != nil {
-		return "", "", nil, err
-	}
-
-	if strings.HasPrefix(rel, "..") {
-		return "", "", nil, fmt.Errorf("cannot use relative path %s because it may fall below the root build directory", source)
-	}
-
-	workdir := b.exec.Config().WorkDir
-	var targetWd string
-
-	if workdir.Temporary == "" {
-		targetWd = workdir.Image
-	} else {
-		targetWd = workdir.Temporary
-	}
-
-	// special case `.`
-	if target == "." {
-		target = filepath.Join(targetWd, rel)
-	} else {
-		if !strings.HasPrefix(target, "/") {
-			target = filepath.Join(targetWd, target)
-		}
-	}
-
-	return filepath.Clean(rel), target, ignoreList, nil
-}
-
-func readDockerIgnore() ([]string, error) {
-	di, err := os.Open(".dockerignore")
-	if err != nil && !os.IsNotExist(err) {
-		return nil, err
-	} else if err == nil {
-		content, err := ioutil.ReadAll(di)
-		di.Close()
-		if err != nil {
-			return nil, err
-		}
-
-		return strings.Split(strings.TrimSpace(string(content)), "\n"), nil
-	}
-
-	return []string{}, nil
-}
-
-func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	rel, target, ignoreList, err := checkCopyArgs(b, args)
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	list, err := readDockerIgnore()
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	ignoreList = append(ignoreList, list...)
-
-	for _, volume := range b.exec.Config().Volumes {
-		if strings.HasPrefix(target, volume) {
-			return nil, createException(m, fmt.Sprintf("Volume %q cannot be copied into (you tried %q). This is caused by a bug in docker. We are working with docker on a fix.", volume, target))
-		}
-	}
-
-	fn, cacheKey, err := tar.Archive(b.config.Context, rel, target, ignoreList)
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	defer os.Remove(fn)
-
-	cacheKey = fmt.Sprintf("box:copy %s", cacheKey)
-
-	if b.exec.GetCache() {
-		cached, err := b.exec.CheckCache(cacheKey)
-		if err != nil {
-			return nil, createException(m, err.Error())
-		}
-
-		if cached {
-			return nil, nil
-		}
-	}
-
-	f, err := os.Open(fn)
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	defer f.Close()
-
-	hook := func(ctx context.Context, id string) (string, error) {
-		return "", b.exec.CopyToContainer(id, f)
-	}
-
-	if err := b.exec.Commit(cacheKey, hook); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
