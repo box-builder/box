@@ -229,7 +229,17 @@ func from(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 		return nil, createException(m, err.Error())
 	}
 
-	id, err := b.exec.Fetch(args[0].String())
+	name := args[0].String()
+
+	if name == "" || name == "scratch" {
+		if err := b.exec.Commit("scratch", nil); err != nil {
+			return nil, createException(m, err.Error())
+		}
+
+		return mruby.String(b.exec.Config().Image), nil
+	}
+
+	id, err := b.exec.Fetch(name)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
