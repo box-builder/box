@@ -13,7 +13,6 @@ func (s *cliSuite) TestBasic(c *C) {
 	cmd, err := build("", "test.rb")
 	c.Assert(err, IsNil)
 	checkSuccess(c, cmd)
-
 }
 
 func (s *cliSuite) TestCache(c *C) {

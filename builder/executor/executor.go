@@ -79,7 +79,7 @@ type Executor interface {
 	// SetSkipLayers toggles whether or not to skip layers that are being built
 	// next. Toggle again to re-enable layer recording. The final image will not
 	// contain the skipped layers.
-	SetSkipLayers(ok bool)
+	SetSkipLayers(bool)
 
 	// MakeImage makes the final image, skipping any layers as necessary. The
 	// layers must be pre-recorded within the executor.
@@ -88,4 +88,7 @@ type Executor interface {
 
 	// CleanupImages cleans up all intermediate images.
 	CleanupImages()
+
+	// ShowRun toggles the visibility of run output.
+	ShowRun(bool)
 }

@@ -176,6 +176,10 @@ It respects user and workdir, but not entrypoint and command. It does this
 so it can respect the values provided in the plan instead of what was
 intended for the final image.
 
+Options:
+
+* `output`: supply `false` to omit output from the plan run.
+
 Cache keys are generated based on the command name, so to be certain your
 command is run in the event of it hitting cache, run box with NO_CACHE=1.
 
@@ -222,6 +226,9 @@ end
 # creates /tmp/yet-another-file
 workdir "/tmp"
 run "echo foo >yet-another-file"
+
+# will not display anything
+run "ls -l /", output: false
 ```
 
 ## with\_user

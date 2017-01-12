@@ -2,6 +2,7 @@ package builder
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,6 +20,10 @@ func parseCopyArgs(args []*mruby.MrbValue) (string, string, []string, error) {
 		switch arg.Type() {
 		case mruby.TypeString:
 			if source != "" {
+				if target != "" {
+					return "", "", nil, errors.New("too many arguments in copy")
+				}
+
 				target = arg.String()
 				continue
 			}

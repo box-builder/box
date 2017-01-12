@@ -246,13 +246,37 @@ func from(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 }
 
 func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	if err := standardCheck(b, args, 1); err != nil {
+	if err := checkImage(b); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	stringArgs := extractStringArgs(args)
+	if len(args) < 1 {
+		return nil, createException(m, "no command to run in run statement")
+	} else if args[0].Type() != mruby.TypeString {
+		return nil, createException(m, "no command to run in run statement")
+	}
 
-	b.exec.Config().TemporaryCommand([]string{"/bin/sh", "-c"}, stringArgs)
+	output := true
+
+	if len(args) > 1 {
+		if args[1].Type() == mruby.TypeHash {
+			hash, err := coerceHash(args[1].Hash())
+			if err != nil {
+				return nil, createException(m, err.Error())
+			}
+
+			outstr, ok := hash["output"].(string)
+			if ok && outstr == "false" {
+				output = false
+			}
+		} else {
+			return nil, createException(m, fmt.Sprintf("invalid argument %q for run statement", args[1].String()))
+		}
+	}
+
+	b.exec.Config().TemporaryCommand([]string{"/bin/sh", "-c"}, []string{args[0].String()})
+
+	b.exec.ShowRun(output)
 
 	if err := b.exec.Commit(cacheKey, b.exec.RunHook); err != nil {
 		return nil, createException(m, err.Error())
