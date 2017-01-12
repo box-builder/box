@@ -135,7 +135,11 @@ also sets the initial layer and must be called before several operations.
 Using `from` overwrites all container configuration, including `workdir`,
 `user`, `env`, `cmd`, and `entrypoint`.
 
-It is generally expected that `from` is called first in a build plan.
+It is expected that `from` is called first in a build plan.
+
+If `from :scratch` is provided, the build plan will start out with no files and
+no configuration. You will want to use `copy`, `set_exec`, etc to configure
+your container image.
 
 Example:
 
@@ -154,6 +158,14 @@ or fully qualified image IDs.
 ```ruby
 # sha256s are longer than this normally.
 from "sha256:deadbeefcafebabeaddedbeef"
+```
+
+`from :scratch`:
+
+```ruby
+from :scratch
+copy "box", "/"
+entrypoint "/box"
 ```
 
 ## run
