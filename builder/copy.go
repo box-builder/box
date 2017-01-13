@@ -131,7 +131,6 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
-
 	defer os.Remove(fn)
 
 	cacheKey = fmt.Sprintf("box:copy %s", cacheKey)
