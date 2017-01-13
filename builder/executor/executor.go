@@ -91,4 +91,7 @@ type Executor interface {
 
 	// ShowRun toggles the visibility of run output.
 	ShowRun(bool)
+
+	// GetShowRun returns the visibility of run output.
+	GetShowRun() bool
 }

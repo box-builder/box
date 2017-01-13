@@ -100,6 +100,11 @@ func (d *Docker) ShowRun(ok bool) {
 	d.showRun = ok
 }
 
+// GetShowRun returns the visibility of run output.
+func (d *Docker) GetShowRun() bool {
+	return d.showRun
+}
+
 // SetSkipLayers toggles whether or not to skip layers when building the
 // final image.
 func (d *Docker) SetSkipLayers(ok bool) {

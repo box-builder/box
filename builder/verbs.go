@@ -256,21 +256,23 @@ func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		return nil, createException(m, "no command to run in run statement")
 	}
 
-	output := true
+	output := b.exec.GetShowRun()
 
-	if len(args) > 1 {
-		if args[1].Type() == mruby.TypeHash {
-			hash, err := coerceHash(args[1].Hash())
-			if err != nil {
-				return nil, createException(m, err.Error())
-			}
+	if output {
+		if len(args) > 1 {
+			if args[1].Type() == mruby.TypeHash {
+				hash, err := coerceHash(args[1].Hash())
+				if err != nil {
+					return nil, createException(m, err.Error())
+				}
 
-			outstr, ok := hash["output"].(string)
-			if ok && outstr == "false" {
-				output = false
+				outstr, ok := hash["output"].(string)
+				if ok && outstr == "false" {
+					output = false
+				}
+			} else {
+				return nil, createException(m, fmt.Sprintf("invalid argument %q for run statement", args[1].String()))
 			}
-		} else {
-			return nil, createException(m, fmt.Sprintf("invalid argument %q for run statement", args[1].String()))
 		}
 	}
 
