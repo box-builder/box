@@ -6,252 +6,156 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
+	"github.com/docker/docker/pkg/archive"
 	"github.com/erikh/box/copy"
 )
 
-var errIgnore = errors.New("ignore this file")
-
-func archiveSingle(rel, target string, tw *tar.Writer) error {
-	fi, err := os.Lstat(rel)
+// rewriteTar rewrites the tar's paths to copy the source to the target.
+func rewriteTar(source, target string, tr *tar.Reader, tw *tar.Writer) error {
+	fi, err := os.Stat(source)
 	if err != nil {
 		return err
 	}
 
-	if strings.HasSuffix(target, "/") {
-		target = filepath.Join(target, filepath.Base(rel))
-	}
+	dir := fi.IsDir()
 
-	header, err := tar.FileInfoHeader(fi, target)
-	if err != nil {
-		return err
-	}
-
-	header.Name = target
-
-	if err := tw.WriteHeader(header); err != nil {
-		return err
-	}
-
-	p, err := os.Open(rel)
-	if err != nil {
-		return err
-	}
-
-	defer p.Close()
-
-	return copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", rel))
-}
-
-func checkIgnore(rel, path string, ignoreList []string) error {
-	for _, ignore := range ignoreList {
-		entries, err := filepath.Glob(filepath.Join(rel, ignore))
+	for {
+		header, err := tr.Next()
 		if err != nil {
-			return err
-		}
-
-		for _, entry := range entries {
-			if ok, err := filepath.Rel(entry, path); err == nil && !strings.HasPrefix(ok, "..") {
-				return errIgnore
+			if err == io.EOF {
+				break
 			}
-		}
-	}
 
-	return nil
-}
-
-func archiveWalk(rel, target string, ignoreList []string, tw *tar.Writer) filepath.WalkFunc {
-	return func(path string, fi os.FileInfo, err error) error {
-		if err != nil {
 			return err
 		}
 
-		path, err = filepath.Abs(path)
-		if err != nil {
-			return err
-		}
-
-		relpath, err := filepath.Rel(rel, path)
-		if err != nil {
-			return err
-		}
-
-		if err := checkIgnore(rel, path, ignoreList); err == errIgnore {
-			return nil
-		} else if err != nil {
-			return err
-		}
-
-		header, err := tar.FileInfoHeader(fi, filepath.Join(target, relpath))
-		if err != nil {
-			return err
-		}
-
-		if !(header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeSymlink) {
-			return nil
-		}
-
-		realpath, err := filepath.EvalSymlinks(path)
-		if err != nil {
-			return fmt.Errorf("evaluating (probably dangling) symlink %q: %v", path, err)
-		}
-
-		realrel, err := filepath.Rel(rel, realpath)
-		if err != nil {
-			return err
-		}
-
-		if strings.HasPrefix(realrel, "..") {
-			return fmt.Errorf("path %q (symlink: %q) falls below the box working directory", realpath, path)
-		}
-
-		header.Name = filepath.Join(target, realrel)
-
-		return writeTarFile(tw, header, realpath)
-	}
-}
-
-func writeTarFile(tw *tar.Writer, header *tar.Header, realpath string) error {
-	if err := tw.WriteHeader(header); err != nil {
-		return err
-	}
-
-	if header.Typeflag == tar.TypeReg {
-		p, err := os.Open(realpath)
-		if err != nil {
-			return err
-		}
-
-		err = copy.WithProgress(tw, p, fmt.Sprintf("Writing %s", realpath))
-		if err != nil && err != io.EOF {
-			p.Close()
-			return err
-		}
-
-		p.Close()
-	}
-
-	return nil
-}
-
-// FIXME move to utility lib
-func checkContext(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-	}
-
-	return nil
-}
-
-type lstatInfo struct {
-	filename string
-	fi       os.FileInfo
-}
-
-func processEntries(entries []string) ([]lstatInfo, error) {
-	lstatEntries := []lstatInfo{}
-
-	for _, entry := range entries {
-		evaledentry, err := filepath.EvalSymlinks(entry)
-		if err != nil {
-			return lstatEntries, err
-		}
-
-		evaledentry, err = filepath.Abs(evaledentry)
-		if err != nil {
-			return lstatEntries, err
-		}
-
-		fi, err := os.Lstat(evaledentry)
-		if err != nil {
-			return lstatEntries, err
-		}
-
-		lstatEntries = append(lstatEntries, lstatInfo{evaledentry, fi})
-	}
-
-	return lstatEntries, nil
-}
-
-// Archive takes a source and target directory and returns a filename and/or
-// error. The source will be archived relative to the target. The file will
-// live in the user's os.TempDir().
-func Archive(ctx context.Context, rel, target string, ignoreList []string) (string, string, error) {
-	if err := checkContext(ctx); err != nil {
-		return "", "", err
-	}
-
-	entries, err := filepath.Glob(rel)
-	if err != nil {
-		return "", "", err
-	}
-
-	lstatEntries, err := processEntries(entries)
-	if err != nil {
-		return "", "", err
-	}
-
-	f, err := ioutil.TempFile("", "box-copy.")
-	if err != nil {
-		return "", "", err
-	}
-
-	hash := sha256.New()
-	r, w := io.Pipe()
-	tw := tar.NewWriter(w)
-
-	tee := io.TeeReader(r, hash)
-	go io.Copy(f, tee)
-
-	for _, li := range lstatEntries {
-		if err := checkContext(ctx); err != nil {
-			os.Remove(f.Name())
-			return "", "", err
-		}
-
-		if li.fi.IsDir() {
-			header, err := tar.FileInfoHeader(li.fi, li.filename)
+		if header.Linkname != "" {
+			rel, err := filepath.Rel(header.Linkname, source)
 			if err != nil {
-				return "", "", err
+				return err
 			}
 
-			if target == "." {
-				target = li.filename
+			if strings.HasPrefix(rel, "../") {
+				return errors.New("path for symlink falls below copy root")
 			}
+		}
 
-			header.Linkname = target
-			header.Name = header.Linkname
-
-			if err := tw.WriteHeader(header); err != nil {
-				return "", "", err
-			}
-			if err := filepath.Walk(li.filename, archiveWalk(li.filename, target, ignoreList, tw)); err != nil {
-				return "", "", err
-			}
+		if (dir || target[len(target)-1] == '/') && header.Name[0] != '/' {
+			// not a single file
+			header.Linkname = path.Join(target, header.Linkname)
+			header.Name = path.Join(target, header.Name)
 		} else {
-			err := checkIgnore(li.filename, li.filename, ignoreList)
-			if err == nil {
-				if err := archiveSingle(li.filename, target, tw); err != nil {
-					return "", "", err
-				}
-			} else if err != errIgnore {
-				return "", "", err
-			}
+			header.Linkname = target
+			header.Name = target
+		}
+
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if _, err := io.Copy(tw, tr); err != nil {
+			return err
 		}
 	}
 
-	tw.Close()
-	f.Close()
+	return nil
+}
 
-	return f.Name(), hex.EncodeToString(hash.Sum(nil)), nil
+func expandIncludeList(source string) (string, []string, error) {
+	files, err := filepath.Glob(source)
+	if err != nil {
+		return "", nil, err
+	}
+
+	relFiles := []string{}
+
+	if len(files) > 1 {
+		source = filepath.Dir(source)
+
+		for _, file := range files {
+			rel, err := filepath.Rel(source, file)
+			if err != nil {
+				return "", nil, err
+			}
+
+			if strings.HasPrefix(rel, "../") {
+				return "", nil, errors.New("path for file falls below copy root")
+			}
+
+			relFiles = append(relFiles, rel)
+		}
+	} else {
+		rel, err := filepath.Rel(source, files[0])
+		if err != nil {
+			return "", nil, err
+		}
+
+		if strings.HasPrefix(rel, "../") {
+			return "", nil, errors.New("path for file falls below copy root")
+		}
+
+		relFiles = []string{rel}
+	}
+
+	return source, relFiles, nil
+}
+
+// Archive archives the source into target, ignoring the list of patterns
+// supplied in the string array.
+func Archive(ctx context.Context, source, target string, ignoreList []string) (string, string, error) {
+	var relFiles []string
+	var err error
+
+	source, relFiles, err = expandIncludeList(source)
+	if err != nil {
+		return "", "", err
+	}
+
+	reader, err := archive.TarWithOptions(source, &archive.TarOptions{IncludeFiles: relFiles, ExcludePatterns: ignoreList})
+	if err != nil {
+		return "", "", err
+	}
+
+	f, err := ioutil.TempFile("", "box-archive")
+	if err != nil {
+		return "", "", err
+	}
+
+	tr := tar.NewReader(reader)
+	tw := tar.NewWriter(f)
+
+	if err := rewriteTar(source, target, tr, tw); err != nil {
+		return "", "", err
+	}
+
+	reader.Close()
+	tw.Close()
+
+	if _, err := f.Seek(0, 0); err != nil {
+		return "", "", err
+	}
+
+	var sum string
+
+	if sum, err = SumReader(f); err != nil {
+		return "", "", err
+	}
+
+	return f.Name(), sum, nil
+}
+
+// SumReader sums an io.Reader
+func SumReader(reader io.Reader) (string, error) {
+	hash := sha256.New()
+	_, err := io.Copy(hash, reader)
+	return hex.EncodeToString(hash.Sum(nil)), err
 }
 
 // SumWithCopy simultaneously sums and copies a stream.
@@ -288,11 +192,4 @@ func SumWithCopy(writer io.WriteCloser, reader io.Reader, fileType string) (stri
 	}
 
 	return sum, nil
-}
-
-// SumReader sums an io.Reader
-func SumReader(reader io.Reader) (string, error) {
-	hash := sha256.New()
-	_, err := io.Copy(hash, reader)
-	return hex.EncodeToString(hash.Sum(nil)), err
 }

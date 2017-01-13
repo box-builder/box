@@ -104,7 +104,6 @@ func (ts *tarSuite) TestArchiveGlob(c *C) {
 	}
 
 	for _, prefix := range prefixes {
-
 		tarball, _, err := Archive(context.Background(), fmt.Sprintf("%s/%s*", dir, prefix), "/", []string{})
 		c.Assert(err, IsNil)
 		defer os.Remove(tarball)
