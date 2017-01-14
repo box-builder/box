@@ -256,7 +256,8 @@ func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		return nil, createException(m, "no command to run in run statement")
 	}
 
-	output := b.exec.GetShowRun()
+	runState := b.exec.GetShowRun()
+	output := runState
 
 	if output {
 		if len(args) > 1 {
@@ -277,12 +278,13 @@ func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 	}
 
 	b.exec.Config().TemporaryCommand([]string{"/bin/sh", "-c"}, []string{args[0].String()})
-
 	b.exec.ShowRun(output)
 
 	if err := b.exec.Commit(cacheKey, b.exec.RunHook); err != nil {
 		return nil, createException(m, err.Error())
 	}
+
+	b.exec.ShowRun(runState)
 
 	return nil, nil
 }
