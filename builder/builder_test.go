@@ -71,7 +71,7 @@ func (bs *builderSuite) TearDownSuite(c *C) {
 
 func (bs *builderSuite) TestAfter(c *C) {
 	b, err := runBuilder(`
-		from "golang"
+		from "alpine"
 		after { tag "test" }
 	`)
 	c.Assert(err, IsNil)

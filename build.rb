@@ -1,22 +1,24 @@
 from "golang"
 
+after { tag "erikh/box:master" }
+
+DOCKER_VERSION = "1.12.6"
+
+PACKAGES = %w[
+  build-essential
+  g++
+  git
+  wget
+  curl
+  ruby
+  bison
+  flex
+  iptables
+  psmisc
+  python-pip
+]
+
 skip do
-  DOCKER_VERSION = "1.12.6"
-
-  PACKAGES = %w[
-    build-essential
-    g++
-    git
-    wget
-    curl
-    ruby
-    bison
-    flex
-    iptables
-    psmisc
-    python-pip
-  ]
-
   workdir "/"
   
   qq = getenv("CI_BUILD") != "" ? "-qq" : ""
@@ -42,4 +44,5 @@ skip do
 end
 
 run "mv /go/bin/box /box"
+workdir "/"
 set_exec entrypoint: ["/box"], cmd: []
