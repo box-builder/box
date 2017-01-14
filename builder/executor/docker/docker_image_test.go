@@ -14,7 +14,7 @@ import (
 )
 
 func (ds *dockerSuite) TestMakeImage(c *C) {
-	imageName := "golang"
+	imageName := "postgres"
 
 	d, err := NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
 	c.Assert(err, IsNil)
@@ -25,7 +25,7 @@ func (ds *dockerSuite) TestMakeImage(c *C) {
 	rc, err := d.client.ImageSave(context.Background(), []string{imageName})
 	c.Assert(err, IsNil)
 
-	tf, err := ioutil.TempFile("", "box-test-debian-image")
+	tf, err := ioutil.TempFile("", "box-test-image")
 	c.Assert(err, IsNil)
 
 	defer tf.Close()
@@ -76,7 +76,7 @@ func (ds *dockerSuite) TestMakeImage(c *C) {
 	rc, err = d.client.ImageSave(context.Background(), []string{d.Config().Image})
 	c.Assert(err, IsNil)
 
-	tf2, err := ioutil.TempFile("", "box-test-debian-image")
+	tf2, err := ioutil.TempFile("", "box-test-image")
 	c.Assert(err, IsNil)
 
 	defer tf2.Close()

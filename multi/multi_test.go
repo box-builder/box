@@ -36,7 +36,7 @@ var SuccessPlans = map[int]string{
 	tag "successs2"
 	`,
 	3: `
-	from "golang"
+	from "alpine"
 	workdir "/tmp"
 	tag "success3"
 	`,
