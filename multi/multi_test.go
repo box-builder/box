@@ -36,7 +36,7 @@ var SuccessPlans = map[int]string{
 	tag "successs2"
 	`,
 	3: `
-	from "ubuntu"
+	from "golang"
 	workdir "/tmp"
 	tag "success3"
 	`,
@@ -64,7 +64,7 @@ var FailPlans = map[int]string{
 	tag "fail2"
 	`,
 	3: `
-	from "ubuntu"
+	from "golang"
 	workdir "/bin"
 	user "nobody"
 	run "touch permission-error"

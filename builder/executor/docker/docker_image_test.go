@@ -14,7 +14,7 @@ import (
 )
 
 func (ds *dockerSuite) TestMakeImage(c *C) {
-	imageName := "ubuntu"
+	imageName := "golang"
 
 	d, err := NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
 	c.Assert(err, IsNil)

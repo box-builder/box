@@ -34,6 +34,7 @@ func (ds *dockerSuite) SetUpSuite(c *C) {
 	ds.tty = term.IsTerminal(0)
 	dockerClient, err = client.NewEnvClient()
 	c.Assert(err, IsNil)
+	ds.TearDownSuite(c)
 }
 
 func (ds *dockerSuite) TearDownSuite(c *C) {
