@@ -107,6 +107,8 @@ func (c *Config) FromDocker(cont *container.Config) {
 	if c.WorkDir.Image == "" {
 		c.WorkDir.Image = "/"
 	}
+
+	c.Volumes = []string{}
 }
 
 // ToImage returns the config as an image manifest.

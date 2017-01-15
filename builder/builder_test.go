@@ -245,7 +245,7 @@ func (bs *builderSuite) TestCopyOverVolume(c *C) {
   from "volumes"
   copy ".", "/tmp/"
   `)
-	c.Assert(err, NotNil)
+	c.Assert(err, IsNil)
 }
 
 func (bs *builderSuite) TestCopy(c *C) {
