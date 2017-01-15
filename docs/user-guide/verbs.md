@@ -24,6 +24,29 @@ debug # verify all files landed in test like you expected them to
 run "chown -R erikh:erikh /test" # this will run after you close the shell
 ```
 
+## after
+
+`after` coordinates with `skip` to provide layer editing facilities. After the
+image is recomposed, this hook will run. Great for tagging and flattening.
+
+Example:
+
+```ruby
+from "debian"
+
+# after the skip layers are removed, run this hook.
+after do
+  # tag the edited image as `dev`
+  tag "dev"
+end
+
+skip do
+  run "apt-get update -qq"
+end
+
+run "apt-get install tmux -y"
+```
+
 ## set\_exec
 `set_exec` sets both the entrypoint and cmd at the same time.
 
