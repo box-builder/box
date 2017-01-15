@@ -69,6 +69,18 @@ func (bs *builderSuite) TearDownSuite(c *C) {
 	}
 }
 
+func (bs *builderSuite) TestAfter(c *C) {
+	b, err := runBuilder(`
+		from "alpine"
+		after { tag "test" }
+	`)
+	c.Assert(err, IsNil)
+	b.Close()
+
+	_, _, err = dockerClient.ImageInspectWithRaw(context.Background(), "test")
+	c.Assert(err, IsNil)
+}
+
 func (bs *builderSuite) TestContext(c *C) {
 	toCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 

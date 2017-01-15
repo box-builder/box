@@ -37,11 +37,12 @@ type BuildResult struct {
 
 // Builder implements the builder core.
 type Builder struct {
-	result BuildResult
-	config *BuildConfig
-	mrb    *mruby.Mrb
-	exec   executor.Executor
-	logger *logger.Logger
+	result    BuildResult
+	config    *BuildConfig
+	mrb       *mruby.Mrb
+	exec      executor.Executor
+	logger    *logger.Logger
+	afterFunc *mruby.MrbValue
 }
 
 func (b *Builder) keep(name string) bool {
@@ -176,6 +177,12 @@ func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (BuildResult, int)
 		return b.result, keep
 	}
 
+	_, err = b.mrb.Yield(b.afterFunc)
+	if err != nil {
+		b.result.Err = err
+		return b.result, keep
+	}
+
 	b.result.Value = mruby.String(b.exec.ImageID()).MrbValue(b.mrb)
 	b.result.Err = nil
 
@@ -213,6 +220,14 @@ func (b *Builder) RunScript(script string) BuildResult {
 	if err := b.exec.MakeImage(); err != nil {
 		b.result.Err = err
 		return b.result
+	}
+
+	if b.afterFunc != nil {
+		_, err := b.mrb.Yield(b.afterFunc)
+		if err != nil {
+			b.result.Err = err
+			return b.result
+		}
 	}
 
 	b.exec.CleanupImages()

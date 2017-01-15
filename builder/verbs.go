@@ -28,6 +28,7 @@ type verbDefinition struct {
 
 // verbJumpTable is the dispatch instructions sent to the builder at preparation time.
 var verbJumpTable = map[string]*verbDefinition{
+	"after":      {after, mruby.ArgsBlock()},
 	"debug":      {debug, mruby.ArgsNone()},
 	"flatten":    {flatten, mruby.ArgsNone()},
 	"tag":        {tag, mruby.ArgsReq(1)},
@@ -46,6 +47,16 @@ var verbJumpTable = map[string]*verbDefinition{
 
 // verbFunc is a builder DSL function used to interact with docker.
 type verbFunc func(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
+
+func after(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	if len(args) != 1 {
+		return nil, createException(m, "invalid args to after")
+	}
+
+	b.afterFunc = args[0]
+
+	return nil, nil
+}
 
 func debug(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	var shell string
