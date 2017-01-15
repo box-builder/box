@@ -1,8 +1,8 @@
-from "golang"
+from "debian"
 
 after { tag "erikh/box:master" }
-
 DOCKER_VERSION = "1.12.6"
+GOLANG_VERSION = "1.7.4"
 
 PACKAGES = %w[
   build-essential
@@ -25,21 +25,24 @@ skip do
 
   run "apt-get update #{qq}"
   run "apt-get install -y #{qq} #{PACKAGES.join(" ")}"
-  env "GOPATH" => "/go"
 
   docker_path = "docker-#{DOCKER_VERSION}.tgz"
   run "wget -q https://get.docker.com/builds/Linux/x86_64/#{docker_path}"
   run "tar -xpf #{docker_path} --strip-components=1 -C /usr/bin/"
   run "rm #{docker_path}"
+
+  run "curl -sSL https://storage.googleapis.com/golang/go#{GOLANG_VERSION}.linux-amd64.tar.gz | tar -xvz -C /usr/local"
+
   copy "dind", "/dind"
 
   run "pip -q install mkdocs mkdocs-bootswatch"
 
+  env "PATH" => "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/usr/local/go/bin:/go/bin", "GOPATH" => "/go"
   copy ".", "/go/src/github.com/erikh/box"
   run "cd /go/src/github.com/erikh/box && make clean install"
 
   workdir "/go/src/github.com/erikh/box"
-  set_exec entrypoint: ["/dind"], cmd: ["make", "docker-test"]
+  set_exec entrypoint: ["/dind"], cmd: %w[make docker-test]
   tag "box-test"
 end
 

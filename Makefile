@@ -50,6 +50,6 @@ release-osx: test-local # test directly on mac
 	sh release/release.sh ${VERSION}
 
 docker-test:
-	bash docker-test.sh $(PACKAGES)
+	/bin/bash docker-test.sh $(PACKAGES)
 
 .PHONY: docs
