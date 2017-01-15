@@ -842,7 +842,7 @@ func (bs *builderSuite) TestEnv(c *C) {
 
 	b, err = runBuilder(`
     from "debian"
-    env "TERM" => "myterm"
+    env "TERM" => "myterm", "PATH" => "/test"
     tag "builder-env-base"
   `)
 	c.Assert(err, IsNil)
@@ -856,6 +856,7 @@ func (bs *builderSuite) TestEnv(c *C) {
 
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), "builder-env")
 	c.Assert(err, IsNil)
+
 	found = false
 
 	for _, item := range inspect.Config.Env {
@@ -866,6 +867,16 @@ func (bs *builderSuite) TestEnv(c *C) {
 	}
 
 	c.Assert(found, Equals, true)
+
+	count = 0
+
+	for _, item := range inspect.Config.Env {
+		if strings.HasPrefix(item, "PATH=") {
+			count++
+		}
+	}
+
+	c.Assert(count, Equals, 1)
 	b.Close()
 }
 
