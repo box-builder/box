@@ -92,16 +92,7 @@ func expandIncludeList(source string) (string, []string, error) {
 			relFiles = append(relFiles, rel)
 		}
 	} else {
-		rel, err := filepath.Rel(source, files[0])
-		if err != nil {
-			return "", nil, err
-		}
-
-		if strings.HasPrefix(rel, "../") {
-			return "", nil, errors.New("path for file falls below copy root")
-		}
-
-		relFiles = []string{rel}
+		return source, []string{}, nil
 	}
 
 	return source, relFiles, nil
