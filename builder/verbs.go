@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/erikh/box/copy"
 	mruby "github.com/mitchellh/go-mruby"
@@ -366,14 +367,28 @@ func env(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		return nil, createException(m, err.Error())
 	}
 
+	newEnv := map[string]string{}
+
+	for _, env := range b.exec.Config().Env {
+		parts := strings.SplitN(env, "=", 2)
+		newEnv[parts[0]] = parts[1]
+	}
+
 	err := iterateRubyHash(args[0], func(key, value *mruby.MrbValue) error {
-		b.exec.Config().Env = append(b.exec.Config().Env, fmt.Sprintf("%s=%s", key.String(), value.String()))
+		newEnv[key.String()] = value.String()
 		return nil
 	})
-
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
+
+	env := []string{}
+
+	for key, value := range newEnv {
+		env = append(env, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	b.exec.Config().Env = env
 
 	if err := b.exec.Commit(cacheKey, nil); err != nil {
 		return nil, createException(m, err.Error())
