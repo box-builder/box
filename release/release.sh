@@ -16,14 +16,11 @@ mv CHANGELOG.tmp.md CHANGELOG.md
 cat release-notes.txt >> RELEASE.tmp.md 
 echo "\n\n" >> RELEASE.tmp.md
 
-cp $GOPATH/bin/box .
-
-lcuname=$(uname -s | tr LD ld)
-
 perl -i.bak -pe "s/(\\s+)Version = .*/\\1Version = \"${1}\"/" main.go
-
 make clean all
 
+lcuname=$(uname -s | tr LD ld)
+cp $GOPATH/bin/box .
 gzip -c box > "box-${1}.${lcuname}.gz"
 
 case "$(uname -s)" in
