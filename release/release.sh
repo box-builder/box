@@ -20,7 +20,7 @@ cp $GOPATH/bin/box .
 
 lcuname=$(uname -s | tr LD ld)
 
-perl -i.bak -e "s/(\\s+)Version = .*/\\1Version = \"${1}\"/" main.go
+perl -i.bak -pe "s/(\\s+)Version = .*/\\1Version = \"${1}\"/" main.go
 
 make
 
