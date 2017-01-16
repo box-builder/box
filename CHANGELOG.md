@@ -1,3 +1,16 @@
+### v0.4.1
+
+* Support .dockerignore files and per-copy-statement exclude/ignore statements[
+* Support `from :scratch` and `from ""` as viable methods of using an empty container
+* Compatibility fix around certain builder instructions setting the
+  user/cmd/entrypoint/workdir incorrectly
+* You can now suppress `run` statement output per-statement.
+* New tarring routines capture special files, and other improvements in this area.
+* New `after` verb which takes a proc of methods to be run after image composition.
+* Fix for a bug where duplicate insertions of environment keys would cause the
+  N++'d items to not be registered.
+* Fix copying into volumes (by removing them all from the image)
+
 ### v0.4
 
 * multi-build mode! Now build whole projects full of multiple images at once!
