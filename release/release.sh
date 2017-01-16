@@ -22,7 +22,7 @@ lcuname=$(uname -s | tr LD ld)
 
 perl -i.bak -pe "s/(\\s+)Version = .*/\\1Version = \"${1}\"/" main.go
 
-make
+make clean all
 
 gzip -c box > "box-${1}.${lcuname}.gz"
 
