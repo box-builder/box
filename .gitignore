@@ -4,3 +4,4 @@ dev.rb
 site
 release-notes.txt
 *.tmp.md
+*.bak
