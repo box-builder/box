@@ -167,3 +167,39 @@ func (ts *tarSuite) TestArchiveIgnore(c *C) {
 		}
 	}
 }
+
+func (ts *tarSuite) TestUnarchive(c *C) {
+	prefixes := []string{"foo", "bar"}
+
+	dir, err := ioutil.TempDir("", "tar-test")
+	c.Assert(err, IsNil)
+	defer os.RemoveAll(dir)
+
+	for i := 0; i < 20; i++ {
+		for _, prefix := range prefixes {
+			c.Assert(ioutil.WriteFile(fmt.Sprintf("%s/%s%d", dir, prefix, i), nil, 0666), IsNil)
+		}
+	}
+
+	target, err := ioutil.TempDir("", "tar-unpack-test")
+	c.Assert(err, IsNil)
+	defer os.RemoveAll(target)
+
+	tarball, _, err := Archive(context.Background(), dir, "/", []string{})
+	c.Assert(err, IsNil)
+
+	f, err := os.Open(tarball)
+	c.Assert(err, IsNil)
+	defer f.Close()
+	defer os.Remove(tarball)
+
+	c.Assert(Unarchive(f, target), IsNil)
+
+	for i := 0; i < 20; i++ {
+		for _, prefix := range prefixes {
+			fn := fmt.Sprintf("%s/%s%d", target, prefix, i)
+			_, err := os.Stat(fn)
+			c.Assert(err, IsNil)
+		}
+	}
+}
