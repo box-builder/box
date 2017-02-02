@@ -358,6 +358,9 @@ replace it with the file you're copying.
 NOTE: copy does not respect user permissions when the `user` or `with_user`
 modifiers are applied. This will be fixed eventually.
 
+NOTE: copy does not currently support glob metacharacters and will abort if
+they are used.
+
 Example:
 
 ```ruby
@@ -370,8 +373,4 @@ workdir "/tmp", do
 end
 
 copy "a_file", "/tmp/" # example of not overwriting directories with files
-copy "files*", "/var/lib" # example of globbing
-
-# copy all files named `files*`, but ignore the ones that start with `files1*`.
-copy "files*", "/var/lib", ignore_list: ["files1*"] 
 ```

@@ -356,6 +356,15 @@ func (bs *builderSuite) TestCopy(c *C) {
 
 	c.Assert(err, NotNil)
 	b.Close()
+
+	b, err = runBuilder(`
+		from "debian"
+		copy "testdata/*", "test"
+		run "test -f testdata/dockerfiles/test1.rb"
+	`)
+
+	c.Assert(err, NotNil)
+	b.Close()
 }
 
 func (bs *builderSuite) TestTag(c *C) {

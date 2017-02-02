@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/erikh/box/tar"
@@ -112,6 +113,11 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 	rel, target, ignoreList, err := checkCopyArgs(b, args)
 	if err != nil {
 		return nil, createException(m, err.Error())
+	}
+
+	// FIXME hacky glob detection here
+	if regexp.MustCompile(`[\[?*\]]`).MatchString(rel) {
+		return nil, createException(m, "copy statememnts cannot currently handle glob patterns")
 	}
 
 	list, err := readDockerIgnore()
