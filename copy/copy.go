@@ -17,7 +17,7 @@ var NoTTY bool
 var NoOut bool
 
 const megaByte = float64(1024 * 1024)
-const readerSize = 4096
+const readerSize = 65536
 
 // WithProgress implements io.Copy with a buffered reader, then measures
 // progress throughout the copy process. The buffer is set at a reasonable size
