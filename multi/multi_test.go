@@ -65,7 +65,7 @@ var FailPlans = map[int]string{
 	tag "fail2"
 	`,
 	3: `
-	from "golang"
+	from "alpine"
 	workdir "/bin"
 	user "nobody"
 	run "touch permission-error"
