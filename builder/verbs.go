@@ -360,9 +360,9 @@ func inside(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		return nil, createException(m, fmt.Sprintf("Arg %q was not block!", args[1].String()))
 	}
 
-	currentDir := args[0].String()
+	var currentDir string
 
-	if !path.IsAbs(currentDir) {
+	if !path.IsAbs(args[0].String()) {
 		currentDir = b.exec.Config().WorkDir.Temporary
 		if currentDir == "" {
 			currentDir = b.exec.Config().WorkDir.Image
@@ -373,6 +373,10 @@ func inside(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		} else {
 			currentDir = args[0].String()
 		}
+	}
+
+	if currentDir == "" {
+		currentDir = args[0].String()
 	}
 
 	if !path.IsAbs(filepath.Clean(currentDir)) {

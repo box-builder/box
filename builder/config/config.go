@@ -38,8 +38,8 @@ func NewConfig() *Config {
 	return &Config{
 		Env:     []string{},
 		Volumes: []string{},
-		User:    StringState{"", ""},
-		WorkDir: StringState{"", ""},
+		User:    StringState{"", "root"},
+		WorkDir: StringState{"", "/"},
 		Image:   "",
 	}
 }

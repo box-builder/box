@@ -323,6 +323,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 
 	b, err = runBuilder(`
     from "debian"
+		run "mkdir /test"
     inside "/test" do
       copy ".", "test/"
     end
