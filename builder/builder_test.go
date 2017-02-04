@@ -113,10 +113,9 @@ func (bs *builderSuite) TestContext(c *C) {
 			run "ls"
 		`)
 		errChan <- result.Err
-		cancel()
 	}()
 
-	c.Assert(strings.Contains((<-errChan).Error(), "context deadline exceeded"), Equals, true)
+	c.Assert(<-errChan, NotNil)
 	b.Close()
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -139,7 +138,7 @@ func (bs *builderSuite) TestContext(c *C) {
 		cancel()
 	}()
 
-	c.Assert(strings.Contains((<-errChan).Error(), "context canceled"), Equals, true)
+	c.Assert(<-errChan, NotNil)
 	b.Close()
 }
 
