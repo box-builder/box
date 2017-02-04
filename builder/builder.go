@@ -26,6 +26,7 @@ type BuildConfig struct {
 	Context   context.Context
 	Runner    chan struct{}
 	FileName  string
+	Logger    *logger.Logger
 }
 
 // BuildResult is an encapsulated tuple of *mruby.MrbValue and error used for
@@ -37,11 +38,12 @@ type BuildResult struct {
 
 // Builder implements the builder core.
 type Builder struct {
+	Logger *logger.Logger // public so its output can be tested
+
 	result    BuildResult
 	config    *BuildConfig
 	mrb       *mruby.Mrb
 	exec      executor.Executor
-	logger    *logger.Logger
 	afterFunc *mruby.MrbValue
 }
 
@@ -61,7 +63,11 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 		copy.NoTTY = true
 	}
 
-	log := logger.New(bc.FileName)
+	log := bc.Logger
+
+	if log == nil {
+		log = logger.New(bc.FileName)
+	}
 
 	exec, err := NewExecutor(bc.Context, "docker", log, bc.ShowRun, bc.Cache, bc.TTY)
 	if err != nil {
@@ -69,10 +75,11 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 	}
 
 	builder := &Builder{
+		Logger: log,
+
 		config: &bc,
 		mrb:    mruby.NewMrb(),
 		exec:   exec,
-		logger: log,
 	}
 
 	for name, def := range verbJumpTable {
@@ -122,7 +129,7 @@ func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
 		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")
 		cacheKey = base64.StdEncoding.EncodeToString([]byte(cacheKey))
 
-		b.logger.BuildStep(name, strings.Join(strArgs, ", "))
+		b.Logger.BuildStep(name, strings.Join(strArgs, ", "))
 
 		if os.Getenv("BOX_DEBUG") != "" {
 			content, _ := json.MarshalIndent(b.exec.Config(), "", "  ")

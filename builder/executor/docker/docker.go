@@ -390,7 +390,7 @@ func (d *Docker) Fetch(name string) (string, error) {
 		}
 
 		if !d.tty {
-			fmt.Printf("Pulling %q...", name)
+			d.logger.Print(fmt.Sprintf("Pulling %q... ", name))
 		}
 
 		if _, err := printPull(d.tty, reader); err != nil {
@@ -398,7 +398,7 @@ func (d *Docker) Fetch(name string) (string, error) {
 		}
 
 		if !d.tty {
-			fmt.Println("done.")
+			d.logger.Print("done.\n")
 		}
 
 		// this will fallthrough to the assignment below

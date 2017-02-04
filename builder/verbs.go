@@ -211,7 +211,7 @@ func tag(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		return nil, createException(m, err.Error())
 	}
 
-	b.logger.Tag(name)
+	b.Logger.Tag(name)
 
 	return nil, nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/builder"
+	"github.com/erikh/box/logger"
 
 	. "gopkg.in/check.v1"
 )
@@ -119,11 +120,15 @@ func mkBuilders(plans map[int]string) []*builder.Builder {
 	builders := []*builder.Builder{}
 
 	for i := range plans {
+		l := logger.New("")
+		l.Record()
+
 		b, err := builder.NewBuilder(builder.BuildConfig{
 			Context:  context.Background(),
 			Runner:   make(chan struct{}),
 			Cache:    os.Getenv("NO_CACHE") == "",
 			FileName: mkPlanDir(dir, i),
+			Logger:   l,
 		})
 
 		if err != nil {
