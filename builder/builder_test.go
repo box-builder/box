@@ -46,9 +46,10 @@ func (bs *builderSuite) SetUpSuite(c *C) {
 
 func (bs *builderSuite) SetUpTest(c *C) {
 	os.Setenv("NO_CACHE", "1")
+	ResetPulls()
 }
 
-func (bs *builderSuite) TearDownSuite(c *C) {
+func (bs *builderSuite) TearDownTest(c *C) {
 	if os.Getenv("DIND") != "" {
 		containers, err := dockerClient.ContainerList(context.Background(), types.ContainerListOptions{})
 		c.Assert(err, IsNil)
@@ -67,6 +68,22 @@ func (bs *builderSuite) TearDownSuite(c *C) {
 			}
 		}
 	}
+}
+
+func (bs *builderSuite) TestFrom(c *C) {
+	b, err := runBuilder(`
+		from "alpine"
+	`)
+
+	c.Assert(err, IsNil)
+	b.Close()
+
+	b, err = runBuilder(`
+		from "quezacoatl"
+	`)
+
+	c.Assert(err, NotNil)
+	b.Close()
 }
 
 func (bs *builderSuite) TestAfter(c *C) {
@@ -105,6 +122,8 @@ func (bs *builderSuite) TestContext(c *C) {
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	b, err = NewBuilder(BuildConfig{Context: cancelCtx, Runner: make(chan struct{})})
 	c.Assert(err, IsNil)
+
+	ResetPulls() // manually reset so the download starts again
 
 	go func() {
 		result := b.RunScript(`

@@ -247,14 +247,43 @@ func from(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 		return mruby.String(b.exec.Config().Image), nil
 	}
 
-	id, err := b.exec.Fetch(name)
-	if err != nil {
-		return nil, createException(m, err.Error())
+	var (
+		pullChan chan struct{}
+		pulling  bool
+	)
+
+	pullMutex.Lock()
+	if pulls[name] == nil {
+		pullChan = make(chan struct{})
+		pulls[name] = pullChan
+	} else {
+		pulling = true
+		pullChan = pulls[name]
+	}
+	pullMutex.Unlock()
+
+	var (
+		id  string
+		err error
+	)
+
+	if pulling {
+		<-pullChan
+		id, err = b.exec.Lookup(name)
+		if err != nil {
+			return nil, createException(m, err.Error())
+		}
+	} else {
+		id, err = b.exec.Fetch(name)
+		close(pullChan)
+		if err != nil {
+			return nil, createException(m, err.Error())
+		}
 	}
 
 	b.exec.Config().Image = id
 
-	return mruby.String(id), nil
+	return mruby.String(b.exec.Config().Image), nil
 }
 
 func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {

@@ -7,11 +7,34 @@ import (
 	"math/rand"
 	"os"
 
+	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/image"
 	"github.com/erikh/box/logger"
 
 	. "gopkg.in/check.v1"
 )
+
+func (ds *dockerSuite) TestLookup(c *C) {
+	imageName := "alpine"
+
+	d, err := NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
+	c.Assert(err, IsNil)
+
+	// XXX ok if this call fails
+	d.client.ImageRemove(d.context, imageName, types.ImageRemoveOptions{PruneChildren: true, Force: true})
+
+	id, err := d.Lookup(imageName)
+	c.Assert(err, NotNil)
+	c.Assert(id, Equals, "")
+
+	origid, err := d.Fetch(imageName)
+	c.Assert(err, IsNil)
+	c.Assert(origid, Not(Equals), "")
+
+	newid, err := d.Lookup(imageName)
+	c.Assert(err, IsNil)
+	c.Assert(newid, Equals, origid)
+}
 
 func (ds *dockerSuite) TestMakeImage(c *C) {
 	imageName := "postgres"

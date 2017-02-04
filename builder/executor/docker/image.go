@@ -131,3 +131,13 @@ func (d *Docker) MakeImage() error {
 
 	return err
 }
+
+// Lookup an image by name, returning the id.
+func (d *Docker) Lookup(name string) (string, error) {
+	img, _, err := d.client.ImageInspectWithRaw(d.context, name)
+	if err != nil {
+		return "", err
+	}
+
+	return img.ID, nil
+}

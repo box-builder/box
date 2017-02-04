@@ -93,6 +93,7 @@ func (ms *multiSuite) SetUpSuite(c *C) {
 
 func (ms *multiSuite) SetUpTest(c *C) {
 	os.Setenv("NO_CACHE", "1")
+	builder.ResetPulls()
 }
 
 func mkPlanDir(dir string, i int) string {
@@ -191,4 +192,34 @@ func (ms *multiSuite) TestBuilderBasic(c *C) {
 	}(filtered)
 
 	c.Assert(len(filtered), Equals, 0)
+}
+
+func (ms *multiSuite) TestMultiFrom(c *C) {
+	imageName := "alpine"
+
+	_, err := dockerClient.ImageRemove(context.Background(), imageName, types.ImageRemoveOptions{Force: true, PruneChildren: true})
+	c.Assert(err, IsNil)
+
+	builders := map[int]string{}
+
+	for i := 0; i < 10; i++ {
+		builders[i] = fmt.Sprintf("from %q", imageName)
+	}
+
+	mb := NewBuilder(mkBuilders(builders))
+	mb.Build()
+	c.Assert(mb.Wait(), IsNil)
+
+	var found bool
+
+	for _, b := range mb.builders {
+		if strings.Contains(b.Logger.Output().String(), fmt.Sprintf("Pulling %q", imageName)) {
+			if found {
+				c.Fatal("Found two pulls")
+			}
+			found = true
+		}
+	}
+
+	c.Assert(found, Equals, true)
 }

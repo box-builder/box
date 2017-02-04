@@ -94,4 +94,7 @@ type Executor interface {
 
 	// GetShowRun returns the visibility of run output.
 	GetShowRun() bool
+
+	// Look up an image identifier.
+	Lookup(string) (string, error)
 }

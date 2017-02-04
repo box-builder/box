@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/erikh/box/builder/executor"
 	"github.com/erikh/box/builder/executor/docker"
@@ -16,6 +17,9 @@ import (
 	"github.com/fatih/color"
 	mruby "github.com/mitchellh/go-mruby"
 )
+
+var pulls = map[string]chan struct{}{}
+var pullMutex = new(sync.Mutex)
 
 // BuildConfig is a struct containing the configuration for the builder.
 type BuildConfig struct {
@@ -207,7 +211,6 @@ func (b *Builder) Result() BuildResult {
 func (b *Builder) Run() BuildResult {
 	defer close(b.config.Runner)
 
-	// consolidate this and runscript
 	script, err := ioutil.ReadFile(b.config.FileName)
 	if err != nil {
 		return BuildResult{Err: err}
@@ -281,4 +284,9 @@ func NewExecutor(ctx context.Context, name string, log *logger.Logger, showRun, 
 	}
 
 	return nil, fmt.Errorf("Executor %q not found", name)
+}
+
+// ResetPulls is a function to facilitate testing of the coordinated pull functionality.
+func ResetPulls() {
+	pulls = map[string]chan struct{}{}
 }
