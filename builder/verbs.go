@@ -211,7 +211,7 @@ func tag(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		return nil, createException(m, err.Error())
 	}
 
-	b.logger.Tag(name)
+	b.Logger.Tag(name)
 
 	return nil, nil
 }
@@ -247,14 +247,43 @@ func from(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 		return mruby.String(b.exec.Config().Image), nil
 	}
 
-	id, err := b.exec.Fetch(name)
-	if err != nil {
-		return nil, createException(m, err.Error())
+	var (
+		pullChan chan struct{}
+		pulling  bool
+	)
+
+	pullMutex.Lock()
+	if pulls[name] == nil {
+		pullChan = make(chan struct{})
+		pulls[name] = pullChan
+	} else {
+		pulling = true
+		pullChan = pulls[name]
+	}
+	pullMutex.Unlock()
+
+	var (
+		id  string
+		err error
+	)
+
+	if pulling {
+		<-pullChan
+		id, err = b.exec.Lookup(name)
+		if err != nil {
+			return nil, createException(m, err.Error())
+		}
+	} else {
+		id, err = b.exec.Fetch(name)
+		close(pullChan)
+		if err != nil {
+			return nil, createException(m, err.Error())
+		}
 	}
 
 	b.exec.Config().Image = id
 
-	return mruby.String(id), nil
+	return mruby.String(b.exec.Config().Image), nil
 }
 
 func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
@@ -331,9 +360,9 @@ func inside(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		return nil, createException(m, fmt.Sprintf("Arg %q was not block!", args[1].String()))
 	}
 
-	currentDir := args[0].String()
+	var currentDir string
 
-	if !path.IsAbs(currentDir) {
+	if !path.IsAbs(args[0].String()) {
 		currentDir = b.exec.Config().WorkDir.Temporary
 		if currentDir == "" {
 			currentDir = b.exec.Config().WorkDir.Image
@@ -344,6 +373,10 @@ func inside(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		} else {
 			currentDir = args[0].String()
 		}
+	}
+
+	if currentDir == "" {
+		currentDir = args[0].String()
 	}
 
 	if !path.IsAbs(filepath.Clean(currentDir)) {
