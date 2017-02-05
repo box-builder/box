@@ -1,0 +1,12 @@
+pipeline:
+  docker:
+    image: plugins/docker
+    debug: true
+  build:
+    image: debian
+    # volumes:
+    #   - /var/run/docker.sock:/var/run/docker.sock
+    commands:
+      - "apt-get update && apt-get -y install ruby-full build-essential bison flex git curl"
+      - "curl -sSL https://storage.googleapis.com/golang/go1.7.4.linux-amd64.tar.gz | tar -xvz -C /usr/local"
+      - "PATH=/usr/local/go/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin make test"
