@@ -68,23 +68,30 @@ func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, []string
 		return "", "", nil, err
 	}
 
-	source, err = filepath.Abs(source)
-	if err != nil {
-		return "", "", nil, err
-	}
+	var rel string
 
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", "", nil, err
-	}
+	relfiles, err := filepath.Glob(source)
+	if err != nil || len(relfiles) == 1 {
+		source, err = filepath.Abs(source)
+		if err != nil {
+			return "", "", nil, err
+		}
 
-	rel, err := filepath.Rel(wd, source)
-	if err != nil {
-		return "", "", nil, err
-	}
+		wd, err := os.Getwd()
+		if err != nil {
+			return "", "", nil, err
+		}
 
-	if strings.HasPrefix(rel, "..") {
-		return "", "", nil, fmt.Errorf("cannot use relative path %s because it may fall below the root build directory", source)
+		rel, err = filepath.Rel(wd, source)
+		if err != nil {
+			return "", "", nil, err
+		}
+
+		if strings.HasPrefix(rel, "..") {
+			return "", "", nil, fmt.Errorf("cannot use relative path %s because it may fall below the root build directory", source)
+		}
+	} else {
+		rel = source
 	}
 
 	workdir := b.exec.Config().WorkDir
@@ -97,7 +104,7 @@ func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, []string
 	}
 
 	// special case `.`
-	if target == "." {
+	if target == "." && len(relfiles) == 1 {
 		target = filepath.Join(targetWd, rel)
 	} else {
 		if !strings.HasPrefix(target, "/") {

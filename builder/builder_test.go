@@ -191,6 +191,20 @@ func (bs *builderSuite) TestCopyToRelativePathWithWorkdir(c *C) {
 	b.Close()
 }
 
+func (bs *builderSuite) TestCopyWithGlob(c *C) {
+	b, err := runBuilder(`
+    from "debian"
+    run "mkdir /test"
+    workdir "/test"
+    copy "*", "."
+    run "test -f /test/config/config.go"
+		run "test -f /test/builder.go"
+		run "test -f /test/* || exit 0"
+  `)
+	c.Assert(err, IsNil)
+	b.Close()
+}
+
 func (bs *builderSuite) TestCopyWithIgnore(c *C) {
 	b, err := runBuilder(`
 		from "debian"
