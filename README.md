@@ -23,6 +23,7 @@ before, writing a box build plan is easy.
 
 * **[Download Releases](https://github.com/erikh/box/releases/)**
 * **[Extended Documentation for Syntax and Usage](https://erikh.github.io/box/)**
+* **[Homebrew Tap](https://github.com/erikh/homebrew-box)**
 
 ## Example
 
