@@ -25,6 +25,12 @@ before, writing a box build plan is easy.
 * **[Extended Documentation for Syntax and Usage](https://erikh.github.io/box/)**
 * **[Homebrew Tap](https://github.com/erikh/homebrew-box)**
 
+## Using the Homebrew Tap
+
+```bash
+brew tap erikh/box && brew install erikh/box/box
+```
+
 ## Example
 
 This will fetch the golang image, update APT, and then install the packages set
