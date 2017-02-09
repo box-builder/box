@@ -1,7 +1,7 @@
 from "debian"
 
 after { tag "erikh/box:master" }
-DOCKER_VERSION = "1.12.6"
+DOCKER_VERSION = "1.13.1"
 GOLANG_VERSION = "1.7.4"
 
 PACKAGES = %w[
