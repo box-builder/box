@@ -29,8 +29,8 @@ func (d *Docker) stdinCopy(conn net.Conn, errChan chan error, stopChan chan stru
 func (d *Docker) handleRunError(ctx context.Context, id string, errChan chan error) {
 	select {
 	case <-ctx.Done():
-		if err := ctx.Err(); err != nil {
-
+		if ctx.Err() != nil {
+			d.logger.Error(ctx.Err())
 		}
 		d.Destroy(id)
 	case err, ok := <-errChan:
