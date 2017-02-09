@@ -43,7 +43,7 @@ func (b *Builder) Wait() error {
 		res := <-resChan
 		if res.Err != nil {
 			errored = true
-			log.Error(fmt.Sprintf("%s: error occurred during plan execution: %v", b.builders[i].FileName(), res.Err))
+			log.Error(fmt.Sprintf("%s: error occurred during plan execution: %v", res.FileName, res.Err))
 		}
 	}
 

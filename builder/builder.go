@@ -36,8 +36,9 @@ type BuildConfig struct {
 // BuildResult is an encapsulated tuple of *mruby.MrbValue and error used for
 // communicating... build results.
 type BuildResult struct {
-	Value *mruby.MrbValue
-	Err   error
+	FileName string
+	Value    *mruby.MrbValue
+	Err      error
 }
 
 // Builder implements the builder core.
@@ -167,8 +168,9 @@ func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (BuildResult, int)
 	keep, res, err := b.mrb.RunWithContext(val, b.mrb.TopSelf(), stackKeep)
 
 	b.result = BuildResult{
-		Value: res,
-		Err:   err,
+		FileName: b.FileName(),
+		Value:    res,
+		Err:      err,
 	}
 
 	if err != nil {
@@ -177,7 +179,8 @@ func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (BuildResult, int)
 
 	if res != nil {
 		b.result = BuildResult{
-			Value: res,
+			FileName: b.FileName(),
+			Value:    res,
 		}
 		return b.result, keep
 	}
@@ -213,7 +216,10 @@ func (b *Builder) Run() BuildResult {
 
 	script, err := ioutil.ReadFile(b.config.FileName)
 	if err != nil {
-		return BuildResult{Err: err}
+		return BuildResult{
+			FileName: b.FileName(),
+			Err:      err,
+		}
 	}
 
 	return b.RunScript(string(script))
@@ -221,7 +227,9 @@ func (b *Builder) Run() BuildResult {
 
 // RunScript runs the provided script. It does not close the run channel.
 func (b *Builder) RunScript(script string) BuildResult {
-	b.result = BuildResult{}
+	b.result = BuildResult{
+		FileName: b.FileName(),
+	}
 	if _, err := b.mrb.LoadString(script); err != nil {
 		b.result.Err = err
 		return b.result
