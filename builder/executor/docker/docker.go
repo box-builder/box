@@ -189,6 +189,14 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 		}
 	}
 
+	select {
+	case <-d.context.Done():
+		if d.context.Err() == context.Canceled {
+			return d.context.Err()
+		}
+	default:
+	}
+
 	if err := d.checkContext(); err != nil {
 		return err
 	}
@@ -295,7 +303,8 @@ func (d *Docker) Create() (string, error) {
 
 // Destroy destroys a container for the given id.
 func (d *Docker) Destroy(id string) error {
-	return d.client.ContainerRemove(d.context, id, types.ContainerRemoveOptions{Force: true})
+	// XXX do not use the stored context because it may already be canceled when we arrive at this code.
+	return d.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
 }
 
 // CopyFromContainer copies a series of files in a similar fashion to
