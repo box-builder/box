@@ -23,12 +23,21 @@ lcuname=$(uname -s | tr LD ld)
 cp $GOPATH/bin/box .
 gzip -c box > "box-${1}.${lcuname}.gz"
 
+for i in deb rpm
+do
+  fpm -n box -v ${1} -s dir -t ${i} box=/usr/bin/box 
+done
+
 case "$(uname -s)" in
   Darwin)
     sum=$(shasum -a 256 "box-${1}.${lcuname}.gz")
   ;;
   Linux)
-    sum=$(sha256sum "box-${1}.${lcuname}.gz")
+    for i in "box-${1}.${lcuname}.gz" box-${1}-1.x86_64.rpm box_${1}_amd64.deb
+    do
+      innersum=$(sha256sum ${i})
+      sum="${sum}\n${innersum}"
+    done
   ;;
 esac
 
