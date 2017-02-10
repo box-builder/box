@@ -29,8 +29,11 @@ type progressInfo struct {
 	progressCount float64
 }
 
-func readProgress(reader io.Reader, readerFunc func(*idInfo, map[string]interface{}) (string, error)) (*idInfo, string, error) {
-	retval := ""
+func readProgress(reader io.Reader, readerFunc func(*idInfo, string, map[string]interface{}) (string, bool, error)) (*idInfo, string, error) {
+	var (
+		cont   = true
+		retval string
+	)
 
 	info := &idInfo{
 		idlist: []string{},
@@ -38,7 +41,7 @@ func readProgress(reader io.Reader, readerFunc func(*idInfo, map[string]interfac
 	}
 
 	buf := bufio.NewReader(reader)
-	for retval == "" {
+	for cont {
 		line, err := buf.ReadBytes('\n')
 		if err == io.EOF {
 			break
@@ -51,7 +54,7 @@ func readProgress(reader io.Reader, readerFunc func(*idInfo, map[string]interfac
 			return nil, "", err
 		}
 
-		retval, err = readerFunc(info, unpacked)
+		retval, cont, err = readerFunc(info, retval, unpacked)
 		if err != nil {
 			return nil, "", err
 		}
@@ -60,17 +63,17 @@ func readProgress(reader io.Reader, readerFunc func(*idInfo, map[string]interfac
 	return info, retval, nil
 }
 
-func processProgressEntry(info *idInfo, unpacked map[string]interface{}) (string, *progressInfo) {
-	if stream, ok := unpacked["stream"].(string); ok {
-		// FIXME this is absolutely terrible
-		if strings.HasPrefix(stream, "Loaded image ID: ") {
-			return strings.TrimSpace(strings.TrimPrefix(stream, "Loaded image ID: ")), nil
-		}
+func processProgressEntry(info *idInfo, retval string, unpacked map[string]interface{}) (string, bool, *progressInfo) {
+	if retval != "" {
+		fmt.Println(retval)
 	}
 
 	progInfo := &progressInfo{}
 
-	var progress map[string]interface{}
+	var (
+		cont     bool
+		progress map[string]interface{}
+	)
 
 	progress, progInfo.pok = unpacked["progressDetail"].(map[string]interface{})
 	if progInfo.pok {
@@ -94,7 +97,20 @@ func processProgressEntry(info *idInfo, unpacked map[string]interface{}) (string
 		info.idmap[id] = pullInfo{progInfo.status, progInfo.progressCount}
 	}
 
-	return "", progInfo
+	if strings.HasPrefix(progInfo.status, "Digest: ") {
+		retval = strings.TrimPrefix(progInfo.status, "Digest: ")
+	}
+
+	stream, cast := unpacked["stream"].(string)
+	if cast && strings.HasPrefix(stream, "Loaded image ID: ") {
+		retval = strings.TrimPrefix(strings.TrimSpace(stream), "Loaded image ID: ")
+	}
+
+	if progInfo != nil {
+		cont = true
+	}
+
+	return retval, cont, progInfo
 }
 
 func printProgress(progInfo *progressInfo, info *idInfo) {
@@ -121,17 +137,14 @@ func printProgress(progInfo *progressInfo, info *idInfo) {
 }
 
 func printPull(tty bool, reader io.Reader) (string, error) {
-	info, retval, err := readProgress(reader, func(info *idInfo, unpacked map[string]interface{}) (string, error) {
-		retval, progInfo := processProgressEntry(info, unpacked)
-		if retval != "" {
-			return retval, nil
-		}
+	info, retval, err := readProgress(reader, func(info *idInfo, retval string, unpacked map[string]interface{}) (string, bool, error) {
+		retval, cont, progInfo := processProgressEntry(info, retval, unpacked)
 
-		if tty {
+		if tty && progInfo != nil {
 			printProgress(progInfo, info)
 		}
 
-		return "", nil
+		return retval, cont, nil
 	})
 
 	if tty {

@@ -68,12 +68,11 @@ func (d *Docker) downloadImage() (string, error) {
 		return "", err
 	}
 
+	defer tf.Close()
 	if err := copy.WithProgress(tf, rc, "Downloading layers"); err != nil {
-		tf.Close()
 		return "", err
 	}
 
-	tf.Close()
 	return tf.Name(), nil
 }
 
@@ -83,7 +82,7 @@ func (d *Docker) downloadImage() (string, error) {
 // nothing.
 //
 // It returns an error condition, if any.
-func (d *Docker) MakeImage() error {
+func (d *Docker) MakeImage() (err error) {
 	// this is principally an optimization so we can determine later if we
 	// need to reconstruct the image.
 	if len(d.skipLayers) == 0 {
@@ -127,9 +126,18 @@ func (d *Docker) MakeImage() error {
 		return err
 	}
 
-	d.config.Image, err = printPull(d.tty, reader)
+	r := io.TeeReader(reader, os.Stdout)
 
-	return err
+	d.config.Image, err = printPull(d.tty, r)
+	if err != nil {
+		return err
+	}
+
+	if d.config.Image == "" {
+		return fmt.Errorf("error: image was not recorded during make phase, unknown error")
+	}
+
+	return nil
 }
 
 // Lookup an image by name, returning the id.
