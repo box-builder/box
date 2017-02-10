@@ -1,3 +1,15 @@
+### v0.4.2
+
+* Improve the performance of all copy operations
+* Set more appropriate defaults for user and workdir in the event they aren't
+  used in the run.
+* from statements in multi mode which reference the same image will no longer
+  start a download for each reference, but instead coalesce into one download.
+* Globbing has been broken since 0.4.1 which this resolves.
+* In multi-mode, errors would occasionally reference the wrong build plan when
+  yielding errors.
+* We now have deb, rpm and homebrew packages available!
+
 ### v0.4.1
 
 * Support .dockerignore files and per-copy-statement exclude/ignore statements[
