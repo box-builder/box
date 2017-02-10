@@ -1,5 +1,6 @@
-libmruby.a
+box[_-]*
 box
+libmruby.a
 dev.rb
 site
 release-notes.txt
