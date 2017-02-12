@@ -435,7 +435,9 @@ func (d *Docker) CleanupImages() {
 			}
 			// do not check errors because sometimes, the layers can't be deleted and
 			// we want to ignore that behavior.
-			d.client.ImageRemove(d.context, image, types.ImageRemoveOptions{PruneChildren: true})
+			if _, err := d.client.ImageRemove(d.context, image, types.ImageRemoveOptions{PruneChildren: true}); err != nil {
+				fmt.Println(err)
+			}
 		skip:
 		}
 	}
