@@ -289,7 +289,7 @@ func (d *Docker) Fetch(config *config.Config, name string) (string, error) {
 		pull.NewProgress(d.tty, reader).Process()
 
 		if !d.tty {
-			d.logger.Print("done.\n")
+			fmt.Println("done.")
 		}
 
 		// this will fallthrough to the assignment below

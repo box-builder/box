@@ -6,7 +6,7 @@ fetch:
 	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell pwd)/mruby_config.rb make
 
 install: fetch
-	go install -v .
+	go install -t btrfs_noversion -v .
 
 clean:
 	cd vendor/github.com/mitchellh/go-mruby && make clean
@@ -23,7 +23,7 @@ checks: fetch
 	@sh checks.sh
  
 build:
-	go run main.go build.rb
+	go run -t btrfs_noversion main.go build.rb
  
 build-ci:
 	CI_BUILD=1 go run main.go --no-tty build.rb

@@ -1,12 +1,17 @@
 ---
-language: go
-before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y flex bison
-sudo: required
-services:
-  - docker
-script:
-  - "make all test-ci"
-go:
-  - "1.7.4"
+  language: go
+  dist: xenial 
+  notifications:
+    email: false
+  os:
+    - linux
+  before_install:
+    - sudo apt-get -qq update
+    - sudo apt-get install -y linux-headers-generic flex bison libgpgme11-dev libdevmapper-dev btrfs-\*
+  sudo: required
+  services:
+    - docker
+  install: "make all"
+  script: "make test-ci"
+  go:
+    - "1.7.4"
