@@ -58,57 +58,6 @@ func (ds *dockerSuite) TearDownSuite(c *C) {
 	}
 }
 
-func (ds *dockerSuite) clearDockerPrefix(c *C, prefix string) {
-	d, err := NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
-	c.Assert(err, IsNil)
-	c.Assert(d.ImageID(), Equals, "")
-	// clear out any stale images
-
-	images, err := d.client.ImageList(context.Background(), types.ImageListOptions{All: true})
-	c.Assert(err, IsNil)
-
-	for i := 0; i < 2; i++ {
-		for _, img := range images {
-			inspect, _, err := d.client.ImageInspectWithRaw(context.Background(), img.ID)
-			if err != nil {
-				continue
-			}
-
-			if strings.HasPrefix(inspect.Comment, prefix) {
-				_, err := d.client.ImageRemove(context.Background(), img.ID, types.ImageRemoveOptions{})
-				if err != nil {
-					continue
-				}
-
-				for err == nil {
-					_, _, err = d.client.ImageInspectWithRaw(context.Background(), img.ID)
-				}
-			}
-		}
-	}
-}
-
-func (ds *dockerSuite) TestParameters(c *C) {
-	d, err := NewDocker(context.Background(), logger.New(""), true, false, false)
-	c.Assert(err, IsNil)
-	c.Assert(d.tty, Equals, false)
-	c.Assert(d.useCache, Equals, false)
-
-	d, err = NewDocker(context.Background(), logger.New(""), true, true, true)
-	c.Assert(err, IsNil)
-	c.Assert(d.tty, Equals, true)
-	c.Assert(d.useCache, Equals, true)
-
-	d, err = NewDocker(context.Background(), logger.New(""), true, false, false)
-	c.Assert(err, IsNil)
-	d.SetStdin(true)
-	c.Assert(d.stdin, Equals, true)
-	d.UseCache(true)
-	c.Assert(d.useCache, Equals, true)
-	c.Assert(d.ImageID(), Equals, "")
-	c.Assert(d.Config(), NotNil)
-}
-
 func (ds *dockerSuite) TestCreate(c *C) {
 	d, err := NewDocker(context.Background(), logger.New(""), true, false, ds.tty)
 	c.Assert(err, IsNil)
@@ -121,69 +70,11 @@ func (ds *dockerSuite) TestCreate(c *C) {
 	c.Assert(id, Not(Equals), "")
 }
 
-func (ds *dockerSuite) TestCommitCache(c *C) {
-	ds.clearDockerPrefix(c, "asdf")
-
-	d, err := NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
-	c.Assert(err, IsNil)
-	c.Assert(d.ImageID(), Equals, "")
-	ok, err := d.CheckCache("asdf")
-	c.Assert(err, IsNil)
-	c.Assert(ok, Equals, false)
-
-	c.Assert(d.Commit("asdf", nil), IsNil)
-	c.Assert(d.ImageID(), Not(Equals), "")
-
-	ok, err = d.CheckCache("asdf")
-	c.Assert(err, IsNil)
-	c.Assert(ok, Equals, true)
-
-	d, err = NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
-	c.Assert(err, IsNil)
-
-	ok, err = d.CheckCache("asdf")
-	c.Assert(err, IsNil)
-	c.Assert(ok, Equals, true)
-	c.Assert(d.ImageID(), Not(Equals), "")
-
-	c.Assert(d.Commit("asdf2", nil), IsNil)
-	c.Assert(d.ImageID(), Not(Equals), "")
-
-	c.Assert(d.Commit("asdf3", nil), IsNil)
-	c.Assert(d.ImageID(), Not(Equals), "")
-
-	d, err = NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
-	c.Assert(err, IsNil)
-
-	ok, err = d.CheckCache("asdf")
-	c.Assert(ok, Equals, true)
-	c.Assert(err, IsNil)
-	c.Assert(d.ImageID(), Not(Equals), "")
-
-	ok, err = d.CheckCache("asdf2")
-	c.Assert(err, IsNil)
-	c.Assert(ok, Equals, true)
-}
-
-func (ds *dockerSuite) TestFetch(c *C) {
-	d, err := NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
-	c.Assert(err, IsNil)
-
-	id, err := d.Fetch("debian:latest")
-	c.Assert(err, IsNil)
-
-	_, _, err = d.client.ImageInspectWithRaw(context.Background(), id)
-	c.Assert(err, IsNil)
-
-	_, err = d.Fetch("quezacoatl")
-	c.Assert(err, NotNil)
-}
-
 func (ds *dockerSuite) TestCopy(c *C) {
 	d, err := NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
 	c.Assert(err, IsNil)
 
-	_, err = d.Fetch("debian:latest")
+	_, err = d.Layers().Fetch(d.config, "debian:latest")
 	c.Assert(err, IsNil)
 
 	file, _, err := bt.Archive(context.Background(), ".", ".", []string{})
@@ -221,26 +112,101 @@ func (ds *dockerSuite) TestCopy(c *C) {
 	_, err = f.Seek(0, 0)
 	c.Assert(err, IsNil)
 
-	fi, err := f.Stat()
+	_, err = f.Stat()
 	c.Assert(err, IsNil)
-
-	c.Assert(d.Flatten(id, fi.Size(), f), IsNil)
 }
 
-func (ds *dockerSuite) TestTag(c *C) {
+func (ds *dockerSuite) TestCommitCache(c *C) {
+	ds.clearDockerPrefix(c, "asdf")
+
 	d, err := NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
 	c.Assert(err, IsNil)
+	c.Assert(d.Image().ImageID(), Equals, "")
+	ok, err := d.Image().CheckCache("asdf")
+	c.Assert(err, IsNil)
+	c.Assert(ok, Equals, false)
 
-	// clear old state
-	d.client.ImageRemove(context.Background(), "test", types.ImageRemoveOptions{})
+	c.Assert(d.Commit("asdf", nil), IsNil)
+	c.Assert(d.Image().ImageID(), Not(Equals), "")
 
-	id, err := d.Fetch("docker:latest")
+	ok, err = d.Image().CheckCache("asdf")
+	c.Assert(err, IsNil)
+	c.Assert(ok, Equals, true)
+
+	d, err = NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
 	c.Assert(err, IsNil)
 
-	c.Assert(d.Tag("test"), IsNil)
+	ok, err = d.Image().CheckCache("asdf")
+	c.Assert(err, IsNil)
+	c.Assert(ok, Equals, true)
+	c.Assert(d.Image().ImageID(), Not(Equals), "")
 
-	inspect, _, err := d.client.ImageInspectWithRaw(context.Background(), "test")
+	c.Assert(d.Commit("asdf2", nil), IsNil)
+	c.Assert(d.Image().ImageID(), Not(Equals), "")
+
+	c.Assert(d.Commit("asdf3", nil), IsNil)
+	c.Assert(d.Image().ImageID(), Not(Equals), "")
+
+	d, err = NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
 	c.Assert(err, IsNil)
 
-	c.Assert(inspect.ID, Equals, id)
+	ok, err = d.Image().CheckCache("asdf")
+	c.Assert(ok, Equals, true)
+	c.Assert(err, IsNil)
+	c.Assert(d.Image().ImageID(), Not(Equals), "")
+
+	ok, err = d.Image().CheckCache("asdf2")
+	c.Assert(err, IsNil)
+	c.Assert(ok, Equals, true)
+}
+
+func (ds *dockerSuite) clearDockerPrefix(c *C, prefix string) {
+	d, err := NewDocker(context.Background(), logger.New(""), true, true, ds.tty)
+	c.Assert(err, IsNil)
+	c.Assert(d.Image().ImageID(), Equals, "")
+	// clear out any stale images
+
+	images, err := d.client.ImageList(context.Background(), types.ImageListOptions{All: true})
+	c.Assert(err, IsNil)
+
+	for i := 0; i < 2; i++ {
+		for _, img := range images {
+			inspect, _, err := d.client.ImageInspectWithRaw(context.Background(), img.ID)
+			if err != nil {
+				continue
+			}
+
+			if strings.HasPrefix(inspect.Comment, prefix) {
+				_, err := d.client.ImageRemove(context.Background(), img.ID, types.ImageRemoveOptions{})
+				if err != nil {
+					continue
+				}
+
+				for err == nil {
+					_, _, err = d.client.ImageInspectWithRaw(context.Background(), img.ID)
+				}
+			}
+		}
+	}
+}
+
+func (ds *dockerSuite) TestParameters(c *C) {
+	d, err := NewDocker(context.Background(), logger.New(""), true, false, false)
+	c.Assert(err, IsNil)
+	c.Assert(d.tty, Equals, false)
+	c.Assert(d.Image().GetCache(), Equals, false)
+
+	d, err = NewDocker(context.Background(), logger.New(""), true, true, true)
+	c.Assert(err, IsNil)
+	c.Assert(d.tty, Equals, true)
+	c.Assert(d.Image().GetCache(), Equals, true)
+
+	d, err = NewDocker(context.Background(), logger.New(""), true, false, false)
+	c.Assert(err, IsNil)
+	d.SetStdin(true)
+	c.Assert(d.stdin, Equals, true)
+	d.Image().UseCache(true)
+	c.Assert(d.Image().GetCache(), Equals, true)
+	c.Assert(d.Image().ImageID(), Equals, "")
+	c.Assert(d.Config(), NotNil)
 }

@@ -1,4 +1,4 @@
-PACKAGES := ./cli-tests ./builder ./builder/executor/docker ./image ./tar ./multi
+PACKAGES := ./cli-tests ./builder ./builder/executor/docker ./layers ./image ./tar ./multi
 
 all: checks install
 

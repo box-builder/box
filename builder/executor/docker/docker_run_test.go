@@ -20,14 +20,14 @@ func (ds *dockerSuite) TestRunCommit(c *C) {
 
 	d, err := NewDocker(context.Background(), logger.New(""), true, false, false)
 	c.Assert(err, IsNil)
-	id, err := d.Fetch("debian:latest")
+	id, err := d.Layers().Fetch(d.config, "debian:latest")
 	c.Assert(err, IsNil)
 	c.Assert(d.Commit("", commit), IsNil)
 	c.Assert(d.config.Image, Not(Equals), id)
 
 	d, err = NewDocker(context.Background(), logger.New(""), true, false, false)
 	c.Assert(err, IsNil)
-	id, err = d.Fetch("debian:latest")
+	id, err = d.Layers().Fetch(d.config, "debian:latest")
 	c.Assert(err, IsNil)
 	c.Assert(d.Commit("", fail), NotNil)
 	c.Assert(d.config.Image, Equals, id)
@@ -36,7 +36,7 @@ func (ds *dockerSuite) TestRunCommit(c *C) {
 func (ds *dockerSuite) TestRunHook(c *C) {
 	d, err := NewDocker(context.Background(), logger.New(""), true, false, false)
 	c.Assert(err, IsNil)
-	id, err := d.Fetch("debian:latest")
+	id, err := d.Layers().Fetch(d.config, "debian:latest")
 	c.Assert(err, IsNil)
 
 	d.config.Entrypoint.Temporary = []string{"/bin/sh", "-c"}
@@ -46,7 +46,7 @@ func (ds *dockerSuite) TestRunHook(c *C) {
 
 	d, err = NewDocker(context.Background(), logger.New(""), true, false, false)
 	c.Assert(err, IsNil)
-	id, err = d.Fetch("debian:latest")
+	id, err = d.Layers().Fetch(d.config, "debian:latest")
 	c.Assert(err, IsNil)
 
 	createID, err := d.Create()
