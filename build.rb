@@ -16,6 +16,9 @@ PACKAGES = %w[
   iptables
   psmisc
   python-pip
+  btrfs-tools
+  libdevmapper-dev
+  libgpgme11-dev
 ]
 
 skip do
