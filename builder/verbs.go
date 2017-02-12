@@ -187,7 +187,7 @@ func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 
 	defer f.Close()
 
-	if err := b.exec.Flatten(id, size, f); err != nil {
+	if err := b.exec.Image().Flatten(id, size, f); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -207,7 +207,7 @@ func tag(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		return nil, createException(m, err.Error())
 	}
 
-	if err := b.exec.Tag(name); err != nil {
+	if err := b.exec.Image().Tag(name); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
@@ -269,12 +269,12 @@ func from(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 
 	if pulling {
 		<-pullChan
-		id, err = b.exec.Lookup(name)
+		id, err = b.exec.Layers().Lookup(name)
 		if err != nil {
 			return nil, createException(m, err.Error())
 		}
 	} else {
-		id, err = b.exec.Fetch(name)
+		id, err = b.exec.Layers().Fetch(b.exec.Config(), name)
 		close(pullChan)
 		if err != nil {
 			return nil, createException(m, err.Error())

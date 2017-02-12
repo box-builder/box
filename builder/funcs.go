@@ -142,9 +142,9 @@ func skip(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Va
 		return nil, createException(m, err.Error())
 	}
 
-	b.exec.SetSkipLayers(true)
+	b.exec.Layers().SetSkipLayers(true)
 	_, err := m.Yield(args[0])
-	b.exec.SetSkipLayers(false)
+	b.exec.Layers().SetSkipLayers(false)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}

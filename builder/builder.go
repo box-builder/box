@@ -109,13 +109,13 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 
 // Tag tags the last image yielded by the builder with the provided name.
 func (b *Builder) Tag(name string) error {
-	return b.exec.Tag(name)
+	return b.exec.Image().Tag(name)
 }
 
 // ImageID returns the latest known Image identifier that we committed. At the
 // end of the run this will be the golden docker image.
 func (b *Builder) ImageID() string {
-	return b.exec.ImageID()
+	return b.exec.Image().ImageID()
 }
 
 func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
@@ -141,7 +141,7 @@ func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
 			fmt.Println(string(content))
 		}
 
-		cached, err := b.exec.CheckCache(cacheKey)
+		cached, err := b.exec.Image().CheckCache(cacheKey)
 		if err != nil {
 			return nil, createException(m, err.Error())
 		}
@@ -185,7 +185,7 @@ func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (BuildResult, int)
 		return b.result, keep
 	}
 
-	if err := b.exec.MakeImage(); err != nil {
+	if _, err := b.exec.Layers().MakeImage(b.exec.Config()); err != nil {
 		b.result.Value = nil
 		b.result.Err = err
 		return b.result, keep
@@ -197,7 +197,7 @@ func (b *Builder) RunCode(val *mruby.MrbValue, stackKeep int) (BuildResult, int)
 		return b.result, keep
 	}
 
-	b.result.Value = mruby.String(b.exec.ImageID()).MrbValue(b.mrb)
+	b.result.Value = mruby.String(b.ImageID()).MrbValue(b.mrb)
 	b.result.Err = nil
 
 	return b.result, keep
@@ -235,7 +235,7 @@ func (b *Builder) RunScript(script string) BuildResult {
 		return b.result
 	}
 
-	if err := b.exec.MakeImage(); err != nil {
+	if _, err := b.exec.Layers().MakeImage(b.exec.Config()); err != nil {
 		b.result.Err = err
 		return b.result
 	}
@@ -248,9 +248,9 @@ func (b *Builder) RunScript(script string) BuildResult {
 		}
 	}
 
-	b.exec.CleanupImages()
+	b.exec.Layers().CleanupImages()
 
-	b.result.Value = mruby.String(b.exec.ImageID()).MrbValue(b.mrb)
+	b.result.Value = mruby.String(b.ImageID()).MrbValue(b.mrb)
 	return b.result
 }
 

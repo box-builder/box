@@ -143,8 +143,8 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 
 	cacheKey = fmt.Sprintf("box:copy %s", cacheKey)
 
-	if b.exec.GetCache() {
-		cached, err := b.exec.CheckCache(cacheKey)
+	if b.exec.Image().GetCache() {
+		cached, err := b.exec.Image().CheckCache(cacheKey)
 		if err != nil {
 			return nil, createException(m, err.Error())
 		}
