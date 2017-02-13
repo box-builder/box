@@ -1,4 +1,5 @@
 PACKAGES := ./cli-tests ./builder ./builder/executor/docker ./layers ./image ./tar ./multi
+BUILD_TAGS := "btrfs_noversion libdm_no_deferred_remove"
 
 all: checks install
 
@@ -6,7 +7,7 @@ fetch:
 	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell pwd)/mruby_config.rb make
 
 install: fetch
-	go install -t btrfs_noversion -v .
+	go install -tags $(BUILD_TAGS) .
 
 clean:
 	cd vendor/github.com/mitchellh/go-mruby && make clean
@@ -23,10 +24,10 @@ checks: fetch
 	@sh checks.sh
  
 build:
-	go run -t btrfs_noversion main.go build.rb
+	go run -tags $(BUILD_TAGS) main.go build.rb
  
 build-ci:
-	CI_BUILD=1 go run main.go --no-tty build.rb
+	CI_BUILD=1 go run -tags $(BUILD_TAGS) main.go --no-tty build.rb
 
 run-test-ci:
 	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -i box-test
