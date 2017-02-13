@@ -37,7 +37,7 @@ func (l *Logger) Output() *bytes.Buffer {
 
 // Print is a bare-bones print statement.
 func (l *Logger) Print(str string) {
-	fmt.Fprint(l.output, str)
+	fmt.Fprint(l.output, l.getPlan(), str)
 }
 
 func (l *Logger) getPlan() string {

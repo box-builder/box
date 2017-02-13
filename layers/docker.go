@@ -4,13 +4,18 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
+	"strings"
+	"time"
 
+	"github.com/containers/image/copy"
+	"github.com/containers/image/docker/daemon"
+	"github.com/containers/image/signature"
+	ctypes "github.com/containers/image/types"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/builder/config"
-	"github.com/erikh/box/copy"
 	"github.com/erikh/box/image"
 	"github.com/erikh/box/logger"
 	"github.com/erikh/box/pull"
@@ -159,24 +164,79 @@ func (d *Docker) calculateCommits(layers []*image.Layer) []*image.Layer {
 	return commitLayers
 }
 
-func (d *Docker) downloadImage(image string) (string, error) {
-	rc, err := d.client.ImageSave(context.Background(), []string{image})
+func (d *Docker) downloadImage(from string) (string, error) {
+	ref, err := daemon.ParseReference(from)
 	if err != nil {
 		return "", err
 	}
 
-	tf, err := ioutil.TempFile("", "box-downloaded-image")
+	img, err := ref.NewImage(nil)
+	if err != nil {
+		return "", err
+	}
+	defer img.Close()
+
+	tgtRef, err := reference.ParseNamed(from)
 	if err != nil {
 		return "", err
 	}
 
-	if err := copy.WithProgress(tf, rc, "Downloading layers"); err != nil {
-		tf.Close()
+	tgt, err := daemon.NewReference("", tgtRef)
+	if err != nil {
 		return "", err
 	}
 
-	tf.Close()
-	return tf.Name(), nil
+	pc, err := signature.NewPolicyContext(&signature.Policy{
+		Default: []signature.PolicyRequirement{signature.NewPRInsecureAcceptAnything()},
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	progressChan := make(chan ctypes.ProgressProperties)
+
+	go func() {
+		var last string
+		for prog := range progressChan {
+			digest := prog.Artifact.Digest.String()
+
+			if digest == last {
+				fmt.Print("\r")
+			} else if last != "" {
+				fmt.Println()
+			}
+
+			d.logger.Print(fmt.Sprintf("%s: %dMB", strings.SplitN(digest, ":", 2)[1][:12], prog.Offset/(1024*1024)))
+			last = digest
+		}
+
+		fmt.Println()
+	}()
+
+	d.logger.Print(d.logger.Notice("Editing image\n"))
+
+	img2, err := copy.Image(pc, tgt, ref, &copy.Options{
+		RemoveSignatures: true,
+		LayerCopyHook: func(srcLayer ctypes.BlobInfo) bool {
+			var found bool
+			for _, l := range d.layers {
+				if srcLayer.Digest.String() == l {
+					found = true
+				}
+			}
+
+			return found
+		},
+		Progress:         progressChan,
+		ProgressInterval: 100 * time.Millisecond,
+	})
+	close(progressChan)
+	if err != nil {
+		return "", err
+	}
+
+	return img2.ConfigInfo().Digest.String(), nil
 }
 
 // MakeImage makes the final image, skipping any layers as necessary. The
@@ -192,44 +252,14 @@ func (d *Docker) MakeImage(config *config.Config) (string, error) {
 		return config.Image, nil
 	}
 
-	tf, err := d.downloadImage(config.Image)
+	var err error
+
+	config.Image, err = d.downloadImage(config.Image)
 	if err != nil {
 		return "", err
 	}
 
-	layers, dir, err := image.Unpack(tf) // this error is used far below
-
-	if err := os.Remove(tf); err != nil {
-		return "", err
-	}
-
-	defer func() {
-		if dir != "" {
-			os.RemoveAll(dir)
-		}
-	}()
-
-	if err != nil { // right here
-		return "", err
-	}
-
-	if len(layers) < len(d.layers) {
-		return "", fmt.Errorf("error: image mismatch; layers recorded are more than layers in image: %d - %d", len(layers), len(d.layers))
-	}
-
-	fn, err := image.Make(config, d.calculateCommits(layers))
-	if err != nil {
-		return "", err
-	}
-
-	defer os.Remove(fn)
-
-	reader, err := d.uploadImage(fn)
-	if err != nil {
-		return "", err
-	}
-
-	return pull.NewProgress(d.tty, reader).Process()
+	return config.Image, nil
 }
 
 // Lookup an image by name, returning the id.
@@ -259,7 +289,7 @@ func (d *Docker) Fetch(config *config.Config, name string) (string, error) {
 		pull.NewProgress(d.tty, reader).Process()
 
 		if !d.tty {
-			d.logger.Print("done.\n")
+			fmt.Println("done.")
 		}
 
 		// this will fallthrough to the assignment below
