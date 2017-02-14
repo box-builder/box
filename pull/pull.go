@@ -80,6 +80,14 @@ func (p *Progress) Process() (string, error) {
 		}
 
 		retval = p.processProgressEntry(unpacked)
+
+		if p.tty {
+			p.Print()
+		}
+	}
+
+	for i := 0; i < len(p.idlist)+1; i++ {
+		fmt.Println()
 	}
 
 	return retval, nil
