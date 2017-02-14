@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/erikh/box/copy"
+	"github.com/erikh/box/logger"
 )
 
 // SumReader sums an io.Reader
@@ -16,7 +17,7 @@ func SumReader(reader io.Reader) (string, error) {
 }
 
 // SumWithCopy simultaneously sums and copies a stream.
-func SumWithCopy(writer io.WriteCloser, reader io.Reader, fileType string) (string, error) {
+func SumWithCopy(writer io.WriteCloser, reader io.Reader, logger *logger.Logger, fileType string) (string, error) {
 	hashReader, hashWriter := io.Pipe()
 	tarReader := io.TeeReader(reader, hashWriter)
 
@@ -32,7 +33,7 @@ func SumWithCopy(writer io.WriteCloser, reader io.Reader, fileType string) (stri
 		}
 	}()
 
-	if err := copy.WithProgress(writer, tarReader, fileType); err != nil {
+	if err := copy.WithProgress(writer, tarReader, logger, fileType); err != nil {
 		writer.Close()
 		return "", err
 	}

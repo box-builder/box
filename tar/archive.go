@@ -3,7 +3,7 @@ package tar
 import (
 	"archive/tar"
 	"context"
-	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -12,10 +12,12 @@ import (
 	"strings"
 
 	"github.com/docker/docker/pkg/archive"
+	"github.com/erikh/box/copy"
+	"github.com/erikh/box/logger"
 )
 
 // rewriteTar rewrites the tar's paths to copy the source to the target.
-func rewriteTar(source, target string, tr *tar.Reader, tw *tar.Writer) error {
+func rewriteTar(source, target string, logger *logger.Logger, tr *tar.Reader, tw *tar.Writer) error {
 	fi, err := os.Stat(source)
 	if err != nil {
 		return err
@@ -40,7 +42,7 @@ func rewriteTar(source, target string, tr *tar.Reader, tw *tar.Writer) error {
 			}
 
 			if strings.HasPrefix(rel, "../") {
-				return errors.New("path for symlink falls below copy root")
+				return fmt.Errorf("path for symlink %q (source: %q) falls below copy root", rel, source)
 			}
 		}
 
@@ -57,7 +59,7 @@ func rewriteTar(source, target string, tr *tar.Reader, tw *tar.Writer) error {
 			return err
 		}
 
-		if _, err := io.Copy(tw, tr); err != nil {
+		if err := copy.WithProgress(tw, tr, logger, fmt.Sprintf("%s -> %s", path.Join(source, header.Name[1:]), header.Name[1:])); err != nil {
 			return err
 		}
 	}
@@ -83,7 +85,7 @@ func expandIncludeList(source string) (string, []string, error) {
 			}
 
 			if strings.HasPrefix(rel, "../") {
-				return "", nil, errors.New("path for file falls below copy root")
+				return "", nil, fmt.Errorf("path for file %q falls below copy root", rel)
 			}
 
 			relFiles = append(relFiles, rel)
@@ -97,7 +99,7 @@ func expandIncludeList(source string) (string, []string, error) {
 
 // Archive archives the source into target, ignoring the list of patterns
 // supplied in the string array.
-func Archive(ctx context.Context, source, target string, ignoreList []string) (string, string, error) {
+func Archive(ctx context.Context, source, target string, ignoreList []string, logger *logger.Logger) (string, string, error) {
 	var relFiles []string
 	var err error
 
@@ -119,7 +121,7 @@ func Archive(ctx context.Context, source, target string, ignoreList []string) (s
 	tr := tar.NewReader(reader)
 	tw := tar.NewWriter(f)
 
-	if err := rewriteTar(source, target, tr, tw); err != nil {
+	if err := rewriteTar(source, target, logger, tr, tw); err != nil {
 		return "", "", err
 	}
 

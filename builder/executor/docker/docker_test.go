@@ -77,7 +77,7 @@ func (ds *dockerSuite) TestCopy(c *C) {
 	_, err = d.Layers().Fetch(d.config, "debian:latest")
 	c.Assert(err, IsNil)
 
-	file, _, err := bt.Archive(context.Background(), ".", ".", []string{})
+	file, _, err := bt.Archive(context.Background(), ".", ".", []string{}, d.logger)
 	c.Assert(err, IsNil)
 
 	f, err := os.Open(file)

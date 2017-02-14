@@ -10,6 +10,7 @@ import (
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/builder/config"
+	"github.com/erikh/box/logger"
 
 	. "gopkg.in/check.v1"
 )
@@ -93,7 +94,7 @@ func (is *imageSuite) TestMake(c *C) {
 		}
 	}
 
-	img, err := Make(config.NewConfig(), merged)
+	img, err := Make(config.NewConfig(), merged, logger.New(""))
 	c.Assert(err, IsNil)
 
 	in, err := os.Open(img)
