@@ -74,14 +74,14 @@ then
   exit 1
 fi
 
-echo "Running deadcode..."
-[ -n "`which deadcode`" ] || go get github.com/remyoudompheng/go-misc/deadcode/...
-set +e
-out=$(deadcode ${dirs} 2>&1)
-set -e
-if [ "`echo \"${out}\" | sed '/^$/d' | wc -l`" -gt 0 ]
-then
-  echo 1>&2 "deadcode errors in:"
-  echo 1>&2 "${out}"
-  exit 1
-fi
+# echo "Running deadcode..."
+# [ -n "`which deadcode`" ] || go get github.com/remyoudompheng/go-misc/deadcode/...
+# set +e
+# out=$(deadcode ${dirs} 2>&1)
+# set -e
+# if [ "`echo \"${out}\" | sed '/^$/d' | wc -l`" -gt 0 ]
+# then
+#   echo 1>&2 "deadcode errors in:"
+#   echo 1>&2 "${out}"
+#   exit 1
+# fi
