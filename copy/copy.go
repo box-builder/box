@@ -1,12 +1,12 @@
 package copy
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"time"
 
 	"github.com/docker/docker/pkg/term"
+	"github.com/erikh/box/logger"
 	"github.com/fatih/color"
 )
 
@@ -16,80 +16,53 @@ var NoTTY bool
 // NoOut turns copy output off entirely
 var NoOut bool
 
-const megaByte = float64(1024 * 1024)
-const readerSize = 65536
+const (
+	megaByte   = float64(1024 * 1024)
+	readerSize = 65536
+	interval   = 10 * time.Millisecond
+)
 
 // WithProgress implements io.Copy with a buffered reader, then measures
 // progress throughout the copy process. The buffer is set at a reasonable size
 // for reasonable performance. On error, if io.EOF is not returned then the
 // error is returned. Otherwise, it is nil.
-func WithProgress(writer io.Writer, reader io.Reader, prefix string) error {
-	defer color.Unset()
-
+func WithProgress(writer io.Writer, reader io.Reader, logger *logger.Logger, prefix string) error {
 	var printed bool
 
+	defer color.Unset()
 	defer func() {
-		if printed {
+		if printed && !NoOut && !NoTTY {
 			fmt.Println()
 		}
 	}()
 
-	wsz, _ := term.GetWinsize(0)
-
-	rd := bufio.NewReaderSize(reader, readerSize)
+	// if there is no terminal, this will be non-nil; we will not print progress
+	// below if this is the case.
+	_, termErr := term.GetWinsize(0)
 
 	count := float64(0)
 	buf := make([]byte, readerSize)
 	t := time.Now()
 	for {
-		rn, err := rd.Read(buf)
+		rn, rerr := reader.Read(buf)
+		if rerr != nil && rerr != io.EOF {
+			return rerr
+		}
+
 		count += float64(rn)
 
-		if err == io.EOF {
-			if rn > 0 {
-				goto write
-			} else {
-				return nil
-			}
-		}
-		if err != nil {
-			return err
-		}
-
-		if NoOut {
-			goto write
-		}
-
-		if time.Since(t) > 100*time.Millisecond && !NoTTY && wsz.Width != 0 {
+		if termErr == nil && !NoOut && !NoTTY && time.Since(t) > interval {
 			printed = true
-			fmt.Print("\r")
-
-			mbs := fmt.Sprintf("%.02fMB", count/megaByte)
-
-			color.New(color.FgWhite, color.Bold).Printf("+++ ")
-
-			justifiedWidth := int(wsz.Width) - len(mbs) - 9
-			if justifiedWidth < 0 {
-				goto write
-			}
-
-			if len(prefix) > int(justifiedWidth) {
-				prefix = prefix[:int(justifiedWidth)] + "..."
-			}
-
-			color.New(color.FgRed, color.Bold).Printf("%s: ", prefix)
-			color.New(color.FgWhite).Print(mbs)
-
+			logger.Progress(prefix, count/megaByte)
 			t = time.Now()
 		}
 
-	write:
 		_, werr := writer.Write(buf[:rn])
-		if werr != nil {
+		if werr != nil && werr != io.EOF {
 			return werr
 		}
 
-		if err == io.EOF {
+		if rerr == io.EOF || rn == 0 {
 			return nil
 		}
 	}

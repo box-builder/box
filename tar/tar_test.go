@@ -11,12 +11,16 @@ import (
 	"strings"
 	. "testing"
 
+	"github.com/erikh/box/logger"
+
 	"golang.org/x/sys/unix"
 
 	. "gopkg.in/check.v1"
 )
 
 type tarSuite struct{}
+
+var log = logger.New("")
 
 var _ = Suite(&tarSuite{})
 
@@ -25,7 +29,7 @@ func TestTar(t *T) {
 }
 
 func (ts *tarSuite) TestArchive(c *C) {
-	tarball, sum, err := Archive(context.Background(), ".", "/", []string{})
+	tarball, sum, err := Archive(context.Background(), ".", "/", []string{}, log)
 	c.Assert(err, IsNil)
 	c.Assert(sum, Not(Equals), "")
 	c.Assert(tarball, Not(Equals), "")
@@ -58,7 +62,7 @@ func (ts *tarSuite) TestArchiveSpecialFile(c *C) {
 	c.Assert(os.Symlink(tmp.Name(), filepath.Join(dir, "testsym")), IsNil)
 	c.Assert(unix.Mkfifo(filepath.Join(dir, "test.fifo"), 0666), IsNil)
 
-	tarball, _, err := Archive(context.Background(), dir, "/", []string{})
+	tarball, _, err := Archive(context.Background(), dir, "/", []string{}, log)
 	c.Assert(err, IsNil)
 	c.Assert(tarball, Not(Equals), "")
 	defer os.Remove(tarball)
@@ -104,7 +108,7 @@ func (ts *tarSuite) TestArchiveGlob(c *C) {
 	}
 
 	for _, prefix := range prefixes {
-		tarball, _, err := Archive(context.Background(), fmt.Sprintf("%s/%s*", dir, prefix), "/", []string{})
+		tarball, _, err := Archive(context.Background(), fmt.Sprintf("%s/%s*", dir, prefix), "/", []string{}, log)
 		c.Assert(err, IsNil)
 		defer os.Remove(tarball)
 
@@ -143,7 +147,7 @@ func (ts *tarSuite) TestArchiveIgnore(c *C) {
 	}
 
 	for _, prefix := range prefixes {
-		tarball, _, err := Archive(context.Background(), dir, "/", []string{fmt.Sprintf("%s*", prefix)})
+		tarball, _, err := Archive(context.Background(), dir, "/", []string{fmt.Sprintf("%s*", prefix)}, log)
 		c.Assert(err, IsNil)
 		defer os.Remove(tarball)
 
@@ -185,7 +189,7 @@ func (ts *tarSuite) TestUnarchive(c *C) {
 	c.Assert(err, IsNil)
 	defer os.RemoveAll(target)
 
-	tarball, _, err := Archive(context.Background(), dir, "/", []string{})
+	tarball, _, err := Archive(context.Background(), dir, "/", []string{}, log)
 	c.Assert(err, IsNil)
 
 	f, err := os.Open(tarball)

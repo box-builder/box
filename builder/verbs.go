@@ -174,7 +174,7 @@ func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 	}
 
 	defer os.Remove(f.Name())
-	if err := copy.WithProgress(f, rc, "Downloading image contents to host"); err != nil && err != io.EOF {
+	if err := copy.WithProgress(f, rc, b.Logger, "Downloading image contents to host"); err != nil && err != io.EOF {
 		f.Close()
 		return nil, createException(m, err.Error())
 	}

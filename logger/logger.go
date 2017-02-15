@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/docker/docker/pkg/term"
 	"github.com/fatih/color"
 )
 
@@ -111,7 +112,7 @@ func (l *Logger) EvalResponse(response string) {
 	line := l.getPlan()
 	line += l.Good("")
 	line += color.New(color.FgWhite, color.Bold).SprintFunc()("Eval Response:")
-	fmt.Fprintln(l.output, line, "", response) // dat whitespace
+	fmt.Fprintln(l.output, line, response)
 	color.Unset()
 }
 
@@ -135,4 +136,29 @@ func (l *Logger) EndOutput() {
 	line := l.getPlan()
 	line += color.New(color.FgRed, color.Bold, color.BgWhite).SprintFunc()("------- END OUTPUT -------")
 	fmt.Fprintln(l.output, line)
+}
+
+// Progress is a representation of a progress meter.
+func (l *Logger) Progress(prefix string, count float64) {
+	out := fmt.Sprint("\r")
+	out += l.getPlan()
+
+	wsz, _ := term.GetWinsize(0)
+
+	mbs := fmt.Sprintf("%.02fMB", count)
+
+	justifiedWidth := int(wsz.Width) - len(mbs) - 9
+	if justifiedWidth < 0 {
+		return
+	}
+
+	out += color.New(color.FgWhite, color.Bold).SprintFunc()("+++ ")
+
+	if len(prefix) > int(justifiedWidth) {
+		prefix = prefix[:int(justifiedWidth)] + "..."
+	}
+
+	out += color.New(color.FgRed, color.Bold).SprintfFunc()("%s: ", prefix)
+	out += color.New(color.FgWhite).SprintFunc()(mbs)
+	fmt.Fprint(l.output, out)
 }

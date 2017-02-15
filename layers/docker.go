@@ -21,6 +21,8 @@ import (
 	"github.com/erikh/box/pull"
 )
 
+const megaByte = 1024 * 1024
+
 // Docker needs a documetnation
 type Docker struct {
 	context      context.Context
@@ -207,7 +209,7 @@ func (d *Docker) downloadImage(from string) (string, error) {
 				fmt.Println()
 			}
 
-			d.logger.Print(fmt.Sprintf("%s: %dMB", strings.SplitN(digest, ":", 2)[1][:12], prog.Offset/(1024*1024)))
+			d.logger.Progress(strings.SplitN(digest, ":", 2)[1][:12], float64(prog.Offset/megaByte))
 			last = digest
 		}
 

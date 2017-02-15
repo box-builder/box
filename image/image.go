@@ -14,6 +14,7 @@ import (
 
 	"github.com/erikh/box/builder/config"
 	"github.com/erikh/box/copy"
+	"github.com/erikh/box/logger"
 	bt "github.com/erikh/box/tar"
 )
 
@@ -73,7 +74,7 @@ func extractLayers(img *imageInfo, dir, file string) error {
 				return err
 			}
 
-			sum, err := bt.SumWithCopy(out, tr, fmt.Sprintf("Unpacking Layer ID %s", layerID[:12]))
+			sum, err := bt.SumWithCopy(out, tr, logger.New(layerID[:12]), fmt.Sprintf("Unpacking Layer ID %s", layerID[:12]))
 			if err != nil {
 				return err
 			}
@@ -146,7 +147,7 @@ func extractManifest(file string) (*imageInfo, error) {
 	return img, nil
 }
 
-func writeLayer(imgwriter *tar.Writer, tarFile string, tf *os.File) error {
+func writeLayer(imgwriter *tar.Writer, tarFile string, tf *os.File, logger *logger.Logger) error {
 	fi, err := tf.Stat()
 	if err != nil {
 		return err
@@ -163,7 +164,7 @@ func writeLayer(imgwriter *tar.Writer, tarFile string, tf *os.File) error {
 		return err
 	}
 
-	if err := copy.WithProgress(imgwriter, tf, "Writing Layer"); err != nil {
+	if err := copy.WithProgress(imgwriter, tf, logger, "Writing Layer"); err != nil {
 		return err
 	}
 
@@ -300,7 +301,7 @@ func Unpack(file string) ([]*Layer, string, error) {
 }
 
 // Make copies N layers into a single image, ships it back to docker.
-func Make(config *config.Config, layers []*Layer) (string, error) {
+func Make(config *config.Config, layers []*Layer, logger *logger.Logger) (string, error) {
 	if len(layers) == 0 {
 		return "", fmt.Errorf("no image layers to construct with")
 	}
@@ -329,7 +330,7 @@ func Make(config *config.Config, layers []*Layer) (string, error) {
 			return "", err
 		}
 
-		if err := writeLayer(imgwriter, layer.layerFilename, f); err != nil {
+		if err := writeLayer(imgwriter, layer.layerFilename, f, logger); err != nil {
 			f.Close()
 			return "", err
 		}
@@ -348,7 +349,7 @@ func Make(config *config.Config, layers []*Layer) (string, error) {
 // Flatten copies a tarred up series of files (passed in through the io.Reader
 // handle) to the image where they are untarred. Returns the filename of the
 // image created.
-func Flatten(config *config.Config, id string, size int64, tw io.Reader) (string, error) {
+func Flatten(config *config.Config, id string, size int64, tw io.Reader, logger *logger.Logger) (string, error) {
 	out, err := tmpfile()
 	if err != nil {
 		return "", err
@@ -363,7 +364,7 @@ func Flatten(config *config.Config, id string, size int64, tw io.Reader) (string
 
 	defer os.Remove(tf.Name())
 
-	sum, err := bt.SumWithCopy(tf, tw, "Downloading Image for Flatten")
+	sum, err := bt.SumWithCopy(tf, tw, logger, "Downloading Image for Flatten")
 	if err != nil {
 		return "", err
 	}
@@ -382,7 +383,7 @@ func Flatten(config *config.Config, id string, size int64, tw io.Reader) (string
 		return "", err
 	}
 
-	if err := writeLayer(imgwriter, tarFiles[len(tarFiles)-1], tf); err != nil {
+	if err := writeLayer(imgwriter, tarFiles[len(tarFiles)-1], tf, logger); err != nil {
 		return "", err
 	}
 

@@ -40,7 +40,7 @@ func NewDockerImage(context context.Context, imageConfig *ImageConfig) (*DockerI
 // Flatten copies a tarred up series of files (passed in through the
 // io.Reader handle) to the image where they are untarred.
 func (d *DockerImage) Flatten(id string, size int64, tw io.Reader) error {
-	imgName, err := image.Flatten(d.imageConfig.Config, id, size, tw)
+	imgName, err := image.Flatten(d.imageConfig.Config, id, size, tw, d.imageConfig.Logger)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (d *DockerImage) Flatten(id string, size int64, tw io.Reader) error {
 	r, w := io.Pipe()
 
 	go func() {
-		err := copy.WithProgress(w, out, "Loading image into docker")
+		err := copy.WithProgress(w, out, d.imageConfig.Logger, "Loading image into docker")
 		if err != nil {
 			w.CloseWithError(err)
 		} else {
