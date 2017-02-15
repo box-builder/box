@@ -191,7 +191,7 @@ func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 		return nil, createException(m, err.Error())
 	}
 
-	fmt.Printf("+++ Flattened Image: %s\n", b.exec.Config().Image)
+	fmt.Printf("%s%s\n", b.Logger.Plan(), b.Logger.Notice(fmt.Sprintf("Flattened Image: %s", strings.SplitN(b.exec.Config().Image, ":", 2)[1][:12])))
 	return nil, nil
 }
 
