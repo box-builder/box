@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -286,18 +287,36 @@ func (d *Docker) Fetch(config *config.Config, name string) (string, error) {
 
 		if !d.tty {
 			d.logger.Print(fmt.Sprintf("Pulling %q... ", name))
+
+			if _, err := io.Copy(ioutil.Discard, reader); err != io.EOF && err != nil {
+				return "", err
+			}
+
+			fmt.Println("done.")
+		} else {
+			pull.NewProgress(d.tty, reader).Process()
 		}
 
-		pull.NewProgress(d.tty, reader).Process()
-
-		if !d.tty {
-			d.logger.Print("done.\n")
+		select {
+		case <-d.context.Done():
+			if d.context.Err() != nil {
+				return "", err
+			}
+		default:
 		}
 
 		// this will fallthrough to the assignment below
 		inspect, _, err = d.client.ImageInspectWithRaw(d.context, name)
 		if err != nil {
 			return "", err
+		}
+
+		select {
+		case <-d.context.Done():
+			if d.context.Err() != nil {
+				return "", err
+			}
+		default:
 		}
 	}
 
