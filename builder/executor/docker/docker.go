@@ -14,6 +14,7 @@ import (
 	"github.com/erikh/box/builder/executor"
 	"github.com/erikh/box/layers"
 	"github.com/erikh/box/logger"
+	"github.com/erikh/box/util"
 )
 
 // Docker implements an executor that talks to docker to achieve its goals.
@@ -115,19 +116,9 @@ func (d *Docker) Config() *config.Config {
 	return d.config
 }
 
-func (d *Docker) checkContext() error {
-	select {
-	case <-d.context.Done():
-		return d.context.Err()
-	default:
-	}
-
-	return nil
-}
-
 // Commit commits an entry to the layer list.
 func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
-	if err := d.checkContext(); err != nil {
+	if err := util.CheckContext(d.context); err != nil {
 		return err
 	}
 
@@ -158,7 +149,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 	default:
 	}
 
-	if err := d.checkContext(); err != nil {
+	if err := util.CheckContext(d.context); err != nil {
 		return err
 	}
 

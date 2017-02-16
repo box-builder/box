@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/fatih/color"
@@ -85,7 +86,7 @@ func (l *Logger) CacheHit(imageID string) {
 	line := l.Plan()
 	line += l.Good("")
 	line += color.New(color.FgWhite, color.Bold, color.BgRed).SprintFunc()("Cache hit:")
-	line += color.New(color.FgCyan).SprintFunc()(fmt.Sprintf(" using %q", imageID))
+	line += color.New(color.FgCyan).SprintFunc()(fmt.Sprintf(" using %q", strings.SplitN(imageID, ":", 2)[1][:12]))
 	fmt.Fprintln(l.output, line)
 	color.Unset()
 }
