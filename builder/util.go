@@ -3,9 +3,6 @@ package builder
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"strings"
 
 	mruby "github.com/mitchellh/go-mruby"
 )
@@ -178,47 +175,4 @@ func coerceHash(hash *mruby.Hash) (map[string]interface{}, error) {
 	}
 
 	return retval, nil
-}
-
-// readLines reads lines from the file and returns them as []string and any error.
-func readLines(filename string) ([]string, error) {
-	di, err := os.Open(filename)
-	if err != nil && !os.IsNotExist(err) {
-		return nil, err
-	} else if err == nil {
-		content, err := ioutil.ReadAll(di)
-		di.Close()
-		if err != nil {
-			return nil, err
-		}
-
-		return strings.Split(strings.TrimSpace(string(content)), "\n"), nil
-	}
-
-	return []string{}, nil
-}
-
-func readDockerIgnore() ([]string, error) {
-	return readLines(".dockerignore")
-}
-
-// interfaceListToString converts []interface{} to []string by way of interface{}
-func interfaceListToString(list interface{}) ([]string, error) {
-	strList := []string{}
-
-	ifList, ok := list.([]interface{})
-	if ok {
-		for _, item := range ifList {
-			str, ok := item.(string)
-			if !ok {
-				return nil, errors.New("list is not a list of strings")
-			}
-
-			strList = append(strList, str)
-		}
-	} else {
-		return nil, errors.New("object is not a list")
-	}
-
-	return strList, nil
 }

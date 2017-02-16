@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/erikh/box/tar"
+	"github.com/erikh/box/util"
 	mruby "github.com/mitchellh/go-mruby"
 )
 
@@ -35,7 +36,7 @@ func parseCopyArgs(args []*mruby.MrbValue) (string, string, []string, error) {
 			}
 
 			if _, ok := hash["ignore_list"]; ok {
-				list, err := interfaceListToString(hash["ignore_list"])
+				list, err := util.InterfaceListToString(hash["ignore_list"])
 				if err != nil {
 					return "", "", nil, err
 				}
@@ -45,7 +46,7 @@ func parseCopyArgs(args []*mruby.MrbValue) (string, string, []string, error) {
 
 			file, ok := hash["ignore_file"].(string)
 			if ok {
-				lines, err := readLines(file)
+				lines, err := util.ReadLines(file)
 				if err != nil {
 					return "", "", nil, err
 				}
@@ -121,8 +122,10 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		return nil, createException(m, err.Error())
 	}
 
-	list, err := readDockerIgnore()
-	if err != nil {
+	list, err := util.ReadLines(".dockerignore")
+	if os.IsNotExist(err) {
+		list = []string{}
+	} else if err != nil {
 		return nil, createException(m, err.Error())
 	}
 
