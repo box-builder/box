@@ -985,6 +985,37 @@ func (bs *builderSuite) TestExecPropagation(c *C) {
 	b.Close()
 }
 
+func (bs *builderSuite) TestLabels(c *C) {
+	_, err := runBuilder(`
+		from "debian"
+		label
+		tag "failed"
+	`)
+	c.Assert(err, NotNil)
+
+	_, err = runBuilder(`
+		from "debian"
+		label "foo" => "bar"
+		tag "labeled"
+	`)
+	c.Assert(err, IsNil)
+
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "labeled")
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Labels["foo"], Equals, "bar")
+
+	_, err = runBuilder(`
+		from "debian"
+		label foo2: "bar"
+		tag "labeled"
+	`)
+	c.Assert(err, IsNil)
+
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), "labeled")
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Labels["foo2"], Equals, "bar")
+}
+
 func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 	_, err := runBuilder(`
 		from "debian"
