@@ -38,10 +38,11 @@ func (l *Logger) Output() *bytes.Buffer {
 
 // Print is a bare-bones print statement.
 func (l *Logger) Print(str string) {
-	fmt.Fprint(l.output, l.getPlan(), str)
+	fmt.Fprint(l.output, l.Plan(), str)
 }
 
-func (l *Logger) getPlan() string {
+// Plan gets the plan name specified at construction time
+func (l *Logger) Plan() string {
 	str := color.New(color.Bold, color.FgBlue).SprintFunc()("[")
 	str += color.New(color.FgBlue).SprintFunc()(l.plan)
 	str += color.New(color.Bold, color.FgBlue).SprintFunc()("] ")
@@ -60,7 +61,7 @@ func (l *Logger) Notice(str string) string {
 
 // Error prints an error to the terminal all fancy-like.
 func (l *Logger) Error(err interface{}) {
-	line := l.getPlan()
+	line := l.Plan()
 
 	line += color.New(color.Bold, color.FgRed).SprintFunc()("!!! ")
 	line += color.New(color.FgWhite).SprintFunc()(fmt.Sprintf("Error: %v", err))
@@ -70,7 +71,7 @@ func (l *Logger) Error(err interface{}) {
 
 // BuildStep logs a build step.
 func (l *Logger) BuildStep(step, command string) {
-	line := l.getPlan()
+	line := l.Plan()
 	line += l.Good("")
 
 	line += color.New(color.Bold, color.FgWhite).SprintFunc()("Execute: ")
@@ -81,7 +82,7 @@ func (l *Logger) BuildStep(step, command string) {
 
 // CacheHit logs a cache hit.
 func (l *Logger) CacheHit(imageID string) {
-	line := l.getPlan()
+	line := l.Plan()
 	line += l.Good("")
 	line += color.New(color.FgWhite, color.Bold, color.BgRed).SprintFunc()("Cache hit:")
 	line += color.New(color.FgCyan).SprintFunc()(fmt.Sprintf(" using %q", imageID))
@@ -91,7 +92,7 @@ func (l *Logger) CacheHit(imageID string) {
 
 // CopyPath logs a copied path
 func (l *Logger) CopyPath(file1, file2 string) {
-	line := l.getPlan()
+	line := l.Plan()
 	line += l.Notice("")
 	line += color.New(color.FgRed).SprintFunc()("COPY: ")
 	line += fmt.Sprintf("%q -> %q\n", file1, file2)
@@ -101,7 +102,7 @@ func (l *Logger) CopyPath(file1, file2 string) {
 
 // Tag logs a tag
 func (l *Logger) Tag(name string) {
-	line := l.getPlan()
+	line := l.Plan()
 	line += l.Good("")
 	line += color.New(color.FgYellow).SprintFunc()("Tagged:")
 	fmt.Fprintln(l.output, line, name)
@@ -109,7 +110,7 @@ func (l *Logger) Tag(name string) {
 
 // EvalResponse logs the eval response
 func (l *Logger) EvalResponse(response string) {
-	line := l.getPlan()
+	line := l.Plan()
 	line += l.Good("")
 	line += color.New(color.FgWhite, color.Bold).SprintFunc()("Eval Response:")
 	fmt.Fprintln(l.output, line, response)
@@ -118,7 +119,7 @@ func (l *Logger) EvalResponse(response string) {
 
 // Finish logs the finish.
 func (l *Logger) Finish(response string) {
-	line := l.getPlan()
+	line := l.Plan()
 	line += l.Good("")
 	line += color.New(color.FgRed, color.Bold).SprintFunc()("Finish: ")
 	fmt.Fprintln(l.output, line, response)
@@ -126,14 +127,14 @@ func (l *Logger) Finish(response string) {
 
 // BeginOutput demarcates an output section
 func (l *Logger) BeginOutput() {
-	line := l.getPlan()
+	line := l.Plan()
 	line += color.New(color.FgRed, color.Bold, color.BgWhite).SprintFunc()("------ BEGIN OUTPUT ------")
 	fmt.Fprintln(l.output, line)
 }
 
 // EndOutput ends an output section
 func (l *Logger) EndOutput() {
-	line := l.getPlan()
+	line := l.Plan()
 	line += color.New(color.FgRed, color.Bold, color.BgWhite).SprintFunc()("------- END OUTPUT -------")
 	fmt.Fprintln(l.output, line)
 }
@@ -141,7 +142,7 @@ func (l *Logger) EndOutput() {
 // Progress is a representation of a progress meter.
 func (l *Logger) Progress(prefix string, count float64) {
 	out := fmt.Sprint("\r")
-	out += l.getPlan()
+	out += l.Plan()
 
 	wsz, _ := term.GetWinsize(0)
 

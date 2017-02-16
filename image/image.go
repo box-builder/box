@@ -364,7 +364,7 @@ func Flatten(config *config.Config, id string, size int64, tw io.Reader, logger 
 
 	defer os.Remove(tf.Name())
 
-	sum, err := bt.SumWithCopy(tf, tw, logger, "Downloading Image for Flatten")
+	sum, err := bt.SumWithCopy(tf, tw, logger, "Processing Image for Flatten")
 	if err != nil {
 		return "", err
 	}
