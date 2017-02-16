@@ -2,6 +2,41 @@ Verbs take action on a container and usually create a layer. Some commands can
 be used to move data into and out of containers, or set properties and run
 commands.
 
+## label
+
+`label` creates a label inside the image. It will append any labels that are
+specified in each label command, for example, if you were to:
+
+```ruby
+label foo: "bar"
+label quux: "baz"
+```
+
+If you were to `docker inspect` this, your ending labels would be:
+
+```json
+{
+  "foo": "bar",
+  "quux": "baz"
+}
+```
+
+You can also do this all as one label:
+
+```ruby
+label foo: "bar", quux: "baz"
+```
+
+Or if you'd like, store them in a variable for a final commit at the end:
+
+```ruby
+mylabels = { }
+mylabels["foo"] = "baz"
+# ... some stuff that generates mydata
+mylabels["quux"] = mydata
+
+label mylabels # voila!
+```
 
 ## debug
 
