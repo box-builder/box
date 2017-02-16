@@ -24,18 +24,20 @@ type StringState struct {
 // by commit routines in the executor. Setting properties here will propagate
 // them to various image-manipulating commands when needed.
 type Config struct {
-	Image      string           // Image Identifier, may be different across executors.
-	User       StringState      // the currently configured user for this image.
-	WorkDir    StringState      // the current working directory on entering a container
-	Cmd        StringSliceState // the secondary execution form, it is provided to images if given to docker run, otherwise this is used.
-	Entrypoint StringSliceState // the primary execution form, the first arguments and the exec() jumping-off point.
-	Env        []string         // Environment variables
-	Volumes    []string         // Volume paths
+	Image      string            // Image Identifier, may be different across executors.
+	User       StringState       // the currently configured user for this image.
+	WorkDir    StringState       // the current working directory on entering a container
+	Cmd        StringSliceState  // the secondary execution form, it is provided to images if given to docker run, otherwise this is used.
+	Entrypoint StringSliceState  // the primary execution form, the first arguments and the exec() jumping-off point.
+	Env        []string          // Environment variables
+	Volumes    []string          // Volume paths
+	Labels     map[string]string // Image Labels
 }
 
 // NewConfig initializes a new configuration.
 func NewConfig() *Config {
 	return &Config{
+		Labels:  map[string]string{},
 		Env:     []string{},
 		Volumes: []string{},
 		User:    StringState{"", "root"},
@@ -84,6 +86,7 @@ func (c *Config) ToDocker(temporary, tty, stdin bool) *container.Config {
 		Cmd:          cmd,
 		User:         user,
 		WorkingDir:   workdir,
+		Labels:       c.Labels,
 	}
 }
 
@@ -108,6 +111,7 @@ func (c *Config) FromDocker(cont *container.Config) {
 		c.WorkDir.Image = "/"
 	}
 
+	c.Labels = cont.Labels
 	c.Volumes = []string{}
 }
 
