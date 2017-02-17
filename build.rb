@@ -15,7 +15,7 @@ PACKAGES = %w[
   flex
   iptables
   psmisc
-  python-pip
+  python2.7
   btrfs-tools
   libdevmapper-dev
   libgpgme11-dev
@@ -37,6 +37,8 @@ skip do
   run "curl -sSL https://storage.googleapis.com/golang/go#{GOLANG_VERSION}.linux-amd64.tar.gz | tar -xvz -C /usr/local"
 
   copy "dind", "/dind"
+
+  run "curl https://bootstrap.pypa.io/get-pip.py | python2.7"
 
   run "pip -q install mkdocs mkdocs-bootswatch"
 
