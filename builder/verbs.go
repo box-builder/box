@@ -44,10 +44,28 @@ var verbJumpTable = map[string]*verbDefinition{
 	"cmd":        {cmd, mruby.ArgsAny()},
 	"entrypoint": {entrypoint, mruby.ArgsAny()},
 	"set_exec":   {setExec, mruby.ArgsReq(1)},
+	"label":      {label, mruby.ArgsReq(1)},
 }
 
 // verbFunc is a builder DSL function used to interact with docker.
 type verbFunc func(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value)
+
+func label(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	if len(args) != 1 {
+		return nil, createException(m, "label error: please supply a hash for the labels")
+	}
+
+	iterateRubyHash(args[0], func(key, value *mruby.MrbValue) error {
+		b.exec.Config().Labels[key.String()] = value.String()
+		return nil
+	})
+
+	if err := b.exec.Commit(cacheKey, nil); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	return nil, nil
+}
 
 func after(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
 	if len(args) != 1 {
