@@ -34,7 +34,7 @@ skip do
   run "tar -xpf #{docker_path} --strip-components=1 -C /usr/bin/"
   run "rm #{docker_path}"
 
-  run "curl -sSL https://storage.googleapis.com/golang/go#{GOLANG_VERSION}.linux-amd64.tar.gz | tar -xvz -C /usr/local"
+  run "curl -sSL https://storage.googleapis.com/golang/go#{GOLANG_VERSION}.linux-amd64.tar.gz | tar -xz -C /usr/local"
 
   copy "dind", "/dind"
 
