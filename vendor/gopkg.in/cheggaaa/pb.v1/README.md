@@ -1,15 +1,15 @@
-# Terminal progress bar for Go
+# Terminal progress bar for Go  
 
-Simple progress bar for console programs.
-
+Simple progress bar for console programs. 
+    
 
 ## Installation
 
 ```
 go get gopkg.in/cheggaaa/pb.v1
-```
+```   
 
-## Usage
+## Usage   
 
 ```Go
 package main
@@ -40,7 +40,7 @@ Result will be like this:
 
 ## Customization
 
-```Go
+```Go  
 // create bar
 bar := pb.New(count)
 
@@ -73,7 +73,7 @@ bar.SetUnits(pb.U_BYTES)
 
 // and start
 bar.Start()
-```
+``` 
 
 ## Progress bar for IO Operations
 
@@ -169,7 +169,7 @@ func main() {
 The result will be as follows:
 
 ```
-$ go run example/multiple.go
+$ go run example/multiple.go 
 First 141 / 1000 [===============>---------------------------------------] 14.10 % 44s
 Second 139 / 1000 [==============>---------------------------------------] 13.90 % 44s
 Third 152 / 1000 [================>--------------------------------------] 15.20 % 40s

@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/erikh/box",
-	"GoVersion": "go1.7",
+	"GoVersion": "go1.8",
 	"GodepVersion": "v79",
 	"Packages": [
 		"./..."
@@ -46,67 +46,71 @@
 		},
 		{
 			"ImportPath": "github.com/containers/image/copy",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/directory",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/directory/explicitfilepath",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/docker",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/docker/daemon",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/docker/policyconfiguration",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/docker/reference",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/image",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/manifest",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/oci/layout",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/openshift",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
+		},
+		{
+			"ImportPath": "github.com/containers/image/pkg/compression",
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/signature",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/storage",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/transports",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/types",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/image/version",
-			"Rev": "1104c5965810bca92ffa9ce91c716984bee1333d"
+			"Rev": "eb944d04e6397fd3dbb5473727223466b9878af4"
 		},
 		{
 			"ImportPath": "github.com/containers/storage/drivers",
