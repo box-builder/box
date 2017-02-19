@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/erikh/box/copy"
 	"github.com/erikh/box/image"
 )
@@ -101,7 +101,6 @@ func (d *DockerImage) Flatten(id string, size int64, tw io.Reader) error {
 
 // Tag an image with the provided string.
 func (d *DockerImage) Tag(tag string) error {
-	d.imageConfig.Layers.Protect(d.imageConfig.Config.Image)
 	return d.client.ImageTag(d.context, d.imageConfig.Config.Image, tag)
 }
 

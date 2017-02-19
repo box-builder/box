@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -14,12 +13,11 @@ import (
 	"github.com/containers/image/signature"
 	ctypes "github.com/containers/image/types"
 	"github.com/docker/distribution/reference"
-	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
+	"github.com/docker/docker/client"
 	"github.com/erikh/box/builder/config"
+	"github.com/erikh/box/fetcher"
 	"github.com/erikh/box/image"
 	"github.com/erikh/box/logger"
-	"github.com/erikh/box/pull"
 )
 
 const megaByte = 1024 * 1024
@@ -32,7 +30,6 @@ type Docker struct {
 	skipLayers   []string
 	layers       []string
 	images       []string
-	protect      []string
 	client       *client.Client
 	layerSet     map[string]struct{}
 	logger       *logger.Logger
@@ -53,30 +50,7 @@ func NewDocker(ctx context.Context, tty bool, logger *logger.Logger) (*Docker, e
 		images:     []string{},
 		skipLayers: []string{},
 		layers:     []string{},
-		protect:    []string{},
 	}, nil
-}
-
-// Protect an image from cleanup.
-func (d *Docker) Protect(name string) {
-	d.protect = append(d.protect, name)
-}
-
-// CleanupImages cleans up all intermediate images.
-func (d *Docker) CleanupImages() {
-	if len(d.images) > 1 {
-		for _, image := range d.images[:len(d.images)-2] {
-			for _, protect := range d.protect {
-				if image == protect {
-					goto skip
-				}
-			}
-			// do not check errors because sometimes, the layers can't be deleted and
-			// we want to ignore that behavior.
-			d.client.ImageRemove(d.context, image, types.ImageRemoveOptions{PruneChildren: true})
-		skip:
-		}
-	}
 }
 
 // SetContext sets the context for subsequent calls.
@@ -278,53 +252,13 @@ func (d *Docker) Lookup(name string) (string, error) {
 // Fetch retrieves a docker image, overwrites the container configuration, and
 // returns its id.
 func (d *Docker) Fetch(config *config.Config, name string) (string, error) {
-	inspect, _, err := d.client.ImageInspectWithRaw(d.context, name)
+	location, layers, err := fetcher.Docker(d.context, d.logger, d.client, d.tty, config, name)
 	if err != nil {
-		reader, err := d.client.ImagePull(d.context, name, types.ImagePullOptions{})
-		if err != nil {
-			return "", err
-		}
-
-		if !d.tty {
-			d.logger.Print(fmt.Sprintf("Pulling %q... ", name))
-
-			if _, err := io.Copy(ioutil.Discard, reader); err != io.EOF && err != nil {
-				return "", err
-			}
-
-			fmt.Println("done.")
-		} else {
-			pull.NewProgress(d.tty, reader).Process()
-		}
-
-		select {
-		case <-d.context.Done():
-			if d.context.Err() != nil {
-				return "", err
-			}
-		default:
-		}
-
-		// this will fallthrough to the assignment below
-		inspect, _, err = d.client.ImageInspectWithRaw(d.context, name)
-		if err != nil {
-			return "", err
-		}
-
-		select {
-		case <-d.context.Done():
-			if d.context.Err() != nil {
-				return "", err
-			}
-		default:
-		}
+		return "", err
 	}
 
-	config.FromDocker(inspect.Config)
-	config.Image = inspect.ID
-	d.Protect(inspect.ID)
-	d.SetLayers(inspect.RootFS.Layers)
-	return inspect.ID, nil
+	d.SetLayers(layers)
+	return location, nil
 }
 
 // SetLayers sets the layers.

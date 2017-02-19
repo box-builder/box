@@ -248,8 +248,6 @@ func (b *Builder) RunScript(script string) BuildResult {
 		}
 	}
 
-	b.exec.Layers().CleanupImages()
-
 	b.result.Value = mruby.String(b.ImageID()).MrbValue(b.mrb)
 	return b.result
 }

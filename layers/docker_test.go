@@ -11,9 +11,9 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/term"
-	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
 	"github.com/erikh/box/builder/config"
 	"github.com/erikh/box/image"
 	"github.com/erikh/box/logger"
