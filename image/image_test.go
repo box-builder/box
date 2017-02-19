@@ -9,8 +9,6 @@ import (
 
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
-	"github.com/erikh/box/builder/config"
-	"github.com/erikh/box/logger"
 
 	. "gopkg.in/check.v1"
 )
@@ -69,39 +67,4 @@ func (is *imageSuite) TestUnpack(c *C) {
 		_, err := os.Stat(layer.filename)
 		c.Assert(err, IsNil)
 	}
-}
-
-func (is *imageSuite) TestMake(c *C) {
-	fn := is.download(c, "docker")
-	defer os.Remove(fn)
-
-	layers, dir, err := Unpack(fn)
-	c.Assert(err, IsNil)
-	defer os.RemoveAll(dir)
-
-	fn2 := is.download(c, "alpine")
-	defer os.Remove(fn2)
-
-	layers2, dir2, err := Unpack(fn2)
-	c.Assert(err, IsNil)
-	defer os.RemoveAll(dir2)
-
-	merged := []*Layer{}
-
-	for _, group := range [][]*Layer{layers, layers2} {
-		for _, layer := range group {
-			merged = append(merged, layer)
-		}
-	}
-
-	img, err := Make(config.NewConfig(), merged, logger.New(""))
-	c.Assert(err, IsNil)
-
-	in, err := os.Open(img)
-	c.Assert(err, IsNil)
-
-	rc, err := is.client.ImageLoad(context.Background(), in, true)
-	c.Assert(err, IsNil)
-	_, err = io.Copy(ioutil.Discard, rc.Body)
-	c.Assert(err, IsNil)
 }

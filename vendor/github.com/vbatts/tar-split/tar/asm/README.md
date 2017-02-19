@@ -14,7 +14,7 @@ Addressable Storage (CAS) directory, that maps to a checksum in the
 
 This is due to the fact that tar archives _can_ allow multiple records for the
 same path, but the last one effectively wins. Even if the prior records had a
-different payload.
+different payload. 
 
 In this way, when assembling an archive from relative paths, if the archive has
 multiple entries for the same path, then all payloads read in from a relative
@@ -41,3 +41,4 @@ security concern either, as if it did occur, we would reassemble an archive
 that doesn't validate signature/checksum, so it shouldn't be trusted anyway.
 
 Otherwise, this will allow us to defer support for appended files as a FUTURE FEATURE.
+
