@@ -300,52 +300,6 @@ func Unpack(file string) ([]*Layer, string, error) {
 	return layers, dir, nil
 }
 
-// Make copies N layers into a single image, ships it back to docker.
-func Make(config *config.Config, layers []*Layer, logger *logger.Logger) (string, error) {
-	if len(layers) == 0 {
-		return "", fmt.Errorf("no image layers to construct with")
-	}
-
-	out, err := tmpfile()
-	if err != nil {
-		return "", err
-	}
-
-	defer out.Close()
-
-	imgwriter := tar.NewWriter(out)
-
-	tarFiles, err := writeConfig(layers, imgwriter, config)
-	if err != nil {
-		return "", err
-	}
-
-	if len(tarFiles) != len(layers) {
-		return "", fmt.Errorf("tarfiles returned were not equal to files: %v -- %v", tarFiles, layers)
-	}
-
-	for _, layer := range layers {
-		f, err := os.Open(layer.filename)
-		if err != nil {
-			return "", err
-		}
-
-		if err := writeLayer(imgwriter, layer.layerFilename, f, logger); err != nil {
-			f.Close()
-			return "", err
-		}
-
-		f.Close()
-	}
-
-	name, err := filepath.EvalSymlinks(out.Name())
-	if err != nil {
-		return "", err
-	}
-
-	return name, nil
-}
-
 // Flatten copies a tarred up series of files (passed in through the io.Reader
 // handle) to the image where they are untarred. Returns the filename of the
 // image created.
