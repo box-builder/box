@@ -167,7 +167,7 @@ func (d *Docker) calculateCommits(layers []*image.Layer) []*image.Layer {
 	return commitLayers
 }
 
-func (d *Docker) downloadImage(from string) (string, error) {
+func (d *Docker) makeImage(from string) (string, error) {
 	ref, err := daemon.ParseReference(from)
 	if err != nil {
 		return "", err
@@ -257,7 +257,7 @@ func (d *Docker) MakeImage(config *config.Config) (string, error) {
 
 	var err error
 
-	config.Image, err = d.downloadImage(config.Image)
+	config.Image, err = d.makeImage(config.Image)
 	if err != nil {
 		return "", err
 	}
