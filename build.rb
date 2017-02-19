@@ -38,7 +38,7 @@ skip do
 
   copy "dind", "/dind"
 
-  run "curl https://bootstrap.pypa.io/get-pip.py | python2.7"
+  run "curl -sSL https://bootstrap.pypa.io/get-pip.py | python2.7"
 
   run "pip -q install mkdocs mkdocs-bootswatch"
 
