@@ -1,4 +1,4 @@
-PACKAGES := ./cli-tests ./builder ./builder/executor/docker ./layers ./image ./tar ./multi
+PACKAGES := ./cli-tests  ./layers ./image ./tar ./multi ./builder/executor/docker ./builder
 BUILD_TAGS := "btrfs_noversion libdm_no_deferred_remove"
 
 all: checks install
