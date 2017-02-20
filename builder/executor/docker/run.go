@@ -8,9 +8,9 @@ import (
 	"net"
 	"os"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/term"
-	"github.com/docker/engine-api/types"
 )
 
 func (d *Docker) stdinCopy(conn net.Conn, errChan chan error, stopChan chan struct{}) {
@@ -139,5 +139,5 @@ func (d *Docker) startAndWait(ctx context.Context, id string, reader io.Reader, 
 		return -1, err
 	}
 
-	return stat, nil
+	return int(stat), nil
 }

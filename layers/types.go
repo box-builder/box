@@ -58,12 +58,6 @@ type Layers interface {
 
 	// SetContext sets the context for subsequent calls.
 	SetContext(ctx context.Context)
-
-	// CleanupImages cleans intermediate images
-	CleanupImages()
-
-	// Protect an image from cleanup.
-	Protect(string)
 }
 
 // ImageConfig sets the properties used to construct an
