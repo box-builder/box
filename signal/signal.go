@@ -4,8 +4,21 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 )
+
+// Handler is the default registered signal handler. It is created when this
+// package is initialized.
+var Handler = NewCancellable()
+
+func init() {
+	signals := make(chan os.Signal, 1)
+	go Handler.SignalHandler(signals)
+
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+}
 
 // Cancellable is a cancellable process triggered via signal. It will cascade
 // through the context's cancel functions destroying each build process as a

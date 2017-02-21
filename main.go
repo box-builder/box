@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/docker/docker/pkg/term"
@@ -15,7 +13,7 @@ import (
 	"github.com/erikh/box/logger"
 	"github.com/erikh/box/multi"
 	"github.com/erikh/box/repl"
-	bs "github.com/erikh/box/signal"
+	"github.com/erikh/box/signal"
 	"github.com/urfave/cli"
 )
 
@@ -35,15 +33,7 @@ var (
 	Copyright = fmt.Sprintf("(C) %d %s - Licensed under MIT license", time.Now().Year(), Author)
 	// UsageText is the description of how to use the program.
 	UsageText = "box [options] filename"
-
-	signalHandler = bs.NewCancellable()
 )
-
-func init() {
-	signals := make(chan os.Signal, 1)
-	go signalHandler.SignalHandler(signals)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-}
 
 func main() {
 	app := cli.NewApp()
@@ -213,8 +203,8 @@ func runMulti(ctx *cli.Context) {
 			Runner:    runChan,
 			FileName:  filename,
 		}
-		signalHandler.AddFunc(cancel)
-		signalHandler.AddRunner(runChan)
+		signal.Handler.AddFunc(cancel)
+		signal.Handler.AddRunner(runChan)
 
 		b, err := builder.NewBuilder(buildConfig)
 		if err != nil {
@@ -261,7 +251,7 @@ func mkBuilder(cancel context.CancelFunc, buildConfig builder.BuildConfig) (*bui
 		return nil, err
 	}
 
-	signalHandler.AddFunc(cancel)
-	signalHandler.AddRunner(buildConfig.Runner)
+	signal.Handler.AddFunc(cancel)
+	signal.Handler.AddRunner(buildConfig.Runner)
 	return b, nil
 }
