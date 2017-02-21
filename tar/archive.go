@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/pkg/archive"
 	"github.com/erikh/box/copy"
 	"github.com/erikh/box/logger"
+	"github.com/erikh/box/signal"
 )
 
 // rewriteTar rewrites the tar's paths to copy the source to the target.
@@ -117,6 +118,9 @@ func Archive(ctx context.Context, source, target string, ignoreList []string, lo
 	if err != nil {
 		return "", "", err
 	}
+
+	signal.Handler.AddFile(f.Name())
+	defer signal.Handler.RemoveFile(f.Name())
 
 	tr := tar.NewReader(reader)
 	tw := tar.NewWriter(f)

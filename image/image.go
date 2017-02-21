@@ -15,6 +15,7 @@ import (
 	"github.com/erikh/box/builder/config"
 	"github.com/erikh/box/copy"
 	"github.com/erikh/box/logger"
+	"github.com/erikh/box/signal"
 	bt "github.com/erikh/box/tar"
 )
 
@@ -309,12 +310,18 @@ func Flatten(config *config.Config, id string, size int64, tw io.Reader, logger 
 		return "", err
 	}
 
+	signal.Handler.AddFile(out.Name())
+	defer signal.Handler.RemoveFile(out.Name())
+
 	defer out.Close()
 
 	tf, err := tmpfile()
 	if err != nil {
 		return "", err
 	}
+
+	signal.Handler.AddFile(tf.Name())
+	defer signal.Handler.RemoveFile(tf.Name())
 
 	defer os.Remove(tf.Name())
 

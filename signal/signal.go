@@ -4,8 +4,21 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 )
+
+// Handler is the default registered signal handler. It is created when this
+// package is initialized.
+var Handler = NewCancellable()
+
+func init() {
+	signals := make(chan os.Signal, 1)
+	go Handler.SignalHandler(signals)
+
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+}
 
 // Cancellable is a cancellable process triggered via signal. It will cascade
 // through the context's cancel functions destroying each build process as a
@@ -15,6 +28,7 @@ type Cancellable struct {
 	IgnoreRunners bool
 
 	mutex       *sync.Mutex
+	files       map[string]struct{}
 	cancelFuncs []context.CancelFunc
 	runners     []chan struct{}
 }
@@ -23,10 +37,25 @@ type Cancellable struct {
 func NewCancellable() *Cancellable {
 	return &Cancellable{
 		Exit:        true,
+		files:       map[string]struct{}{},
 		mutex:       new(sync.Mutex),
 		cancelFuncs: []context.CancelFunc{},
 		runners:     make([]chan struct{}, 0),
 	}
+}
+
+// AddFile adds a temporary filename to be reaped if the action is canceled.
+func (c *Cancellable) AddFile(filename string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.files[filename] = struct{}{}
+}
+
+// RemoveFile removes a file from the temporary file list.
+func (c *Cancellable) RemoveFile(filename string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	delete(c.files, filename)
 }
 
 // AddFunc adds a cancel func to the list.
@@ -59,6 +88,16 @@ func (c *Cancellable) SignalHandler(signals chan os.Signal) {
 			for _, runner := range c.runners {
 				<-runner
 			}
+		}
+
+		for fn := range c.files {
+			fmt.Fprintf(os.Stderr, "Cleaning up temporary file %q", fn)
+
+			if err := os.Remove(fn); err != nil {
+				fmt.Fprintf(os.Stderr, ": %v", err)
+			}
+
+			fmt.Fprintln(os.Stderr)
 		}
 
 		if c.Exit {

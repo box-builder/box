@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 
 	"github.com/chzyer/readline"
 	"github.com/erikh/box/builder"
-	bs "github.com/erikh/box/signal"
+	"github.com/erikh/box/signal"
 	mruby "github.com/mitchellh/go-mruby"
 )
 
@@ -23,9 +21,8 @@ const (
 // Repl encapsulates a series of items used to create a read-evaluate-print
 // loop so that end users can manually enter build instructions.
 type Repl struct {
-	readline      *readline.Instance
-	builder       *builder.Builder
-	signalHandler *bs.Cancellable
+	readline *readline.Instance
+	builder  *builder.Builder
 }
 
 // NewRepl constructs a new Repl.
@@ -35,12 +32,8 @@ func NewRepl(omit []string) (*Repl, error) {
 		return nil, err
 	}
 
-	signalHandler := bs.NewCancellable()
-	signalHandler.Exit = false
-	signalHandler.IgnoreRunners = true
-	signals := make(chan os.Signal, 1)
-	go signalHandler.SignalHandler(signals)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	signal.Handler.Exit = false
+	signal.Handler.IgnoreRunners = true
 	ctx, cancel := context.WithCancel(context.Background())
 
 	b, err := builder.NewBuilder(builder.BuildConfig{
@@ -56,9 +49,9 @@ func NewRepl(omit []string) (*Repl, error) {
 		return nil, err
 	}
 
-	signalHandler.AddFunc(cancel)
+	signal.Handler.AddFunc(cancel)
 
-	return &Repl{signalHandler: signalHandler, readline: rl, builder: b}, nil
+	return &Repl{readline: rl, builder: b}, nil
 }
 
 // Loop runs the loop. Returns nil on io.EOF, otherwise errors are forwarded.
@@ -116,7 +109,7 @@ func (r *Repl) Loop() error {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		r.builder.SetContext(ctx)
-		r.signalHandler.AddFunc(cancel)
+		signal.Handler.AddFunc(cancel)
 
 		result, stackKeep = r.builder.RunCode(p.GenerateCode(), stackKeep)
 		line = ""

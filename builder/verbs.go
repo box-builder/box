@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/erikh/box/copy"
+	"github.com/erikh/box/signal"
 	mruby "github.com/mitchellh/go-mruby"
 )
 
@@ -190,6 +191,9 @@ func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
+
+	signal.Handler.AddFile(f.Name())
+	defer signal.Handler.RemoveFile(f.Name())
 
 	defer os.Remove(f.Name())
 	if err := copy.WithProgress(f, rc, b.Logger, "Downloading image contents to host"); err != nil && err != io.EOF {
