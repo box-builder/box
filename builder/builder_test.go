@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -428,6 +429,36 @@ func (bs *builderSuite) TestSave(c *C) {
 	}
 
 	c.Assert(found, Equals, true)
+	b.Close()
+
+	b, err = runBuilder(`
+    from "debian"
+		run "apt-get update -qq"
+		save file: "test.tar"
+  `)
+	c.Assert(err, IsNil)
+	b.Close()
+
+	defer os.Remove("test.tar")
+	f, err := os.Open("test.tar")
+	c.Assert(err, IsNil)
+
+	r, err := dockerClient.ImageLoad(context.Background(), f, true)
+	c.Assert(err, IsNil)
+	io.Copy(ioutil.Discard, r.Body)
+
+	b, err = runBuilder(`
+    from "debian"
+		save file: "../test.tar"
+  `)
+	c.Assert(err, NotNil)
+	b.Close()
+
+	b, err = runBuilder(`
+    from "debian"
+		save file: "/test.tar"
+  `)
+	c.Assert(err, NotNil)
 	b.Close()
 }
 
