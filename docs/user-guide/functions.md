@@ -6,14 +6,29 @@ These are the functions supported by Box.
 
 ## save
 
-`save` saves an image. It currently can only tag images at the latest point.
+`save` saves an image with parameters:
 
-Note this is different than the `tag` verb in that it does not create a new
-layer, potentially dropping configuration elements placed near the end of the
-build. If you are worried about this behavior, please use the `tag` verb.
+* tag: tag the image in the docker image store. This does not generate a
+  commit, like the `tag` verb does.
+* file: save the image to a file. The resulting file will be a bare tarball
+  with the image contents, suitable for `docker load`.
 
-Note that `save` will also be expanded over time to include new functionality
-such as saving content to files.
+Example:
+
+Tag an image with the name "foo":
+
+```ruby
+from "ubuntu"
+save tag: "foo"
+```
+
+Save the ubuntu image to file after updating it:
+
+```ruby
+from "ubuntu"
+run "apt-get update -qq && apt-get dist-upgrade -y"
+save file: "ubuntu-with-update.tar"
+```
 
 ## skip
 
