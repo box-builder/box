@@ -43,7 +43,7 @@ func saveFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mrub
 		return nil, createException(m, err.Error())
 	}
 
-	var tag string
+	var tag, file string
 
 	if keys, err := args[0].Hash().Keys(); err != nil || keys.Array().Len() == 0 {
 		return nil, createException(m, "save must be called with parameters")
@@ -53,8 +53,10 @@ func saveFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mrub
 		switch key.String() {
 		case "tag":
 			tag = value.String()
+		case "file":
+			file = value.String()
 		default:
-			return fmt.Errorf("%q is not a valid parameter to save", key.String())
+			return fmt.Errorf("%q is not a valid parameter to the save function", key.String())
 		}
 
 		return nil
@@ -65,6 +67,12 @@ func saveFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mrub
 
 	if tag != "" {
 		if err := b.exec.Image().Tag(tag); err != nil {
+			return nil, createException(m, err.Error())
+		}
+	}
+
+	if file != "" {
+		if err := b.exec.Image().Save(b.ImageID(), file); err != nil {
 			return nil, createException(m, err.Error())
 		}
 	}

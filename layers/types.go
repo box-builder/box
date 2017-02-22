@@ -29,6 +29,9 @@ type Image interface {
 
 	// ImageID returns the image identifier of the most recent layer.
 	ImageID() string
+
+	// Save saves an image to the provided filename.
+	Save(string, string) error
 }
 
 // Layers needs a description
