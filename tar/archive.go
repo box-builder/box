@@ -36,17 +36,6 @@ func rewriteTar(source, target string, logger *logger.Logger, tr *tar.Reader, tw
 			return err
 		}
 
-		if header.Linkname != "" {
-			rel, err := filepath.Rel(header.Linkname, source)
-			if err != nil {
-				return err
-			}
-
-			if strings.HasPrefix(rel, "../") {
-				return fmt.Errorf("path for symlink %q (source: %q) falls below copy root", rel, source)
-			}
-		}
-
 		if (dir || target[len(target)-1] == '/') && header.Name[0] != '/' {
 			// not a single file
 			header.Linkname = path.Join(target, header.Linkname)
