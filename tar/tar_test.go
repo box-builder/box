@@ -94,6 +94,49 @@ func (ts *tarSuite) TestArchiveSpecialFile(c *C) {
 	c.Assert(count, Equals, 3, Commentf("%v", names))
 }
 
+func (ts *tarSuite) TestArchiveRelativeSymlink(c *C) {
+	dir, err := ioutil.TempDir("", "tar-test")
+	c.Assert(err, IsNil)
+	//defer os.RemoveAll(dir)
+
+	tmp, err := os.Create(filepath.Join(dir, "test"))
+	c.Assert(err, IsNil)
+	tmp.Close()
+	os.Mkdir(filepath.Join(dir, "testdir"), 0777)
+	c.Assert(os.Symlink(filepath.Join("..", "test"), filepath.Join(dir, "testdir", "testsym")), IsNil)
+
+	tarball, _, err := Archive(context.Background(), dir, "/", []string{}, log)
+	c.Assert(err, IsNil)
+	c.Assert(tarball, Not(Equals), "")
+	defer os.Remove(tarball)
+
+	f, err := os.Open(tarball)
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	r := tar.NewReader(f)
+
+	count := 0
+	names := []string{}
+
+	for {
+		header, err := r.Next()
+		if err != nil {
+			break
+		}
+
+		count++
+
+		if header.Name == "/testdir/testsym" {
+			c.Assert(header.Linkname, Equals, "/test", Commentf("%v", header.Linkname))
+		}
+
+		names = append(names, header.Name)
+	}
+
+	c.Assert(count, Equals, 3, Commentf("%v", names))
+}
+
 func (ts *tarSuite) TestArchiveGlob(c *C) {
 	prefixes := []string{"foo", "bar"}
 
