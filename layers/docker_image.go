@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -35,6 +36,45 @@ func NewDockerImage(context context.Context, imageConfig *ImageConfig) (*DockerI
 		client:      client,
 		context:     context,
 	}, nil
+}
+
+// Save saves an image to the provided filename.
+func (d *DockerImage) Save(id, filename string) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	abs, err := filepath.Abs(filename)
+	if err != nil {
+		return err
+	}
+
+	rel, err := filepath.Rel(wd, abs)
+	if err != nil {
+		return err
+	}
+
+	if strings.HasPrefix(rel, "../") {
+		return fmt.Errorf("relative path %q for save falls below the working directory, cannot save", rel)
+	}
+
+	f, err := os.Create(rel)
+	if err != nil {
+		return err
+	}
+
+	r, err := d.client.ImageSave(d.context, []string{id})
+	if err != nil {
+		return err
+	}
+
+	err = copy.WithProgress(f, r, d.imageConfig.Logger, fmt.Sprintf("Saving %q to disk", filename))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Flatten copies a tarred up series of files (passed in through the
