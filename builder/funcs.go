@@ -27,12 +27,49 @@ type funcFunc func(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value,
 
 // mrubyJumpTable is the dispatch instructions sent to the mruby interpreter at builder setup.
 var funcJumpTable = map[string]funcDefinition{
+	"save":   {saveFunc, mruby.ArgsReq(1)},
 	"import": {importFunc, mruby.ArgsReq(1)},
 	"getenv": {getenv, mruby.ArgsReq(1)},
 	"getuid": {getuid, mruby.ArgsReq(1)},
 	"getgid": {getgid, mruby.ArgsReq(1)},
 	"read":   {read, mruby.ArgsReq(1)},
 	"skip":   {skip, mruby.ArgsNone() | mruby.ArgsBlock()},
+}
+
+// saveFunc implements save, a method of persisting images that are named and/or saved on-disk.
+func saveFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
+	args := m.GetArgs()
+	if err := checkArgs(args, 1); err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	var tag string
+
+	if keys, err := args[0].Hash().Keys(); err != nil || keys.Array().Len() == 0 {
+		return nil, createException(m, "save must be called with parameters")
+	}
+
+	err := iterateRubyHash(args[0], func(key, value *mruby.MrbValue) error {
+		switch key.String() {
+		case "tag":
+			tag = value.String()
+		default:
+			return fmt.Errorf("%q is not a valid parameter to save", key.String())
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
+
+	if tag != "" {
+		if err := b.exec.Image().Tag(tag); err != nil {
+			return nil, createException(m, err.Error())
+		}
+	}
+
+	return nil, nil
 }
 
 // importFunc implements the import function.

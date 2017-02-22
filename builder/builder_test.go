@@ -407,6 +407,30 @@ func (bs *builderSuite) TestTag(c *C) {
 	b.Close()
 }
 
+func (bs *builderSuite) TestSave(c *C) {
+	b, err := runBuilder(`
+    from "debian"
+		save tag: "test"
+  `)
+
+	c.Assert(err, IsNil)
+	c.Assert(b.exec.Config().Image, Not(Equals), "test")
+
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "test")
+	c.Assert(err, IsNil)
+
+	var found bool
+
+	for _, tag := range inspect.RepoTags {
+		if tag == "test:latest" {
+			found = true
+		}
+	}
+
+	c.Assert(found, Equals, true)
+	b.Close()
+}
+
 func (bs *builderSuite) TestFlatten(c *C) {
 	b, err := runBuilder(`
     from "debian"
