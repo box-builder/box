@@ -4,6 +4,17 @@ your build for further processing; the `read` function allows that.
 
 These are the functions supported by Box.
 
+## save
+
+`save` saves an image. It currently can only tag images at the latest point.
+
+Note this is different than the `tag` verb in that it does not create a new
+layer, potentially dropping configuration elements placed near the end of the
+build. If you are worried about this behavior, please use the `tag` verb.
+
+Note that `save` will also be expanded over time to include new functionality
+such as saving content to files.
+
 ## skip
 
 skip skips all layers within its block in the final produced image, which may
