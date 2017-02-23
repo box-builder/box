@@ -39,7 +39,7 @@ func NewDockerImage(context context.Context, imageConfig *ImageConfig) (*DockerI
 }
 
 // Save saves an image to the provided filename.
-func (d *DockerImage) Save(id, filename string) error {
+func (d *DockerImage) Save(filename string) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func (d *DockerImage) Save(id, filename string) error {
 		return err
 	}
 
-	r, err := d.client.ImageSave(d.context, []string{id})
+	r, err := d.client.ImageSave(d.context, []string{d.imageConfig.Config.Image})
 	if err != nil {
 		return err
 	}

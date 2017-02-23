@@ -72,7 +72,7 @@ func saveFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mrub
 	}
 
 	if file != "" {
-		if err := b.exec.Image().Save(b.ImageID(), file); err != nil {
+		if err := b.exec.Image().Save(file); err != nil {
 			return nil, createException(m, err.Error())
 		}
 	}
