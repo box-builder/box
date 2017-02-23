@@ -19,6 +19,7 @@ func runBuilder(script string) (*Builder, error) {
 		Context: context.Background(),
 		Runner:  make(chan struct{}),
 		Cache:   os.Getenv("NO_CACHE") == "",
+		ShowRun: true,
 	})
 	if err != nil {
 		return nil, err

@@ -1145,8 +1145,9 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 		from "debian"
 		workdir "/home/erikh"
 		copy ".", "box"
+		run "stat /home/erikh/box/test", output: false
 	`)
-	c.Assert(err, NotNil)
+	c.Assert(err, IsNil)
 
 	os.Remove("test")
 
