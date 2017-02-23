@@ -7,7 +7,7 @@ fetch:
 	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell pwd)/mruby_config.rb make
 
 install: fetch
-	go install -tags $(BUILD_TAGS) .
+	go install -v -tags $(BUILD_TAGS) .
 
 clean:
 	cd vendor/github.com/mitchellh/go-mruby && make clean
@@ -15,10 +15,11 @@ clean:
 docs:
 	mkdocs gh-deploy --clean
 
-bootstrap:
-	docker run --rm -i -w ${PWD} -v /var/run/docker.sock:/var/run/docker.sock -v ${PWD}:${PWD} erikh/box:latest /dev/stdin < build.rb
+bootstrap-ci:
+	docker run --rm -e "CI_BUILD=1" -i -w ${PWD} -v /var/run/docker.sock:/var/run/docker.sock -v ${PWD}:${PWD} erikh/box:latest /dev/stdin < build.rb
 
-bootstrap-test: bootstrap run-test
+bootstrap:
+	docker run --rm -ti -w ${PWD} -v /var/run/docker.sock:/var/run/docker.sock -v ${PWD}:${PWD} erikh/box:latest /dev/stdin < build.rb
 
 checks: fetch
 	@sh checks.sh
@@ -29,15 +30,11 @@ build:
 build-ci:
 	CI_BUILD=1 go run -tags $(BUILD_TAGS) main.go --no-tty build.rb
 
-run-test-ci:
+test-ci: checks bootstrap-ci
 	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -i box-test
 
-run-test:
+test: checks bootstrap
 	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -it box-test
-
-test-ci: checks build-ci run-test-ci
-
-test: checks all build run-test
 
 release: clean all test
 	sh release/release.sh ${VERSION}
