@@ -36,6 +36,15 @@ func rewriteTar(source, target string, logger *logger.Logger, tr *tar.Reader, tw
 			return err
 		}
 
+		var name string
+		if header.Name[0] == '/' {
+			name = header.Name[1:]
+		} else {
+			name = header.Name
+		}
+
+		abs := filepath.Join(source, name)
+
 		if (dir || target[len(target)-1] == '/') && header.Name[0] != '/' {
 			// not a single file
 			header.Linkname = path.Join(target, header.Linkname)
@@ -49,7 +58,7 @@ func rewriteTar(source, target string, logger *logger.Logger, tr *tar.Reader, tw
 			return err
 		}
 
-		if err := copy.WithProgress(tw, tr, logger, fmt.Sprintf("%s -> %s", path.Join(source, header.Name[1:]), header.Name[1:])); err != nil {
+		if err := copy.WithProgress(tw, tr, logger, fmt.Sprintf("%s -> %s", abs, header.Name)); err != nil {
 			return err
 		}
 	}
