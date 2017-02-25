@@ -149,7 +149,7 @@ func (l *Logger) Progress(prefix string, count float64) {
 
 	mbs := fmt.Sprintf("%.02fMB", count)
 
-	justifiedWidth := int(wsz.Width) - len(mbs) - 9
+	justifiedWidth := int(wsz.Width) - len(mbs) - 20
 	if justifiedWidth < 0 {
 		return
 	}
