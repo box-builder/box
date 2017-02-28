@@ -116,6 +116,7 @@ func Archive(ctx context.Context, source, target string, ignoreList []string, lo
 	if err != nil {
 		return "", "", err
 	}
+	defer f.Close()
 
 	signal.Handler.AddFile(f.Name())
 	defer signal.Handler.RemoveFile(f.Name())

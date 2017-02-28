@@ -31,7 +31,7 @@ type Image interface {
 	ImageID() string
 
 	// Save saves an image to the provided filename.
-	Save(string) error
+	Save(string, string, string) error
 }
 
 // Layers needs a description

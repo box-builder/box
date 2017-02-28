@@ -10,11 +10,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	ccopy "github.com/containers/image/copy"
+	"github.com/containers/image/docker/daemon"
+	"github.com/containers/image/oci/layout"
+	"github.com/containers/image/signature"
+	ctypes "github.com/containers/image/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/erikh/box/copy"
 	"github.com/erikh/box/image"
+	"github.com/erikh/box/tar"
 )
 
 // DockerImage is the Image interface applied to docker.
@@ -37,9 +44,92 @@ func NewDockerImage(context context.Context, imageConfig *ImageConfig) (*DockerI
 		context:     context,
 	}, nil
 }
+func (d *DockerImage) ociSave(filename, tag string) error {
+	ref, err := daemon.ParseReference(d.imageConfig.Config.Image)
+	if err != nil {
+		return err
+	}
+
+	tmpdir, err := ioutil.TempDir("", "image-")
+	if err != nil {
+		return err
+	}
+
+	tgt, err := layout.NewReference(tmpdir, tag)
+	if err != nil {
+		return err
+	}
+
+	pc, err := signature.NewPolicyContext(&signature.Policy{
+		Default: []signature.PolicyRequirement{signature.NewPRInsecureAcceptAnything()},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	progressChan := make(chan ctypes.ProgressProperties)
+
+	go func() {
+		var last string
+		for prog := range progressChan {
+			digest := prog.Artifact.Digest.String()
+
+			if digest == last {
+				fmt.Print("\r")
+			} else if last != "" {
+				fmt.Println()
+			}
+
+			d.imageConfig.Logger.Progress(strings.SplitN(digest, ":", 2)[1][:12], float64(prog.Offset/megaByte))
+			last = digest
+		}
+
+		fmt.Println()
+	}()
+
+	_, err = ccopy.Image(pc, tgt, ref, &ccopy.Options{
+		RemoveSignatures: true,
+		ProgressInterval: 100 * time.Millisecond,
+		Progress:         progressChan,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	file, _, err := tar.Archive(d.context, tmpdir, "", nil, d.imageConfig.Logger)
+	if err != nil {
+		return err
+	}
+
+	// manually copy the file
+	r, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	w, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	return copy.WithProgress(w, r, d.imageConfig.Logger, fmt.Sprintf("Saving %q", filename))
+}
+
+func (d *DockerImage) dockerSave(f io.WriteCloser, filename, tag string) error {
+	r, err := d.client.ImageSave(d.context, []string{d.imageConfig.Config.Image, tag})
+	if err != nil {
+		return err
+	}
+
+	return copy.WithProgress(f, r, d.imageConfig.Logger, fmt.Sprintf("Saving %q to disk", filename))
+}
 
 // Save saves an image to the provided filename.
-func (d *DockerImage) Save(filename string) error {
+func (d *DockerImage) Save(filename, kind, tag string) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -59,22 +149,19 @@ func (d *DockerImage) Save(filename string) error {
 		return fmt.Errorf("relative path %q for save falls below the working directory, cannot save", rel)
 	}
 
-	f, err := os.Create(rel)
-	if err != nil {
-		return err
+	switch kind {
+	case "", "docker":
+		f, err := os.Create(rel)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		return d.dockerSave(f, filename, tag)
+	case "oci":
+		return d.ociSave(filename, tag)
+	default:
+		return fmt.Errorf("image kind %q is not valid", kind)
 	}
-
-	r, err := d.client.ImageSave(d.context, []string{d.imageConfig.Config.Image})
-	if err != nil {
-		return err
-	}
-
-	err = copy.WithProgress(f, r, d.imageConfig.Logger, fmt.Sprintf("Saving %q to disk", filename))
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Flatten copies a tarred up series of files (passed in through the
