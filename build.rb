@@ -2,7 +2,7 @@ from "debian"
 
 after { tag "erikh/box:master" }
 DOCKER_VERSION = "1.13.1"
-GOLANG_VERSION = "1.8"
+GOLANG_VERSION = "1.7.5"
 
 PACKAGES = %w[
   build-essential
