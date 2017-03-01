@@ -12,6 +12,9 @@ These are the functions supported by Box.
   commit, like the `tag` verb does.
 * file: save the image to a file. The resulting file will be a bare tarball
   with the image contents, suitable for `docker load`.
+* type: Two options:
+  * docker (the default): save the file specified in `file` using the docker image format.
+  * oci: save the file specified in `file` using the OCI image format in tar form.
 
 Example:
 

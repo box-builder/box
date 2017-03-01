@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 
 	mruby "github.com/mitchellh/go-mruby"
@@ -43,7 +44,7 @@ func saveFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mrub
 		return nil, createException(m, err.Error())
 	}
 
-	var tag, file string
+	var tag, file, kind string
 
 	if keys, err := args[0].Hash().Keys(); err != nil || keys.Array().Len() == 0 {
 		return nil, createException(m, "save must be called with parameters")
@@ -55,6 +56,8 @@ func saveFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mrub
 			tag = value.String()
 		case "file":
 			file = value.String()
+		case "kind":
+			kind = value.String()
 		default:
 			return fmt.Errorf("%q is not a valid parameter to the save function", key.String())
 		}
@@ -72,7 +75,11 @@ func saveFunc(b *Builder, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mrub
 	}
 
 	if file != "" {
-		if err := b.exec.Image().Save(file); err != nil {
+		if tag == "" {
+			tag = strings.TrimSuffix(path.Base(file), path.Ext(file))
+		}
+
+		if err := b.exec.Image().Save(file, kind, tag); err != nil {
 			return nil, createException(m, err.Error())
 		}
 	}

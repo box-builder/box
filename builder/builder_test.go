@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	. "testing"
@@ -460,6 +462,32 @@ func (bs *builderSuite) TestSave(c *C) {
   `)
 	c.Assert(err, NotNil)
 	b.Close()
+
+	b, err = runBuilder(`
+    from "debian"
+		run "apt-get update -qq"
+		save file: "oci.tar", kind: "oci"
+  `)
+	c.Assert(err, IsNil)
+	b.Close()
+
+	defer os.Remove("oci.tar")
+	f, err = os.Open("oci.tar")
+	c.Assert(err, IsNil)
+
+	tr := tar.NewReader(f)
+	found = false
+	for {
+		header, err := tr.Next()
+		c.Assert(err, IsNil)
+
+		if path.Base(header.Name) == "oci" {
+			found = true
+			break
+		}
+	}
+
+	c.Assert(found, Equals, true)
 }
 
 func (bs *builderSuite) TestFlatten(c *C) {
