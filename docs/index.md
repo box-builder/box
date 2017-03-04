@@ -50,7 +50,7 @@ $ box shell
 
 This video gives a quick demo of the shell:
 
-<iframe width="100%" height="640" src="https://www.youtube.com/embed/znCfrabMUs0" frameborder="0" allowfullscreen></iframe>
+<script type="text/javascript" src="https://asciinema.org/a/c1n0h0g73f10x4cuzjf1i51vg.js" id="asciicast-c1n0h0g73f10x4cuzjf1i51vg" async></script>
 
 ### With a Plan 
 

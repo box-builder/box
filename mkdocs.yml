@@ -3,6 +3,7 @@ theme: slate
 repo_url: https://github.com/erikh/box
 pages:
   - "Intro": "index.md"
+  - "Build Plans": "build-plans.md"
   - "User Guide":
     - "Command-Line Options": "user-guide/cli.md"
     - "Verbs": "user-guide/verbs.md"
