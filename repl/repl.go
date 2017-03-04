@@ -41,6 +41,7 @@ func NewRepl(omit []string) (*Repl, error) {
 		TTY:       true,
 		Cache:     false,
 		Context:   ctx,
+		ShowRun:   true,
 	})
 
 	if err != nil {

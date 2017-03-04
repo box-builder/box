@@ -103,6 +103,7 @@ func (d *Docker) UseTTY(arg bool) {
 func (d *Docker) SetContext(ctx context.Context) {
 	d.context = ctx
 	d.Layers().SetContext(ctx)
+	d.Image().SetContext(ctx)
 }
 
 // LoadConfig loads the configuration into the executor.

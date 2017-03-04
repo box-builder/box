@@ -79,18 +79,27 @@ func (c *Cancellable) SignalHandler(signals chan os.Signal) {
 		<-signals
 
 		c.mutex.Lock()
+		funcs := c.cancelFuncs
+		c.cancelFuncs = []context.CancelFunc{}
+		files := c.files
+		c.files = map[string]struct{}{}
+
+		runners := c.runners
+		c.runners = make([]chan struct{}, 0)
+		c.mutex.Unlock()
+
 		fmt.Println("\n\n!!! SIGINT or SIGTERM received, crashing containers...")
-		for _, cancel := range c.cancelFuncs {
+		for _, cancel := range funcs {
 			cancel()
 		}
 
 		if !c.IgnoreRunners {
-			for _, runner := range c.runners {
+			for _, runner := range runners {
 				<-runner
 			}
 		}
 
-		for fn := range c.files {
+		for fn := range files {
 			fmt.Fprintf(os.Stderr, "Cleaning up temporary file %q", fn)
 
 			if err := os.Remove(fn); err != nil {
@@ -103,6 +112,5 @@ func (c *Cancellable) SignalHandler(signals chan os.Signal) {
 		if c.Exit {
 			os.Exit(1)
 		}
-		c.mutex.Unlock()
 	}
 }

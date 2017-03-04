@@ -44,6 +44,12 @@ func NewDockerImage(context context.Context, imageConfig *ImageConfig) (*DockerI
 		context:     context,
 	}, nil
 }
+
+// SetContext sets the current context for execution
+func (d *DockerImage) SetContext(ctx context.Context) {
+	d.context = ctx
+}
+
 func (d *DockerImage) ociSave(filename, tag string) error {
 	ref, err := daemon.ParseReference(d.imageConfig.Config.Image)
 	if err != nil {
