@@ -1,6 +1,6 @@
 # Box: A Next-Generation Builder for Docker Images 
 
-[![Build Status](http://home.hollensbe.org:8080/job/box-master/badge/icon)](http://home.hollensbe.org:8080/job/box-master/)
+[![Build Status](http://jenkins.hollensbe.org:8080/job/box-master/badge/icon)](http://jenkins.hollensbe.org:8080/job/box-master/)
 [![Join the chat at https://gitter.im/box-builder/Lobby](https://badges.gitter.im/box-builder/Lobby.svg)](https://gitter.im/box-builder/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Go Report Card](https://goreportcard.com/badge/github.com/erikh/box)](https://goreportcard.com/report/github.com/erikh/box)
 
