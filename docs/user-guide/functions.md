@@ -8,13 +8,11 @@ These are the functions supported by Box.
 
 `save` saves an image with parameters:
 
-* tag: tag the image in the docker image store. This does not generate a
+* `tag`: tag the image in the docker image store. This does not generate a
   commit, like the `tag` verb does.
-* file: save the image to a file. The resulting file will be a bare tarball
+* `file`: save the image to a file. The resulting file will be a bare tarball
   with the image contents, suitable for `docker load`.
-* type: Two options:
-  * docker (the default): save the file specified in `file` using the docker image format.
-  * oci: save the file specified in `file` using the OCI image format in tar form.
+* `type`: Two options: `docker`, and `oci`.
 
 Example:
 
@@ -36,7 +34,7 @@ save file: "ubuntu-with-update.tar"
 ## skip
 
 skip skips all layers within its block in the final produced image, which may
-be tagged with the `-t` commandline argument.
+be tagged with the `-t` commandline argument or modified in an `after` clause.
 
 Note that any other tagging or references to images built will still be
 available with full image contents, this only affects the final output image.

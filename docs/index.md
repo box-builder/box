@@ -1,4 +1,4 @@
-Box is a small utility for the building of docker images. Through use of mruby,
+Box is a utility for the building of docker images. Through use of mruby,
 we provide additional flexibility over the vanilla `docker build` command by
 adding control structures and basic predicates. We also add new verbs that
 allow new actions, such as flattening and tagging images.
@@ -30,6 +30,9 @@ $ gunzip box.$(uname -s).gz
 $ chmod 755 box.$(uname -s)
 $ sudo mv box.$(uname -s) /usr/local/bin/box
 ```
+
+Alternatively, we have a [homebrew tap](https://github.com/erikh/homebrew-box)
+and debian and redhat packages on the [releases page](https://github.com/erikh/box/releases).
 
 ## Invocation
 
