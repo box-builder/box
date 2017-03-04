@@ -10,6 +10,9 @@ import (
 
 // Image needs a description
 type Image interface {
+	// SetContext sets the context for upcoming operations.
+	SetContext(context.Context)
+
 	// Flatten copies a tarred up series of files (passed in through the
 	// io.Reader handle) to the image where they are untarred. The first argument
 	// is the parent image to use.
