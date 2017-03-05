@@ -29,7 +29,7 @@ func Docker(context context.Context, logger *logger.Logger, client *client.Clien
 				return "", nil, err
 			}
 
-			fmt.Println("done.")
+			fmt.Fprintln(logger.Output(), "done.")
 		} else {
 			pull.NewProgress(tty, reader).Process()
 		}

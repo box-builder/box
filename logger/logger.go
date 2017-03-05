@@ -33,8 +33,8 @@ func (l *Logger) Record() {
 }
 
 // Output returns the output buffer.
-func (l *Logger) Output() *bytes.Buffer {
-	return l.buffer
+func (l *Logger) Output() io.Writer {
+	return l.output
 }
 
 // Print is a bare-bones print statement.

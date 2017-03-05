@@ -141,6 +141,28 @@ func (d *Docker) calculateCommits(layers []*image.Layer) []*image.Layer {
 	return commitLayers
 }
 
+func (d *Docker) consumeEdits(progressChan chan ctypes.ProgressProperties) {
+	var last string
+	for prog := range progressChan {
+		if d.tty {
+			digest := prog.Artifact.Digest.String()
+
+			if digest == last {
+				fmt.Fprint(d.logger.Output(), "\r")
+			} else if last != "" {
+				fmt.Fprintln(d.logger.Output())
+			}
+
+			d.logger.Progress(strings.SplitN(digest, ":", 2)[1][:12], float64(prog.Offset/megaByte))
+			last = digest
+		}
+	}
+
+	if d.tty {
+		fmt.Fprintln(d.logger.Output())
+	}
+}
+
 func (d *Docker) makeImage(from string) (string, error) {
 	ref, err := daemon.ParseReference(from)
 	if err != nil {
@@ -173,25 +195,13 @@ func (d *Docker) makeImage(from string) (string, error) {
 
 	progressChan := make(chan ctypes.ProgressProperties)
 
-	go func() {
-		var last string
-		for prog := range progressChan {
-			digest := prog.Artifact.Digest.String()
+	go d.consumeEdits(progressChan)
 
-			if digest == last {
-				fmt.Print("\r")
-			} else if last != "" {
-				fmt.Println()
-			}
-
-			d.logger.Progress(strings.SplitN(digest, ":", 2)[1][:12], float64(prog.Offset/megaByte))
-			last = digest
-		}
-
-		fmt.Println()
-	}()
-
-	d.logger.Print(d.logger.Notice("Editing image\n"))
+	if d.tty {
+		d.logger.Print(d.logger.Notice("Editing image\n"))
+	} else {
+		d.logger.Print(d.logger.Notice("Editing image..."))
+	}
 
 	img2, err := copy.Image(pc, tgt, ref, &copy.Options{
 		RemoveSignatures: true,
@@ -211,6 +221,10 @@ func (d *Docker) makeImage(from string) (string, error) {
 	close(progressChan)
 	if err != nil {
 		return "", err
+	}
+
+	if !d.tty {
+		fmt.Fprintln(d.logger.Output(), "done.")
 	}
 
 	return img2.ConfigInfo().Digest.String(), nil

@@ -1,6 +1,7 @@
 package multi
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -213,7 +214,7 @@ func (ms *multiSuite) TestMultiFrom(c *C) {
 	var found bool
 
 	for _, b := range mb.builders {
-		if strings.Contains(b.Logger.Output().String(), fmt.Sprintf("Pulling %q", imageName)) {
+		if strings.Contains(b.Logger.Output().(*bytes.Buffer).String(), fmt.Sprintf("Pulling %q", imageName)) {
 			if found {
 				c.Fatal("Found two pulls")
 			}
