@@ -64,7 +64,7 @@ Here's a video of the shell in action (click for more):
 
 *Available in v0.3 and up*
 
-[![Box REPL](http://i.makeagif.com/media/11-14-2016/HH-2BW.gif)](https://youtu.be/znCfrabMUs0)
+[![Box REPL](https://asciinema.org/a/c1n0h0g73f10x4cuzjf1i51vg.png)](https://asciinema.org/a/c1n0h0g73f10x4cuzjf1i51vg)
 
 ## Advanced Use
 
