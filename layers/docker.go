@@ -148,9 +148,9 @@ func (d *Docker) consumeEdits(progressChan chan ctypes.ProgressProperties) {
 			digest := prog.Artifact.Digest.String()
 
 			if digest == last {
-				fmt.Print("\r")
+				fmt.Fprint(d.logger.Output(), "\r")
 			} else if last != "" {
-				fmt.Println()
+				fmt.Fprintln(d.logger.Output())
 			}
 
 			d.logger.Progress(strings.SplitN(digest, ":", 2)[1][:12], float64(prog.Offset/megaByte))
@@ -159,7 +159,7 @@ func (d *Docker) consumeEdits(progressChan chan ctypes.ProgressProperties) {
 	}
 
 	if d.tty {
-		fmt.Println()
+		fmt.Fprintln(d.logger.Output())
 	}
 }
 
@@ -224,7 +224,7 @@ func (d *Docker) makeImage(from string) (string, error) {
 	}
 
 	if !d.tty {
-		fmt.Println("done.")
+		fmt.Fprintln(d.logger.Output(), "done.")
 	}
 
 	return img2.ConfigInfo().Digest.String(), nil
