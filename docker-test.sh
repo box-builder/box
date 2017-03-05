@@ -16,5 +16,5 @@ trap term INT TERM
 
 for i in $*
 do
-  DIND=1 go test -cover -timeout 120m -v "$i" -check.v -check.f "${TESTRUN}"
+  DIND=1 go test -tags "btrfs_noversion libdm_no_deferred_remove" -ldflags=-extldflags=-static -cover -timeout 120m -v "$i" -check.v -check.f "${TESTRUN}"
 done

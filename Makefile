@@ -1,4 +1,4 @@
-PACKAGES := ./cli-tests  ./layers ./image ./tar ./multi ./builder/executor/docker ./builder
+PACKAGES := ./cli-tests ./layers ./image ./tar ./multi ./builder/executor/docker ./builder
 BUILD_TAGS := "btrfs_noversion libdm_no_deferred_remove"
 
 all: checks install
@@ -7,10 +7,14 @@ fetch:
 	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell pwd)/mruby_config.rb make
 
 install: fetch
-	go install -tags $(BUILD_TAGS) .
+	go install -v -ldflags="-X main.Version=$${VERSION:-$(shell git rev-parse HEAD)}" -tags $(BUILD_TAGS) .
+
+install-static: fetch
+	go install -v -ldflags="-X main.Version=$${VERSION:-$(shell git rev-parse HEAD)} -extldflags=-static" -tags $(BUILD_TAGS) .
 
 clean:
 	cd vendor/github.com/mitchellh/go-mruby && make clean
+	rm -rf bin
 
 docs:
 	mkdocs gh-deploy --clean
@@ -40,15 +44,16 @@ test-ci: checks build-ci run-test-ci
 test: checks all build run-test
 
 release: clean all test
+	VERSION=${VERSION} RELEASE=1 go run main.go -n -t erikh/box:${VERSION} build.rb
+	docker rm -f box-build-${VERSION}
+	docker run --name box-build-${VERSION} --entrypoint /bin/bash erikh/box:${VERSION} -c 'exit 0'
+	docker cp box-build-${VERSION}:/box .
+	docker rm box-build-${VERSION}
 	sh release/release.sh ${VERSION}
-	RELEASE=1 go run main.go -t erikh/box:${VERSION} build.rb
 	@echo File to release is RELEASE.tmp.md
 
 test-local: clean all
 	for i in $(PACKAGES); do go test -v $$i -check.vv; done
-
-release-osx: test-local # test directly on mac
-	sh release/release.sh ${VERSION}
 
 docker-test:
 	/bin/bash docker-test.sh $(PACKAGES)
