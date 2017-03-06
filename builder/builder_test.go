@@ -202,9 +202,18 @@ func (bs *builderSuite) TestCopyWithGlob(c *C) {
     copy "*", "."
     run "test -f /test/config/config.go"
 		run "test -f /test/builder.go"
-		run "test -f /test/* || exit 0"
   `)
 	c.Assert(err, IsNil)
+	b.Close()
+
+	b, err = runBuilder(`
+    from "debian"
+    run "mkdir /test"
+    workdir "/test"
+    copy "*", "."
+		run "test -f /test/\\*"
+	`)
+	c.Assert(err, NotNil)
 	b.Close()
 }
 
