@@ -6,3 +6,5 @@ site
 release-notes.txt
 *.tmp.md
 *.bak
+bin
+portable.sh

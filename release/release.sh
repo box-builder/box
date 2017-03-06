@@ -16,24 +16,19 @@ mv CHANGELOG.tmp.md CHANGELOG.md
 cat release-notes.txt >> RELEASE.tmp.md 
 echo "\n\n" >> RELEASE.tmp.md
 
-perl -i.bak -pe "s/(\\s+)Version = .*/\\1Version = \"${1}\"/" main.go
-make clean all
+gzip -c box > "box-${1}.linux.gz"
 
-lcuname=$(uname -s | tr LD ld)
-cp $GOPATH/bin/box .
-gzip -c box > "box-${1}.${lcuname}.gz"
+sed -e "s/@@VERSION@@/${1}/g" portable.sh.tmpl >portable.sh
+gzip -c portable.sh > "box-${1}.portable.gz"
 
-for i in deb rpm
-do
-  fpm -n box -v ${1} -s dir -t ${i} box=/usr/bin/box 
-done
+rm *.deb *.rpm
+
+fpm -n box -v ${1} -s dir -t deb box=/usr/bin/box
+fpm -n box -v ${1} -s dir -t rpm box=/usr/bin/box
 
 case "$(uname -s)" in
-  Darwin)
-    sum=$(shasum -a 256 "box-${1}.${lcuname}.gz")
-  ;;
   Linux)
-    for i in "box-${1}.${lcuname}.gz" box-${1}-1.x86_64.rpm box_${1}_amd64.deb
+    for i in "box-${1}.portable.gz" "box-${1}.linux.gz" "box-${1}-1.x86_64.rpm" "box_${1}_amd64.deb"
     do
       innersum=$(sha256sum ${i})
       sum="${sum}\n${innersum}"
