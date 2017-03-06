@@ -17,7 +17,6 @@ mv CHANGELOG.tmp.md CHANGELOG.md
 cat release-notes.txt >> RELEASE.tmp.md 
 echo "\n\n" >> RELEASE.tmp.md
 
-
 gzip -c box > "box-${1}.linux.gz"
 
 sed -e "s/@@VERSION@@/${1}/g" portable.sh.tmpl >portable.sh
