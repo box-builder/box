@@ -32,22 +32,22 @@ skip do
   run "apt-get update #{qq}"
   run "apt-get install -y #{qq} #{PACKAGES.join(" ")}"
 
-	run "mkdir -p /usr/local/gpgme && curl -sSL https://www.gnupg.org/ftp/gcrypt/gpgme/gpgme-#{GPGME_VERSION}.tar.bz2 | tar -xjC /usr/local/gpgme --strip-components=1"
-	run "cd /usr/local/gpgme && ./configure --enable-static && PREFIX=/usr make install"
+  run "mkdir -p /usr/local/gpgme && curl -sSL https://www.gnupg.org/ftp/gcrypt/gpgme/gpgme-#{GPGME_VERSION}.tar.bz2 | tar -xjC /usr/local/gpgme --strip-components=1"
+  run "cd /usr/local/gpgme && ./configure --enable-static && PREFIX=/usr make install"
 
-	# shamelessly taken from docker
-	run %Q[mkdir -p /usr/local/lvm2 \
-		&& curl -fsSL "https://mirrors.kernel.org/sourceware/lvm2/LVM2.#{LVM2_VERSION}.tgz" \
-			| tar -xzC /usr/local/lvm2 --strip-components=1]
-	# See https://git.fedorahosted.org/cgit/lvm2.git/refs/tags for release tags
+  # shamelessly taken from docker
+  run %Q[mkdir -p /usr/local/lvm2 \
+    && curl -fsSL "https://mirrors.kernel.org/sourceware/lvm2/LVM2.#{LVM2_VERSION}.tgz" \
+      | tar -xzC /usr/local/lvm2 --strip-components=1]
+  # See https://git.fedorahosted.org/cgit/lvm2.git/refs/tags for release tags
 
-	# Compile and install lvm2
-	run %q[cd /usr/local/lvm2 \
-		&& ./configure \
-			--build="$(gcc -print-multiarch)" \
-			--enable-static_link \
-		&& make device-mapper \
-		&& make install_device-mapper]
+  # Compile and install lvm2
+  run %q[cd /usr/local/lvm2 \
+    && ./configure \
+      --build="$(gcc -print-multiarch)" \
+      --enable-static_link \
+    && make device-mapper \
+    && make install_device-mapper]
 
   docker_path = "docker-#{DOCKER_VERSION}.tgz"
   run "wget -q https://get.docker.com/builds/Linux/x86_64/#{docker_path}"
