@@ -143,24 +143,37 @@ func (l *Logger) EndOutput() {
 // Progress is a representation of a progress meter.
 func (l *Logger) Progress(prefix string, count float64) {
 	out := fmt.Sprint("\r")
-	out += l.Plan()
-
 	wsz, _ := term.GetWinsize(0)
 
 	mbs := fmt.Sprintf("%.02fMB", count)
 
-	justifiedWidth := int(wsz.Width) - len(mbs) - 20
+	justifiedWidth := int(wsz.Width) - len(mbs) - 5 // ... below
 	if justifiedWidth < 0 {
 		return
 	}
 
-	out += color.New(color.FgWhite, color.Bold).SprintFunc()("+++ ")
+	var skip bool
+	var charCount int
+	buf := ""
+	for _, b := range fmt.Sprintf("%s%s %s", l.Plan(), color.New(color.FgWhite, color.Bold).SprintFunc()("+++"), color.New(color.FgRed, color.Bold).SprintfFunc()("%s", prefix)) {
+		if b == '\033' {
+			skip = true
+		}
 
-	if len(prefix) > int(justifiedWidth) {
-		prefix = prefix[:int(justifiedWidth)] + "..."
+		if !skip {
+			charCount++
+		} else if (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') {
+			skip = false
+		}
+
+		if charCount > justifiedWidth && !skip {
+			break
+		}
+
+		buf = string(append([]rune(buf), b))
 	}
 
-	out += color.New(color.FgRed, color.Bold).SprintfFunc()("%s: ", prefix)
+	out += buf + "...: "
 	out += color.New(color.FgWhite).SprintFunc()(mbs)
 	fmt.Fprint(l.output, out)
 }
