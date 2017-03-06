@@ -1,6 +1,7 @@
 #!/bin/bash
 
 sed -e "s/@@VERSION@@/$1/g" release/RELEASE.md >RELEASE.tmp.md
+sed -e "s/@@VERSION@@/$1/g" install.sh.tmpl >install.sh
 
 vim release-notes.txt
 cat >CHANGELOG.tmp.md << EOF
