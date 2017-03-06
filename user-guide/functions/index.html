@@ -56,6 +56,12 @@
             
             
             
+                <li >
+                    <a href="../../build-plans/">Build Plans</a>
+                </li>
+            
+            
+            
                 <li class="dropdown active">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">User Guide <b class="caret"></b></a>
                     <ul class="dropdown-menu">
@@ -120,7 +126,10 @@
             <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
     
-        <li class="main active"><a href="#skip">skip</a></li>
+        <li class="main active"><a href="#save">save</a></li>
+        
+    
+        <li class="main "><a href="#skip">skip</a></li>
         
     
         <li class="main "><a href="#import">import</a></li>
@@ -146,9 +155,30 @@
 example, you may wish to read the contents of a file from the container into
 your build for further processing; the <code>read</code> function allows that.</p>
 <p>These are the functions supported by Box.</p>
+<h2 id="save">save</h2>
+<p><code>save</code> saves an image with parameters:</p>
+<ul>
+<li><code>tag</code>: tag the image in the docker image store. This does not generate a
+  commit, like the <code>tag</code> verb does.</li>
+<li><code>file</code>: save the image to a file. The resulting file will be a bare tarball
+  with the image contents, suitable for <code>docker load</code>.</li>
+<li><code>type</code>: Two options: <code>docker</code>, and <code>oci</code>.</li>
+</ul>
+<p>Example:</p>
+<p>Tag an image with the name "foo":</p>
+<pre><code class="ruby">from &quot;ubuntu&quot;
+save tag: &quot;foo&quot;
+</code></pre>
+
+<p>Save the ubuntu image to file after updating it:</p>
+<pre><code class="ruby">from &quot;ubuntu&quot;
+run &quot;apt-get update -qq &amp;&amp; apt-get dist-upgrade -y&quot;
+save file: &quot;ubuntu-with-update.tar&quot;
+</code></pre>
+
 <h2 id="skip">skip</h2>
 <p>skip skips all layers within its block in the final produced image, which may
-be tagged with the <code>-t</code> commandline argument.</p>
+be tagged with the <code>-t</code> commandline argument or modified in an <code>after</code> clause.</p>
 <p>Note that any other tagging or references to images built will still be
 available with full image contents, this only affects the final output image.</p>
 <p><strong>WARNING</strong>: This command can cause extreme latency over TCP connections as it

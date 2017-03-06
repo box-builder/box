@@ -56,6 +56,12 @@
             
             
             
+                <li >
+                    <a href="build-plans/">Build Plans</a>
+                </li>
+            
+            
+            
                 <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">User Guide <b class="caret"></b></a>
                     <ul class="dropdown-menu">
@@ -97,7 +103,7 @@
                     </a>
                 </li>
                 <li >
-                    <a rel="prev" href="user-guide/cli/">
+                    <a rel="prev" href="build-plans/">
                         Next <i class="fa fa-arrow-right"></i>
                     </a>
                 </li>
@@ -139,6 +145,8 @@
     
         <li class="main "><a href="#example-box-plan">Example Box Plan</a></li>
         
+            <li><a href="#ignoring-files">Ignoring files</a></li>
+        
             <li><a href="#the-build-cache">The Build Cache</a></li>
         
     
@@ -152,7 +160,7 @@
 </div></div>
             <div class="col-md-9" role="main">
 
-<p>Box is a small utility for the building of docker images. Through use of mruby,
+<p>Box is a utility for the building of docker images. Through use of mruby,
 we provide additional flexibility over the vanilla <code>docker build</code> command by
 adding control structures and basic predicates. We also add new verbs that
 allow new actions, such as flattening and tagging images.</p>
@@ -183,6 +191,8 @@ $ chmod 755 box.$(uname -s)
 $ sudo mv box.$(uname -s) /usr/local/bin/box
 </code></pre>
 
+<p>Alternatively, we have a <a href="https://github.com/erikh/homebrew-box">homebrew tap</a>
+and debian and redhat packages on the <a href="https://github.com/erikh/box/releases">releases page</a>.</p>
 <h2 id="invocation">Invocation</h2>
 <h3 id="use-the-shell">Use the shell</h3>
 <p>If you want to try out box quickly, you can use the shell interface, AKA
@@ -193,7 +203,7 @@ $ box shell
 </code></pre>
 
 <p>This video gives a quick demo of the shell:</p>
-<iframe width="100%" height="640" src="https://www.youtube.com/embed/znCfrabMUs0" frameborder="0" allowfullscreen></iframe>
+<script type="text/javascript" src="https://asciinema.org/a/c1n0h0g73f10x4cuzjf1i51vg.js" id="asciicast-c1n0h0g73f10x4cuzjf1i51vg" async></script>
 
 <h3 id="with-a-plan">With a Plan</h3>
 <p>The commandline tool <code>box</code> accepts a file (your "build plan") as a commandline
@@ -259,6 +269,11 @@ url = &quot;https://storage.googleapis.com/golang/go#{go_version}.linux-amd64.ta
 run &quot;curl -sSL '#{url}' | tar -xvz -C /usr/local&quot;
 </code></pre>
 
+<h3 id="ignoring-files">Ignoring files</h3>
+<p>Just like Docker, if a <code>.dockerignore</code> file exists, the patterns, filenames,
+and directories specified in this file will be ignored from all copy operations.</p>
+<p>The <a href="./user-guide/verbs/#copy">copy</a> verb also has additional functionality to
+scope ignore rules down to specific copy statements.</p>
 <h3 id="the-build-cache">The Build Cache</h3>
 <p>The build cache is enabled by default. It is not an exact cache but constructs
 the layer graph in a non-standard way using docker's image Comment field,

@@ -56,6 +56,12 @@
             
             
             
+                <li >
+                    <a href="../../build-plans/">Build Plans</a>
+                </li>
+            
+            
+            
                 <li class="dropdown active">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">User Guide <b class="caret"></b></a>
                     <ul class="dropdown-menu">
@@ -120,7 +126,13 @@
             <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
     
-        <li class="main active"><a href="#debug">debug</a></li>
+        <li class="main active"><a href="#label">label</a></li>
+        
+    
+        <li class="main "><a href="#debug">debug</a></li>
+        
+    
+        <li class="main "><a href="#after">after</a></li>
         
     
         <li class="main "><a href="#set95exec">set_exec</a></li>
@@ -169,6 +181,33 @@
 <p>Verbs take action on a container and usually create a layer. Some commands can
 be used to move data into and out of containers, or set properties and run
 commands.</p>
+<h2 id="label">label</h2>
+<p><code>label</code> creates a label inside the image. It will append any labels that are
+specified in each label command, for example, if you were to:</p>
+<pre><code class="ruby">label foo: &quot;bar&quot;
+label quux: &quot;baz&quot;
+</code></pre>
+
+<p>If you were to <code>docker inspect</code> this, your ending labels would be:</p>
+<pre><code class="json">{
+  &quot;foo&quot;: &quot;bar&quot;,
+  &quot;quux&quot;: &quot;baz&quot;
+}
+</code></pre>
+
+<p>You can also do this all as one label:</p>
+<pre><code class="ruby">label foo: &quot;bar&quot;, quux: &quot;baz&quot;
+</code></pre>
+
+<p>Or if you'd like, store them in a variable for a final commit at the end:</p>
+<pre><code class="ruby">mylabels = { }
+mylabels[&quot;foo&quot;] = &quot;baz&quot;
+# ... some stuff that generates mydata
+mylabels[&quot;quux&quot;] = mydata
+
+label mylabels # voila!
+</code></pre>
+
 <h2 id="debug">debug</h2>
 <p><code>debug</code> drops to a container's shell (bash by default, but an argument can be
 provided to change this) at the current place in the build cycle when invoked.
@@ -182,6 +221,25 @@ and/or programs.</p>
 copy &quot;.&quot;, &quot;/test&quot;
 debug # verify all files landed in test like you expected them to
 run &quot;chown -R erikh:erikh /test&quot; # this will run after you close the shell
+</code></pre>
+
+<h2 id="after">after</h2>
+<p><code>after</code> coordinates with <code>skip</code> to provide layer editing facilities. After the
+image is recomposed, this hook will run. Great for tagging and flattening.</p>
+<p>Example:</p>
+<pre><code class="ruby">from &quot;debian&quot;
+
+# after the skip layers are removed, run this hook.
+after do
+  # tag the edited image as `dev`
+  tag &quot;dev&quot;
+end
+
+skip do
+  run &quot;apt-get update -qq&quot;
+end
+
+run &quot;apt-get install tmux -y&quot;
 </code></pre>
 
 <h2 id="set95exec">set_exec</h2>
@@ -263,7 +321,10 @@ cmd &quot;foo&quot;              # this will equate to `/bin/echo foo`
 also sets the initial layer and must be called before several operations.</p>
 <p>Using <code>from</code> overwrites all container configuration, including <code>workdir</code>,
 <code>user</code>, <code>env</code>, <code>cmd</code>, and <code>entrypoint</code>.</p>
-<p>It is generally expected that <code>from</code> is called first in a build plan.</p>
+<p>It is expected that <code>from</code> is called first in a build plan.</p>
+<p>If <code>from :scratch</code> is provided, the build plan will start out with no files and
+no configuration. You will want to use <code>copy</code>, <code>set_exec</code>, etc to configure
+your container image.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
 </code></pre>
@@ -277,11 +338,21 @@ also sets the initial layer and must be called before several operations.</p>
 from &quot;sha256:deadbeefcafebabeaddedbeef&quot;
 </code></pre>
 
+<p><code>from :scratch</code>:</p>
+<pre><code class="ruby">from :scratch
+copy &quot;box&quot;, &quot;/&quot;
+entrypoint &quot;/box&quot;
+</code></pre>
+
 <h2 id="run">run</h2>
 <p>run runs a command provided as a string, and saves the layer.</p>
 <p>It respects user and workdir, but not entrypoint and command. It does this
 so it can respect the values provided in the plan instead of what was
 intended for the final image.</p>
+<p>Options:</p>
+<ul>
+<li><code>output</code>: supply <code>false</code> to omit output from the plan run.</li>
+</ul>
 <p>Cache keys are generated based on the command name, so to be certain your
 command is run in the event of it hitting cache, run box with NO_CACHE=1.</p>
 <p>Examples:</p>
@@ -321,6 +392,9 @@ end
 # creates /tmp/yet-another-file
 workdir &quot;/tmp&quot;
 run &quot;echo foo &gt;yet-another-file&quot;
+
+# will not display anything
+run &quot;ls -l /&quot;, output: false
 </code></pre>
 
 <h2 id="with95user">with_user</h2>
@@ -389,6 +463,14 @@ also bust the cache.</p>
 <p>copy accepts globbing on the local side (LHS of arguments) according to
 <a href="https://golang.org/pkg/path/filepath/#Match">these rules</a>. For example, it
 supports <code>*</code> but not the zsh extended <code>**</code> syntax.</p>
+<p>Parameters may be specified after the target directory; the following options
+are supported:</p>
+<ul>
+<li><code>ignore_list</code>: the provided array of file patterns will be ignored from the
+  copied product.</li>
+<li><code>ignore_file</code>: similar to <code>ignore_list</code>, it will reap the values from the
+  filename specified.</li>
+</ul>
 <p>NOTE: copy will not overwrite directories with files, this will abort the run.
 If you are trying to copy a file into a named directory, suffix it with <code>/</code>
 which will instruct it to put it into that directory instead of trying to
@@ -406,6 +488,9 @@ end
 
 copy &quot;a_file&quot;, &quot;/tmp/&quot; # example of not overwriting directories with files
 copy &quot;files*&quot;, &quot;/var/lib&quot; # example of globbing
+
+# copy all files named `files*`, but ignore the ones that start with `files1*`.
+copy &quot;files*&quot;, &quot;/var/lib&quot;, ignore_list: [&quot;files1*&quot;] 
 </code></pre></div>
         </div>
 
