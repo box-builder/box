@@ -81,13 +81,8 @@ get everything you need out of it.
 * To build on the host (create a dev environment):
   * `make`
 * To build a docker image for your dev environment (needed for test and release builds):
-  * `make bootstrap`
-* To run the tests without a dev environment configured:
-  * `make bootstrap-test`
+  * `make build`
 * If you have a dev environment:
   * `make test`
-    * note that if you are building both on the hosts and in the test
-      containers, `IGNORE_LIBMRUBY=1` may be of interest to you if you get
-      linking errors or GC panics.
 * To do a release build:
-  * `make release`
+  * `VERSION=<version> make release`
