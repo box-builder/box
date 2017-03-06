@@ -45,7 +45,7 @@ test: checks all build run-test
 
 release: clean all test
 	VERSION=${VERSION} RELEASE=1 go run main.go -n -t erikh/box:${VERSION} build.rb
-	docker rm -f box-build-${VERSION}
+	docker rm -f box-build-${VERSION} || :
 	docker run --name box-build-${VERSION} --entrypoint /bin/bash erikh/box:${VERSION} -c 'exit 0'
 	docker cp box-build-${VERSION}:/box .
 	docker rm box-build-${VERSION}
