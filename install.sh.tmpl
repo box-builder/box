@@ -3,7 +3,7 @@
 # linux/mac installer for box
 
 version=@@VERSION@@
-if [ "${uname -s}" = "Linux" ]; then 
+if [ "$(uname -s)" = "Linux" ]; then 
   arch="linux"
 else
   arch="portable"
