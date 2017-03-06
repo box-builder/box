@@ -1,11 +1,20 @@
 #!/bin/sh
 
-# linux installer for box
+# linux/mac installer for box
 
 version=@@VERSION@@
+if [ "${uname -s}" = "Linux" ]; then 
+  arch="linux"
+else
+  arch="portable"
+  if ! [ -f `which docker` ]; then
+    echo "On non-linux platforms, box runs in a docker container. Ensure the docker command is in your PATH and try installing again."   
+    exit 1;
+  fi
+fi
 
 echo "Installing version v${version}"
-curl -sSL "https://github.com/erikh/box/releases/download/v${version}/box-${version}.linux.gz" | gunzip -c > /tmp/box 
+curl -sSL "https://github.com/erikh/box/releases/download/v${version}/box-${version}.${arch}.gz" | gunzip -c > /tmp/box 
 chmod ugo+x /tmp/box 
 sudo mv /tmp/box /usr/bin/box
 
