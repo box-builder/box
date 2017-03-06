@@ -77,7 +77,7 @@ get everything you need out of it.
 ## Development Instructions
 
 * **Requires**: compiler, bison, flex, and libgpgme, libdevmapper, btrfs headers.
-* `go get -d https://github.com/erikh/box && cd $GOPATH/src/github.com/erikh/box`
+* `go get -d github.com/erikh/box && cd $GOPATH/src/github.com/erikh/box`
 * To build on the host (create a dev environment):
   * `make`
 * To build a docker image for your dev environment (needed for test and release builds):
