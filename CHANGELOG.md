@@ -1,3 +1,28 @@
+### v0.5.0
+
+The biggest change in this release is the soft-removal of OS X support. The
+`portable` installation should work for most users; it is simply a script which
+calls docker for you.
+
+The requirement was made because of a switch to an exciting new architecture.
+This architecture brings in the https://github.com/containers/image and
+https://github.com/containers/storage platforms and allows us to incorporate
+OCI image support (along with numerous other features!) and will be the future
+of box moving forward.
+
+We want to support OS X and some efforts around this are in progress, so
+hopefully in a few versions we can bring a real binary back to OS X.
+
+Aside, 0.5.0 contains these changes:
+
+* Numerous fixes and improvements to formatting of output
+* `save` function to tag and save images to a file (including OCI images)
+* `label` verb to apply labels to images
+* Symlinks are no longer hard-scoped to be under the WD. Copies to containers
+  will now respect target paths more appropriately.
+* Compiled with golang 1.7.5 for security and bug fixes.
+* Many minor refactors and improvements.
+
 ### v0.4.2
 
 * Improve the performance of all copy operations

@@ -4,6 +4,7 @@ after { tag "erikh/box:master" }
 DOCKER_VERSION = "1.13.1"
 GOLANG_VERSION = "1.7.5"
 LVM2_VERSION = "2.02.103"
+GPGME_VERSION = "1.8.0"
 
 PACKAGES = %w[
   libgpg-error-dev
@@ -31,7 +32,7 @@ skip do
   run "apt-get update #{qq}"
   run "apt-get install -y #{qq} #{PACKAGES.join(" ")}"
 
-	run "mkdir -p /usr/local/gpgme && curl -sSL https://www.gnupg.org/ftp/gcrypt/gpgme/gpgme-1.8.0.tar.bz2 | tar -xjC /usr/local/gpgme --strip-components=1"
+	run "mkdir -p /usr/local/gpgme && curl -sSL https://www.gnupg.org/ftp/gcrypt/gpgme/gpgme-#{GPGME_VERSION}.tar.bz2 | tar -xjC /usr/local/gpgme --strip-components=1"
 	run "cd /usr/local/gpgme && ./configure --enable-static && PREFIX=/usr make install"
 
 	# shamelessly taken from docker
