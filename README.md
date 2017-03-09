@@ -21,11 +21,15 @@ before, writing a box build plan is easy.
   * Ruby block methods for `user` (`with_user`) and `workdir` (`inside`) allow
     you to scope `copy` and `run` operations for a more obvious build plan.
 
-* **[Download Releases](https://github.com/erikh/box/releases/)**
 * **[Extended Documentation for Syntax and Usage](https://erikh.github.io/box/)**
+
+## Install
+
+* Easy install: `curl -sSL https://raw.githubusercontent.com/erikh/box/master/install.sh | sh`
+* **[Download Releases](https://github.com/erikh/box/releases/)**
 * **[Homebrew Tap](https://github.com/erikh/homebrew-box)**
 
-## Using the Homebrew Tap
+### Using the Homebrew Tap
 
 ```bash
 brew tap erikh/box && brew install erikh/box/box
@@ -57,7 +61,6 @@ end
 
 tag "mypackages"
 ```
-
 ## Video
 
 Here's a video of the shell in action (click for more):
@@ -65,6 +68,7 @@ Here's a video of the shell in action (click for more):
 *Available in v0.3 and up*
 
 [![Box REPL](https://asciinema.org/a/c1n0h0g73f10x4cuzjf1i51vg.png)](https://asciinema.org/a/c1n0h0g73f10x4cuzjf1i51vg)
+
 
 ## Advanced Use
 
