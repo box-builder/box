@@ -7,6 +7,24 @@ import (
 	mruby "github.com/mitchellh/go-mruby"
 )
 
+func extractStringOrArray(m *mruby.Mrb, args []*mruby.MrbValue) ([]*mruby.MrbValue, mruby.Value) {
+	if len(args) == 1 && args[0].Type() == mruby.TypeArray {
+		var values []*mruby.MrbValue
+		ary := args[0].Array()
+		for i := 0; i < ary.Len(); i++ {
+			val, err := ary.Get(i)
+			if err != nil {
+				return nil, createException(m, err.Error())
+			}
+			values = append(values, val)
+		}
+
+		return values, nil
+	}
+
+	return args, nil
+}
+
 func createException(m *mruby.Mrb, msg string) mruby.Value {
 	val, err := m.Class("Exception", nil).New(mruby.String(msg))
 	if err != nil {

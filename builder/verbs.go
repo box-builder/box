@@ -243,7 +243,15 @@ func entrypoint(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mr
 		return nil, createException(m, err.Error())
 	}
 
-	stringArgs := extractStringArgs(args)
+	values, err := extractStringOrArray(m, args)
+	if err != nil {
+		return nil, err // err here is a mruby.Value
+	}
+
+	stringArgs := extractStringArgs(values)
+	if len(stringArgs) == 0 {
+		stringArgs = nil
+	}
 
 	b.exec.Config().Entrypoint.Image = stringArgs
 
@@ -457,7 +465,15 @@ func cmd(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		return nil, createException(m, err.Error())
 	}
 
-	stringArgs := extractStringArgs(args)
+	values, err := extractStringOrArray(m, args)
+	if err != nil {
+		return nil, err
+	}
+
+	stringArgs := extractStringArgs(values)
+	if len(stringArgs) == 0 {
+		stringArgs = nil
+	}
 
 	b.exec.Config().Cmd.Image = stringArgs
 
