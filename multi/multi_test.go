@@ -35,7 +35,7 @@ var SuccessPlans = map[int]string{
 	2: `
 	from "alpine"
 	entrypoint "/bin/sh"
-	tag "successs2"
+	tag "success2"
 	`,
 	3: `
 	from "alpine"
