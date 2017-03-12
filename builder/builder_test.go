@@ -584,6 +584,45 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	c.Assert(inspect.Config.Entrypoint, IsNil)
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
 	b.Close()
+
+	b, err = runBuilder(`
+    from "debian"
+		entrypoint []
+		cmd []
+  `)
+	c.Assert(err, IsNil)
+
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
+	c.Assert(err, IsNil)
+
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/sh"})
+	c.Assert(inspect.Config.Entrypoint, IsNil)
+	b.Close()
+
+	b, err = runBuilder(`
+    from "debian"
+		entrypoint []
+		cmd ["/bin/bash"]
+  `)
+	c.Assert(err, IsNil)
+
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
+	c.Assert(inspect.Config.Entrypoint, IsNil)
+	b.Close()
+
+	b, err = runBuilder(`
+    from "debian"
+		entrypoint %w[/bin/echo -e]
+		cmd %w[foo bar quux baz]
+  `)
+	c.Assert(err, IsNil)
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/echo", "-e"})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"foo", "bar", "quux", "baz"})
+	b.Close()
 }
 
 func (bs *builderSuite) TestRun(c *C) {

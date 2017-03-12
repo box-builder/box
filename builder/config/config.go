@@ -70,7 +70,7 @@ func (c *Config) ToDocker(temporary, tty, stdin bool) *container.Config {
 		user = c.User.Image
 	}
 
-	if len(cmd) == 0 && len(entrypoint) == 0 {
+	if cmd == nil && entrypoint == nil {
 		cmd = []string{"/bin/sh"}
 	}
 
