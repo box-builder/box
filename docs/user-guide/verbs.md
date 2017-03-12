@@ -181,8 +181,11 @@ Example:
 
 ```ruby
 from "debian"
-entrypoint "/bin/echo" # all `docker run` commands will be preceded by this
-cmd "foo"              # this will equate to `/bin/echo foo`
+# if you pass nil or an empty array, it will clear any inherited cmd from the debian image.
+entrypoint []
+entrypoint %w[/bin/echo -e] # arrays also work
+entrypoint "/bin/echo"      # all `docker run` commands will be preceded by this
+cmd "foo"                   # this will equate to `/bin/echo foo`
 ```
 
 ## from
@@ -361,8 +364,11 @@ Example:
 
 ```ruby
 from "debian"
-# entrypoint is `/bin/sh -c` by default, so we will just run whatever command
-# is thrown at us. This image will run `ls` in the workdir by default.
+# if you pass nil or an empty array, it will clear any inherited cmd from the debian image.
+cmd nil
+# You can also use arrays.
+cmd %w[ls -la]
+# This image will run `ls` in the workdir by default.
 cmd "ls"
 ```
 
