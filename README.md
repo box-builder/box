@@ -25,7 +25,7 @@ before, writing a box build plan is easy.
 
 ## Install
 
-* Easy install: `curl -sSL https://raw.githubusercontent.com/erikh/box/master/install.sh | sh`
+* Easy install: `curl -sSL box-builder.sh | sudo bash`
 * **[Download Releases](https://github.com/erikh/box/releases/)**
 * **[Homebrew Tap](https://github.com/erikh/homebrew-box)**
 
