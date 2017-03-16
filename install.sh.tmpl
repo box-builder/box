@@ -12,7 +12,7 @@ else
   fi
 fi
 
-do_install() {
+do_install() {
   echo "Installing version v${version}"
   curl -sSL "https://github.com/erikh/box/releases/download/v${version}/box-${version}.${arch}.gz" | gunzip -c > /tmp/box 
   chmod ugo+x /tmp/box 
