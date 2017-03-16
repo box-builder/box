@@ -1,3 +1,7 @@
+### v0.5.1
+
+* `entrypoint` and `cmd` now handle nils and arrays of strings appropriately.
+
 ### v0.5.0
 
 The biggest change in this release is the soft-removal of OS X support. The
