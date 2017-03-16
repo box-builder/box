@@ -6,7 +6,7 @@ if [ "$(uname -s)" = "Linux" ]; then
   arch="linux"
 else
   arch="portable"
-  if ! [ -f `which docker` ]; then
+  if [ ! -f `which docker` ]; then
     echo "On non-linux platforms, box runs in a docker container. Ensure the docker command is in your PATH and try installing again."   
     exit 1;
   fi
