@@ -23,6 +23,8 @@ Some features that differentiate it from `docker build`:
 
 ### Installation
 
+Quick Install: `curl -sSL box-builder.sh | sudo bash`
+
 Just `gunzip` the downloaded file and put it in your path:
 
 ```bash
