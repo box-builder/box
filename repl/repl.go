@@ -9,6 +9,7 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/erikh/box/builder"
+	"github.com/erikh/box/logger"
 	"github.com/erikh/box/signal"
 	mruby "github.com/mitchellh/go-mruby"
 )
@@ -26,7 +27,7 @@ type Repl struct {
 }
 
 // NewRepl constructs a new Repl.
-func NewRepl(omit []string) (*Repl, error) {
+func NewRepl(omit []string, log *logger.Logger) (*Repl, error) {
 	rl, err := readline.New(normalPrompt)
 	if err != nil {
 		return nil, err
@@ -42,6 +43,7 @@ func NewRepl(omit []string) (*Repl, error) {
 		Cache:     false,
 		Context:   ctx,
 		ShowRun:   true,
+		Logger:    log,
 	})
 
 	if err != nil {

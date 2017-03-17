@@ -27,7 +27,7 @@ func (b *Builder) Build() {
 
 // Wait waits for all builds to complete.
 func (b *Builder) Wait() error {
-	log := logger.New("multi")
+	log := logger.New("multi", false)
 
 	resChan := make(chan builder.BuildResult, len(b.builders))
 
