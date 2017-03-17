@@ -71,7 +71,7 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 	log := bc.Logger
 
 	if log == nil {
-		log = logger.New(bc.FileName)
+		log = logger.New(bc.FileName, true)
 	}
 
 	exec, err := NewExecutor(bc.Context, "docker", log, bc.ShowRun, bc.Cache, bc.TTY)

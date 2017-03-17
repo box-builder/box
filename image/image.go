@@ -75,7 +75,7 @@ func extractLayers(img *imageInfo, dir, file string) error {
 				return err
 			}
 
-			sum, err := bt.SumWithCopy(out, tr, logger.New(layerID[:12]), fmt.Sprintf("Unpacking Layer ID %s", layerID[:12]))
+			sum, err := bt.SumWithCopy(out, tr, logger.New(layerID[:12], false), fmt.Sprintf("Unpacking Layer ID %s", layerID[:12]))
 			if err != nil {
 				return err
 			}
