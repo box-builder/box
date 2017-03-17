@@ -122,7 +122,7 @@ func mkBuilders(plans map[int]string) []*builder.Builder {
 	builders := []*builder.Builder{}
 
 	for i := range plans {
-		l := logger.New("")
+		l := logger.New("", false)
 		l.Record()
 
 		b, err := builder.NewBuilder(builder.BuildConfig{
