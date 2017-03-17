@@ -20,7 +20,7 @@ import (
 
 type tarSuite struct{}
 
-var log = logger.New("")
+var log = logger.New("", false)
 
 var _ = Suite(&tarSuite{})
 

@@ -71,6 +71,10 @@ func main() {
 			Name:  "omit, o",
 			Usage: "Omit functions/verbs. One per option, repeatable.",
 		},
+		cli.BoolFlag{
+			Name:  "no-trim",
+			Usage: "Do not trim the output to terminal width.",
+		},
 	}
 
 	app.Commands = []cli.Command{
@@ -97,9 +101,10 @@ func main() {
 		},
 	}
 
-	log := logger.New("main")
-
 	app.Action = func(ctx *cli.Context) {
+		notrim := ctx.Bool("no-trim")
+		log := logger.New("main", notrim)
+
 		if ctx.Bool("help") {
 			cli.ShowAppHelp(ctx)
 			os.Exit(0)
@@ -107,15 +112,13 @@ func main() {
 
 		args := ctx.Args()
 
-		log := logger.New("main")
-
 		if len(args) < 1 {
 			cli.ShowAppHelp(ctx)
 			log.Error("Please provide a filename to process!")
 			os.Exit(1)
 		}
 
-		log = logger.New(args[0])
+		log = logger.New(args[0], notrim)
 
 		tty := !ctx.Bool("no-tty")
 
@@ -133,6 +136,7 @@ func main() {
 			Context:   cancelCtx,
 			Runner:    runChan,
 			FileName:  args[0],
+			Logger:    logger.New(args[0], notrim),
 		}
 
 		b, err := mkBuilder(cancel, buildConfig)
@@ -173,16 +177,16 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Error(err)
+		logger.New("main", false).Error(err)
 		os.Exit(1)
 	}
 }
 
 func runMulti(ctx *cli.Context) {
 	copy.NoOut = true
-
+	notrim := ctx.Bool("no-trim")
 	builders := []*builder.Builder{}
-	log := logger.New("main")
+	log := logger.New("main", notrim)
 
 	args := ctx.Args()
 	if len(args) < 1 {
@@ -202,6 +206,7 @@ func runMulti(ctx *cli.Context) {
 			Context:   cancelCtx,
 			Runner:    runChan,
 			FileName:  filename,
+			Logger:    logger.New(filename, notrim),
 		}
 		signal.Handler.AddFunc(cancel)
 		signal.Handler.AddRunner(runChan)
@@ -232,8 +237,8 @@ func getCache(ctx *cli.Context) bool {
 }
 
 func runRepl(ctx *cli.Context) {
-	log := logger.New("repl")
-	r, err := repl.NewRepl(ctx.GlobalStringSlice("omit"))
+	log := logger.New("repl", ctx.Bool("no-trim"))
+	r, err := repl.NewRepl(ctx.GlobalStringSlice("omit"), log)
 	if err != nil {
 		log.Error(fmt.Sprintf("bootstrapping repl: %v\n", err))
 		os.Exit(1)

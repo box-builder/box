@@ -64,7 +64,7 @@ func (ds *dockerSuite) TearDownSuite(c *C) {
 func (ds *dockerSuite) TestLookup(c *C) {
 	imageName := "alpine"
 
-	d, err := NewDocker(context.Background(), ds.tty, logger.New(""))
+	d, err := NewDocker(context.Background(), ds.tty, logger.New("", false))
 	c.Assert(err, IsNil)
 
 	// XXX ok if this call fails
@@ -86,7 +86,7 @@ func (ds *dockerSuite) TestLookup(c *C) {
 func (ds *dockerSuite) TestMakeImage(c *C) {
 	imageName := "postgres"
 
-	d, err := NewDocker(context.Background(), ds.tty, logger.New(""))
+	d, err := NewDocker(context.Background(), ds.tty, logger.New("", false))
 	c.Assert(err, IsNil)
 
 	_, err = d.Fetch(ds.config, imageName)
@@ -174,7 +174,7 @@ func (ds *dockerSuite) TestMakeImage(c *C) {
 }
 
 func (ds *dockerSuite) TestFetch(c *C) {
-	d, err := NewDocker(context.Background(), ds.tty, logger.New(""))
+	d, err := NewDocker(context.Background(), ds.tty, logger.New("", false))
 	c.Assert(err, IsNil)
 
 	id, err := d.Fetch(ds.config, "debian:latest")
