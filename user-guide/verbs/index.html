@@ -312,8 +312,11 @@ tag &quot;erikh/true&quot; # tag the latest image as &quot;erikh/true&quot;
 used for run invocations.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
-entrypoint &quot;/bin/echo&quot; # all `docker run` commands will be preceded by this
-cmd &quot;foo&quot;              # this will equate to `/bin/echo foo`
+# if you pass nil or an empty array, it will clear any inherited cmd from the debian image.
+entrypoint []
+entrypoint %w[/bin/echo -e] # arrays also work
+entrypoint &quot;/bin/echo&quot;      # all `docker run` commands will be preceded by this
+cmd &quot;foo&quot;                   # this will equate to `/bin/echo foo`
 </code></pre>
 
 <h2 id="from">from</h2>
@@ -450,8 +453,11 @@ which are the arguments that follow the entrypoint (and are overridden when
 you provide a command to <code>docker run</code>). It does not affect run invocations.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
-# entrypoint is `/bin/sh -c` by default, so we will just run whatever command
-# is thrown at us. This image will run `ls` in the workdir by default.
+# if you pass nil or an empty array, it will clear any inherited cmd from the debian image.
+cmd nil
+# You can also use arrays.
+cmd %w[ls -la]
+# This image will run `ls` in the workdir by default.
 cmd &quot;ls&quot;
 </code></pre>
 
