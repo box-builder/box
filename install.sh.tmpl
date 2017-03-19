@@ -16,7 +16,12 @@ do_install() {
   echo "Installing version v${version}"
   curl -sSL "https://github.com/erikh/box/releases/download/v${version}/box-${version}.${arch}.gz" | gunzip -c > /tmp/box 
   chmod ugo+x /tmp/box 
-  sudo mv /tmp/box /usr/bin/box
+  sudo="sudo"
+  if [ `id -u` -eq 0 ]
+  then
+    sudo=""
+  fi
+  $sudo mv /tmp/box /usr/bin/box
 
   echo "box v${version} is now installed to /usr/bin/box" 
 }
