@@ -16,14 +16,24 @@ do_install() {
   echo "Installing version v${version}"
   curl -sSL "https://github.com/erikh/box/releases/download/v${version}/box-${version}.${arch}.gz" | gunzip -c > /tmp/box 
   chmod ugo+x /tmp/box 
+
   sudo="sudo"
-  if [ `id -u` -eq 0 ]
+  target="/usr/local/bin"
+
+  if [ -z "$(which sudo)" -a `id -u` -ne 0 ]
+  then
+    echo "Cannot find sudo and not UID 0; installing to home directory..."
+    sudo=""
+    target=${HOME}/bin
+  elif [ `id -u` -eq 0 ]
   then
     sudo=""
   fi
-  $sudo mv /tmp/box /usr/bin/box
 
-  echo "box v${version} is now installed to /usr/bin/box" 
+  mkdir -p $target
+  ${sudo} mv /tmp/box $target
+
+  echo "box v${version} is now installed to ${target}/box"
 }
 
 do_install
