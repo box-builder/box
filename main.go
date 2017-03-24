@@ -33,7 +33,10 @@ var (
 	// Copyright is the copyright, generated automatically for each year.
 	Copyright = fmt.Sprintf("(C) %d %s - Licensed under MIT license", time.Now().Year(), Author)
 	// UsageText is the description of how to use the program.
-	UsageText = "box [options] filename"
+	UsageText = "box [options] <filename>"
+
+	// ArgsUsage is being hijacked for a note about the default file
+	ArgsUsage = "the default filename is box.rb"
 )
 
 func main() {
@@ -46,6 +49,7 @@ func main() {
 	app.Author = Author
 	app.Copyright = Copyright
 	app.UsageText = UsageText
+	app.ArgsUsage = ArgsUsage
 	app.HideHelp = true
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
@@ -111,13 +115,7 @@ func main() {
 			os.Exit(0)
 		}
 
-		args := ctx.Args()
-
-		if len(args) < 1 {
-			cli.ShowAppHelp(ctx)
-			log.Error("Please provide a filename to process!")
-			os.Exit(1)
-		}
+		filename := detectFile(ctx)
 
 		tty := !ctx.Bool("no-tty")
 
@@ -137,7 +135,7 @@ func main() {
 				Context:   cancelCtx,
 			},
 			Runner:   runChan,
-			FileName: args[0],
+			FileName: filename,
 		}
 
 		b, err := mkBuilder(cancel, buildConfig)
@@ -190,11 +188,6 @@ func runMulti(ctx *cli.Context) {
 	log := logger.New("main", notrim)
 
 	args := ctx.Args()
-	if len(args) < 1 {
-		cli.ShowAppHelp(ctx)
-		log.Error("Please provide a filename to process!")
-		os.Exit(1)
-	}
 
 	for _, filename := range args {
 		cancelCtx, cancel := context.WithCancel(context.Background())
@@ -262,4 +255,16 @@ func mkBuilder(cancel context.CancelFunc, buildConfig builder.BuildConfig) (*bui
 	signal.Handler.AddFunc(cancel)
 	signal.Handler.AddRunner(buildConfig.Runner)
 	return b, nil
+}
+
+func detectFile(c *cli.Context) string {
+	a := c.Args()
+	if len(a) < 1 {
+		if _, err := os.Stat("box.rb"); os.IsNotExist(err) {
+			cli.ShowAppHelp(c)
+			os.Exit(0)
+		}
+		return "box.rb"
+	}
+	return a[0]
 }
