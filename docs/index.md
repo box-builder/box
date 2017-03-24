@@ -52,8 +52,10 @@ Exploit this! Use functions! Set variables and constants!
 run this plan with:
 
 ```shell
-GOLANG_VERSION=1.7.5 box <plan file>
+GOLANG_VERSION=1.7.5 box [plan file]
 ```
+
+If a plan name is not specified it will default to `box.rb`.
 
 ```ruby
 from "ubuntu"
