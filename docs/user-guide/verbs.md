@@ -56,7 +56,7 @@ Example:
 from "debian"
 copy ".", "/test"
 debug # verify all files landed in test like you expected them to
-run "chown -R erikh:erikh /test" # this will run after you close the shell
+run "chown -R box-builder:box-builder /test" # this will run after you close the shell
 ```
 
 ## after
@@ -156,7 +156,7 @@ from "debian"
 run "true"
 copy ".", "/test"
 flatten # image is shrunk to one layer here
-tag "erikh/test"
+tag "box-builder/test"
 ```
 
 ## tag
@@ -169,7 +169,7 @@ Example:
 ```ruby
 from "debian"
 run "true" # create a layer
-tag "erikh/true" # tag the latest image as "erikh/true"
+tag "box-builder/true" # tag the latest image as "box-builder/true"
 ```
 
 ## entrypoint
@@ -270,12 +270,12 @@ with_user "nobody" do # just the commands inside this block will run as `nobody`
 end
 
 # notice how we are still root
-run "useradd -s /bin/sh -m -d /home/erikh erikh"
+run "useradd -s /bin/sh -m -d /home/box-builder box-builder"
 
-# all commands from here on will run as `erikh`, overridden only by `with_user`
+# all commands from here on will run as `box-builder`, overridden only by `with_user`
 # and other `user` calls.
-user "erikh"
-run "echo foo >/tmp/erikh-file"
+user "box-builder"
+run "echo foo >/tmp/box-builder-file"
 
 # set the workdir temporarily for the commands within the block.
 # this will create /tmp/another-file-in-tmp.

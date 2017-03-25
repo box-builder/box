@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/erikh/box/builder/config"
-	"github.com/erikh/box/layers"
+	"github.com/box-builder/box/builder/config"
+	"github.com/box-builder/box/layers"
 )
 
 // Hook is a hook used in commit calls

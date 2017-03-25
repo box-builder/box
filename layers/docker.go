@@ -8,16 +8,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/box-builder/box/builder/config"
+	"github.com/box-builder/box/fetcher"
+	"github.com/box-builder/box/image"
+	"github.com/box-builder/box/logger"
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/daemon"
 	"github.com/containers/image/signature"
 	ctypes "github.com/containers/image/types"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/client"
-	"github.com/erikh/box/builder/config"
-	"github.com/erikh/box/fetcher"
-	"github.com/erikh/box/image"
-	"github.com/erikh/box/logger"
 )
 
 const megaByte = 1024 * 1024

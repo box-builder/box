@@ -11,7 +11,7 @@ import (
 	"strings"
 	. "testing"
 
-	"github.com/erikh/box/logger"
+	"github.com/box-builder/box/logger"
 
 	"golang.org/x/sys/unix"
 

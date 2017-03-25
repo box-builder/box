@@ -125,8 +125,8 @@ Example:
 
 ```ruby
 from "debian"
-run "useradd -m -d /home/erikh -s /bin/sh erikh"
-run "id #{getuid("erikh")}"
+run "useradd -m -d /home/box-builder -s /bin/sh box-builder"
+run "id #{getuid("box-builder")}"
 ```
 
 ## getgid

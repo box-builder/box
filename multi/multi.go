@@ -3,8 +3,8 @@ package multi
 import (
 	"fmt"
 
-	"github.com/erikh/box/builder"
-	"github.com/erikh/box/logger"
+	"github.com/box-builder/box/builder"
+	"github.com/box-builder/box/logger"
 )
 
 // Builder is the entrypoint to the multi-build system. It contains several

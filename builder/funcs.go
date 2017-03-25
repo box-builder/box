@@ -5,7 +5,7 @@ package builder
   commit a layer or otherwise directly influence the build. They are intended to
   be used as gathering functions for predicates and templating.
 
-  Please refer to https://erikh.github.io/box/functions/ for documentation on
+  Please refer to https://box-builder.github.io/box/functions/ for documentation on
   how each function operates.
 */
 

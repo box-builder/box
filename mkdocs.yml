@@ -1,6 +1,6 @@
 site_name: Box
 theme: slate
-repo_url: https://github.com/erikh/box
+repo_url: https://github.com/box-builder/box
 pages:
   - "Intro": "index.md"
   - "Build Plans": "build-plans.md"

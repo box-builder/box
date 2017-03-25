@@ -2,7 +2,7 @@
 
 [![Build Status](http://jenkins.hollensbe.org:8080/job/box-master/badge/icon)](http://jenkins.hollensbe.org:8080/job/box-master/)
 [![Join the chat at https://gitter.im/box-builder/Lobby](https://badges.gitter.im/box-builder/Lobby.svg)](https://gitter.im/box-builder/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Go Report Card](https://goreportcard.com/badge/github.com/erikh/box)](https://goreportcard.com/report/github.com/erikh/box)
+[![Go Report Card](https://goreportcard.com/badge/github.com/box-builder/box)](https://goreportcard.com/report/github.com/box-builder/box)
 
 Box is a builder for docker that gives you the power of mruby, a limited,
 embeddable ruby. It allows for notions of conditionals, loops, and data
@@ -21,18 +21,18 @@ before, writing a box build plan is easy.
   * Ruby block methods for `user` (`with_user`) and `workdir` (`inside`) allow
     you to scope `copy` and `run` operations for a more obvious build plan.
 
-* **[Extended Documentation for Syntax and Usage](https://erikh.github.io/box/)**
+* **[Extended Documentation for Syntax and Usage](https://box-builder.github.io/box/)**
 
 ## Install
 
 * Easy install: `curl -sSL box-builder.sh | sudo bash`
-* **[Download Releases](https://github.com/erikh/box/releases/)**
-* **[Homebrew Tap](https://github.com/erikh/homebrew-box)**
+* **[Download Releases](https://github.com/box-builder/box/releases/)**
+* **[Homebrew Tap](https://github.com/box-builder/homebrew-box)**
 
 ### Using the Homebrew Tap
 
 ```bash
-brew tap erikh/box && brew install erikh/box/box
+brew tap box-builder/box && brew install box-builder/box/box
 ```
 
 ## Example
@@ -53,9 +53,9 @@ packages = "build-essential g++ git wget curl ruby bison flex"
 run "apt-get update"
 run "apt-get install -y #{packages}"
 
-run %q[useradd -m -d /home/erikh -s /bin/bash erikh]
+run %q[useradd -m -d /home/box-builder -s /bin/bash box-builder]
 
-inside "/home/erikh" do
+inside "/home/box-builder" do
   copy((getenv("MYDIR") || "."), ".")
 end
 
@@ -72,16 +72,16 @@ Here's a video of the shell in action (click for more):
 
 ## Advanced Use
 
-The [documentation](https://erikh.github.io/box/) is the best resource for
+The [documentation](https://box-builder.github.io/box/) is the best resource for
 learning the different verbs and functions. However, check out
-[our own build plan for box](https://github.com/erikh/box/blob/master/build.rb)
+[our own build plan for box](https://github.com/box-builder/box/blob/master/build.rb)
 for an example of how to use different predicates, functions, and verbs to
 get everything you need out of it.
 
 ## Development Instructions
 
 * **Requires**: compiler, bison, flex, and libgpgme, libdevmapper, btrfs headers.
-* `go get -d github.com/erikh/box && cd $GOPATH/src/github.com/erikh/box`
+* `go get -d github.com/box-builder/box && cd $GOPATH/src/github.com/box-builder/box`
 * To build on the host (create a dev environment):
   * `make`
 * To build a docker image for your dev environment (needed for test and release builds):

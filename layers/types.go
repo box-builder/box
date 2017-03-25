@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/erikh/box/builder/config"
-	"github.com/erikh/box/logger"
+	"github.com/box-builder/box/builder/config"
+	"github.com/box-builder/box/logger"
 )
 
 // Image needs a description

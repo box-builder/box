@@ -14,7 +14,7 @@ fi
 
 do_install() {
   echo "Installing version v${version}"
-  curl -sSL "https://github.com/erikh/box/releases/download/v${version}/box-${version}.${arch}.gz" | gunzip -c > /tmp/box 
+  curl -sSL "https://github.com/box-builder/box/releases/download/v${version}/box-${version}.${arch}.gz" | gunzip -c > /tmp/box 
 
   sudo="sudo"
   target="/usr/local/bin"

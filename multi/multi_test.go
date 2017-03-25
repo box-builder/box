@@ -10,10 +10,10 @@ import (
 	"strings"
 	. "testing"
 
+	"github.com/box-builder/box/builder"
+	"github.com/box-builder/box/logger"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
-	"github.com/erikh/box/builder"
-	"github.com/erikh/box/logger"
 
 	. "gopkg.in/check.v1"
 )

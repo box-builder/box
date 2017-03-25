@@ -12,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/box-builder/box/copy"
+	"github.com/box-builder/box/image"
+	"github.com/box-builder/box/tar"
 	ccopy "github.com/containers/image/copy"
 	"github.com/containers/image/docker/daemon"
 	"github.com/containers/image/oci/layout"
@@ -19,9 +22,6 @@ import (
 	ctypes "github.com/containers/image/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"github.com/erikh/box/copy"
-	"github.com/erikh/box/image"
-	"github.com/erikh/box/tar"
 )
 
 // DockerImage is the Image interface applied to docker.

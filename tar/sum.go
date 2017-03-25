@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"io"
 
-	"github.com/erikh/box/copy"
-	"github.com/erikh/box/logger"
+	"github.com/box-builder/box/copy"
+	"github.com/box-builder/box/logger"
 )
 
 // SumReader sums an io.Reader

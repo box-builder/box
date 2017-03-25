@@ -10,10 +10,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/erikh/box/builder/executor"
-	"github.com/erikh/box/builder/executor/docker"
-	"github.com/erikh/box/copy"
-	"github.com/erikh/box/logger"
+	"github.com/box-builder/box/builder/executor"
+	"github.com/box-builder/box/builder/executor/docker"
+	"github.com/box-builder/box/copy"
+	"github.com/box-builder/box/logger"
 	"github.com/fatih/color"
 	mruby "github.com/mitchellh/go-mruby"
 )

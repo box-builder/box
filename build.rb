@@ -1,6 +1,6 @@
 from "debian"
 
-after { tag "erikh/box:master" }
+after { tag "box-builder/box:master" }
 DOCKER_VERSION = "1.13.1"
 GOLANG_VERSION = "1.7.5"
 LVM2_VERSION = "2.02.103"
@@ -63,10 +63,10 @@ skip do
   run "pip -q install mkdocs mkdocs-bootswatch"
 
   env "PATH" => "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/usr/local/go/bin:/go/bin", "GOPATH" => "/go"
-  copy ".", "/go/src/github.com/erikh/box"
-  run "cd /go/src/github.com/erikh/box && VERSION=#{getenv("VERSION")} make clean install-static"
+  copy ".", "/go/src/github.com/box-builder/box"
+  run "cd /go/src/github.com/box-builder/box && VERSION=#{getenv("VERSION")} make clean install-static"
 
-  workdir "/go/src/github.com/erikh/box"
+  workdir "/go/src/github.com/box-builder/box"
   set_exec entrypoint: ["/dind"], cmd: %w[make docker-test]
   tag "box-test"
 end

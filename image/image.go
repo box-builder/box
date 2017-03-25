@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/erikh/box/builder/config"
-	"github.com/erikh/box/copy"
-	"github.com/erikh/box/logger"
-	"github.com/erikh/box/signal"
-	bt "github.com/erikh/box/tar"
+	"github.com/box-builder/box/builder/config"
+	"github.com/box-builder/box/copy"
+	"github.com/box-builder/box/logger"
+	"github.com/box-builder/box/signal"
+	bt "github.com/box-builder/box/tar"
 )
 
 // Layer is the metadata surrounding an image layer.
