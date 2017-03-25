@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/erikh/box/logger"
+	"github.com/box-builder/box/logger"
 
 	. "gopkg.in/check.v1"
 )

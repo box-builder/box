@@ -20,7 +20,7 @@ docs:
 	mkdocs gh-deploy --clean
 
 bootstrap:
-	docker run --rm -i -w ${PWD} -v /var/run/docker.sock:/var/run/docker.sock -v ${PWD}:${PWD} erikh/box:latest /dev/stdin < build.rb
+	docker run --rm -i -w ${PWD} -v /var/run/docker.sock:/var/run/docker.sock -v ${PWD}:${PWD} box-builder/box:latest /dev/stdin < build.rb
 
 bootstrap-test: bootstrap run-test
 
@@ -44,9 +44,9 @@ test-ci: checks build-ci run-test-ci
 test: checks all build run-test
 
 release: clean all test
-	VERSION=${VERSION} RELEASE=1 go run main.go -n -t erikh/box:${VERSION} build.rb
+	VERSION=${VERSION} RELEASE=1 go run main.go -n -t box-builder/box:${VERSION} build.rb
 	docker rm -f box-build-${VERSION} || :
-	docker run --name box-build-${VERSION} --entrypoint /bin/bash erikh/box:${VERSION} -c 'exit 0'
+	docker run --name box-build-${VERSION} --entrypoint /bin/bash box-builder/box:${VERSION} -c 'exit 0'
 	docker cp box-build-${VERSION}:/box .
 	docker rm box-build-${VERSION}
 	sh release/release.sh ${VERSION}

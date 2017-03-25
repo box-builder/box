@@ -11,12 +11,12 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/box-builder/box/builder/config"
+	"github.com/box-builder/box/image"
+	"github.com/box-builder/box/logger"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/term"
-	"github.com/erikh/box/builder/config"
-	"github.com/erikh/box/image"
-	"github.com/erikh/box/logger"
 )
 
 var dockerClient *client.Client

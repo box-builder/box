@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/box-builder/box/builder"
+	"github.com/box-builder/box/logger"
+	"github.com/box-builder/box/signal"
 	"github.com/chzyer/readline"
-	"github.com/erikh/box/builder"
-	"github.com/erikh/box/logger"
-	"github.com/erikh/box/signal"
 	mruby "github.com/mitchellh/go-mruby"
 )
 

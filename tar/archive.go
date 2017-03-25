@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/box-builder/box/copy"
+	"github.com/box-builder/box/logger"
+	"github.com/box-builder/box/signal"
 	"github.com/docker/docker/pkg/archive"
-	"github.com/erikh/box/copy"
-	"github.com/erikh/box/logger"
-	"github.com/erikh/box/signal"
 )
 
 // rewriteTar rewrites the tar's paths to copy the source to the target.

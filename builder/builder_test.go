@@ -1199,14 +1199,14 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 
 	_, err = runBuilder(`
 		from "debian"
-		workdir "/home/erikh"
+		workdir "/home/box-builder"
 		copy ".", "box/"
 	`)
 	c.Assert(err, IsNil)
 
 	_, err = runBuilder(`
 		from "debian"
-		workdir "/home/erikh"
+		workdir "/home/box-builder"
 		copy ".", "box"
 	`)
 	c.Assert(err, IsNil)
@@ -1219,9 +1219,9 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 
 	_, err = runBuilder(`
 		from "debian"
-		workdir "/home/erikh"
+		workdir "/home/box-builder"
 		copy ".", "box"
-		run "stat /home/erikh/box/test", output: false
+		run "stat /home/box-builder/box/test", output: false
 	`)
 	c.Assert(err, IsNil)
 
@@ -1229,15 +1229,15 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 
 	_, err = runBuilder(`
 		from "debian"
-		workdir "/home/erikh"
+		workdir "/home/box-builder"
 		copy "builder.go", "/builder.go"
 	`)
 	c.Assert(err, IsNil)
 
 	_, err = runBuilder(`
 		from "debian"
-		copy ".", "/go/src/github.com/erikh/box/builder/"
-		run "ls /go/src/github.com/erikh/box/builder/"
+		copy ".", "/go/src/github.com/box-builder/box/builder/"
+		run "ls /go/src/github.com/box-builder/box/builder/"
 	`)
 	c.Assert(err, IsNil)
 }

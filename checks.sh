@@ -2,7 +2,7 @@
 
 set -e
 
-package="github.com/erikh/box"
+package="github.com/box-builder/box"
 
 dirs=$(go list ./... | sed -e "s!${package}!.!g" | grep -v ./vendor)
 files=$(find . -type f -name '*.go' | grep -v ./vendor)

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-exec docker run -it -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:$PWD -w $PWD erikh/box:@@VERSION@@ $*
+exec docker run -it -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:$PWD -w $PWD box-builder/box:@@VERSION@@ $*

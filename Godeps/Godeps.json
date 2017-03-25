@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/erikh/box",
+	"ImportPath": "github.com/box-builder/box",
 	"GoVersion": "go1.8",
 	"GodepVersion": "v79",
 	"Packages": [

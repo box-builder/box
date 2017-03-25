@@ -8,13 +8,13 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/box-builder/box/builder/config"
+	"github.com/box-builder/box/builder/executor"
+	"github.com/box-builder/box/layers"
+	"github.com/box-builder/box/logger"
+	"github.com/box-builder/box/util"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
-	"github.com/erikh/box/builder/config"
-	"github.com/erikh/box/builder/executor"
-	"github.com/erikh/box/layers"
-	"github.com/erikh/box/logger"
-	"github.com/erikh/box/util"
 )
 
 // Docker implements an executor that talks to docker to achieve its goals.

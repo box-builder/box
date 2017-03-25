@@ -3,7 +3,7 @@ package builder
 /*
   verbs.go is a collection of the verbs used to manipulate docker images and tags.
 
-  Please refer to https://erikh.github.io/box/verbs/ for documentation on each
+  Please refer to https://box-builder.github.io/box/verbs/ for documentation on each
   of the verbs.
 */
 
@@ -16,8 +16,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/erikh/box/copy"
-	"github.com/erikh/box/signal"
+	"github.com/box-builder/box/copy"
+	"github.com/box-builder/box/signal"
 	mruby "github.com/mitchellh/go-mruby"
 )
 

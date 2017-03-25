@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/erikh/box/tar"
-	"github.com/erikh/box/util"
+	"github.com/box-builder/box/tar"
+	"github.com/box-builder/box/util"
 	mruby "github.com/mitchellh/go-mruby"
 )
 

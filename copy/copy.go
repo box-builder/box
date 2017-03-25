@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/box-builder/box/logger"
 	"github.com/docker/docker/pkg/term"
-	"github.com/erikh/box/logger"
 	"github.com/fatih/color"
 )
 

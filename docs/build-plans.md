@@ -61,7 +61,7 @@ from :ubuntu
 skip do
   run "apt-get update"
   run "apt-get install curl -y"
-  run "curl -sSL -O https://github.com/erikh/box/releases/download/v0.4.2/box_0.4.2_amd64.deb"
+  run "curl -sSL -O https://github.com/box-builder/box/releases/download/v0.4.2/box_0.4.2_amd64.deb"
   tag :downloaded
 end
 
