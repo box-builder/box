@@ -12,8 +12,8 @@ import (
 
 	"github.com/box-builder/box/builder"
 	"github.com/box-builder/box/logger"
-	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 
 	. "gopkg.in/check.v1"
 )
@@ -150,7 +150,7 @@ func (ms *multiSuite) TestBuilderBasic(c *C) {
 	images, err := dockerClient.ImageList(context.Background(), types.ImageListOptions{})
 	c.Assert(err, IsNil)
 
-	filtered := []types.Image{}
+	filtered := []types.ImageSummary{}
 
 	for _, img := range images {
 		if len(img.RepoTags) != 0 {
@@ -160,7 +160,7 @@ func (ms *multiSuite) TestBuilderBasic(c *C) {
 		}
 	}
 
-	defer func(filtered []types.Image) {
+	defer func(filtered []types.ImageSummary) {
 		for _, img := range filtered {
 			_, err := dockerClient.ImageRemove(context.Background(), img.ID, types.ImageRemoveOptions{Force: true})
 			c.Assert(err, IsNil)
@@ -175,7 +175,7 @@ func (ms *multiSuite) TestBuilderBasic(c *C) {
 	images, err = dockerClient.ImageList(context.Background(), types.ImageListOptions{})
 	c.Assert(err, IsNil)
 
-	filtered = []types.Image{}
+	filtered = []types.ImageSummary{}
 
 	for _, img := range images {
 		if len(img.RepoTags) != 0 {
@@ -185,7 +185,7 @@ func (ms *multiSuite) TestBuilderBasic(c *C) {
 		}
 	}
 
-	defer func(filtered []types.Image) {
+	defer func(filtered []types.ImageSummary) {
 		for _, img := range filtered {
 			_, err := dockerClient.ImageRemove(context.Background(), img.ID, types.ImageRemoveOptions{Force: true})
 			c.Assert(err, IsNil)
