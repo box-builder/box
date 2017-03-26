@@ -72,7 +72,7 @@ func runContainerCommand(c *C, b *Builder, cmd []string) []byte {
 
 	status, err := dockerClient.ContainerWait(context.Background(), id)
 	c.Assert(err, IsNil)
-	c.Assert(status, Equals, 0, Commentf("%v", result))
+	c.Assert(status, Equals, int64(0), Commentf("%v", result))
 
 	return result
 }
