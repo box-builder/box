@@ -3,6 +3,10 @@ BUILD_TAGS := "btrfs_noversion libdm_no_deferred_remove"
 
 all: checks install
 
+vndr:
+	go get -u github.com/LK4D4/vndr
+	vndr --whitelist go-mruby
+
 fetch:
 	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell pwd)/mruby_config.rb make
 
