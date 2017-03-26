@@ -9,9 +9,9 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/term"
-	"github.com/docker/engine-api/types"
 )
 
 func runBuilder(script string) (*Builder, error) {
@@ -72,7 +72,7 @@ func runContainerCommand(c *C, b *Builder, cmd []string) []byte {
 
 	status, err := dockerClient.ContainerWait(context.Background(), id)
 	c.Assert(err, IsNil)
-	c.Assert(status, Equals, 0, Commentf("%v", result))
+	c.Assert(status, Equals, int64(0), Commentf("%v", result))
 
 	return result
 }
