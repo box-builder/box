@@ -138,7 +138,7 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 		}
 	}
 
-	fn, cacheKey, err := tar.Archive(b.config.Context, rel, target, ignoreList, b.Logger)
+	fn, cacheKey, err := tar.Archive(b.config.Context, rel, target, ignoreList, b.config.Globals.Logger)
 	if err != nil {
 		return nil, createException(m, err.Error())
 	}
@@ -146,15 +146,13 @@ func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, s
 
 	cacheKey = fmt.Sprintf("box:copy %s", cacheKey)
 
-	if b.exec.Image().GetCache() {
-		cached, err := b.exec.Image().CheckCache(cacheKey)
-		if err != nil {
-			return nil, createException(m, err.Error())
-		}
+	cached, err := b.exec.Image().CheckCache(cacheKey)
+	if err != nil {
+		return nil, createException(m, err.Error())
+	}
 
-		if cached {
-			return nil, nil
-		}
+	if cached {
+		return nil, nil
 	}
 
 	f, err := os.Open(fn)

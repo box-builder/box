@@ -87,7 +87,7 @@ func (d *DockerImage) ociSave(filename, tag string) error {
 				fmt.Println()
 			}
 
-			d.imageConfig.Logger.Progress(strings.SplitN(digest, ":", 2)[1][:12], float64(prog.Offset/megaByte))
+			d.imageConfig.Globals.Logger.Progress(strings.SplitN(digest, ":", 2)[1][:12], float64(prog.Offset/megaByte))
 			last = digest
 		}
 
@@ -104,7 +104,7 @@ func (d *DockerImage) ociSave(filename, tag string) error {
 		return err
 	}
 
-	file, _, err := tar.Archive(d.context, tmpdir, "", nil, d.imageConfig.Logger)
+	file, _, err := tar.Archive(d.context, tmpdir, "", nil, d.imageConfig.Globals.Logger)
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (d *DockerImage) ociSave(filename, tag string) error {
 	}
 	defer w.Close()
 
-	return copy.WithProgress(w, r, d.imageConfig.Logger, fmt.Sprintf("Saving %q", filename))
+	return copy.WithProgress(w, r, d.imageConfig.Globals.Logger, fmt.Sprintf("Saving %q", filename))
 }
 
 func (d *DockerImage) dockerSave(f io.WriteCloser, filename, tag string) error {
@@ -131,7 +131,7 @@ func (d *DockerImage) dockerSave(f io.WriteCloser, filename, tag string) error {
 		return err
 	}
 
-	return copy.WithProgress(f, r, d.imageConfig.Logger, fmt.Sprintf("Saving %q to disk", filename))
+	return copy.WithProgress(f, r, d.imageConfig.Globals.Logger, fmt.Sprintf("Saving %q to disk", filename))
 }
 
 // Save saves an image to the provided filename.
@@ -173,7 +173,7 @@ func (d *DockerImage) Save(filename, kind, tag string) error {
 // Flatten copies a tarred up series of files (passed in through the
 // io.Reader handle) to the image where they are untarred.
 func (d *DockerImage) Flatten(id string, size int64, tw io.Reader) error {
-	imgName, err := image.Flatten(d.imageConfig.Config, id, size, tw, d.imageConfig.Logger)
+	imgName, err := image.Flatten(d.imageConfig.Config, id, size, tw, d.imageConfig.Globals.Logger)
 	if err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func (d *DockerImage) Flatten(id string, size int64, tw io.Reader) error {
 	r, w := io.Pipe()
 
 	go func() {
-		err := copy.WithProgress(w, out, d.imageConfig.Logger, "Loading image into docker")
+		err := copy.WithProgress(w, out, d.imageConfig.Globals.Logger, "Loading image into docker")
 		if err != nil {
 			w.CloseWithError(err)
 		} else {
@@ -241,7 +241,7 @@ func (d *DockerImage) Tag(tag string) error {
 // there was a match. If there was an error consulting the cache, it will be
 // returned as the second argument.
 func (d *DockerImage) CheckCache(cacheKey string) (bool, error) {
-	if !d.imageConfig.UseCache {
+	if !d.imageConfig.Globals.Cache {
 		return false, nil
 	}
 
@@ -258,7 +258,7 @@ func (d *DockerImage) CheckCache(cacheKey string) (bool, error) {
 			}
 
 			if inspect.Comment == cacheKey {
-				d.imageConfig.Logger.CacheHit(img.ID)
+				d.imageConfig.Globals.Logger.CacheHit(img.ID)
 				d.imageConfig.Config.FromDocker(inspect.Config)
 				d.imageConfig.Config.Image = img.ID
 				return true, d.imageConfig.Layers.AddImage(img.ID)
@@ -267,16 +267,6 @@ func (d *DockerImage) CheckCache(cacheKey string) (bool, error) {
 	}
 
 	return false, nil
-}
-
-// UseCache determines if the cache should be considered or not.
-func (d *DockerImage) UseCache(arg bool) {
-	d.imageConfig.UseCache = arg
-}
-
-// GetCache gets the current value of whether or not to use the cache
-func (d *DockerImage) GetCache() bool {
-	return d.imageConfig.UseCache
 }
 
 // ImageID returns the image identifier of the most recent layer.

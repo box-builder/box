@@ -13,6 +13,7 @@ import (
 	"github.com/box-builder/box/builder/executor"
 	"github.com/box-builder/box/builder/executor/docker"
 	"github.com/box-builder/box/copy"
+	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/logger"
 	"github.com/fatih/color"
 	mruby "github.com/mitchellh/go-mruby"
@@ -23,14 +24,10 @@ var pullMutex = new(sync.Mutex)
 
 // BuildConfig is a struct containing the configuration for the builder.
 type BuildConfig struct {
-	Cache     bool
-	TTY       bool // controls terminal codes
-	ShowRun   bool
-	OmitFuncs []string
-	Context   context.Context
-	Runner    chan struct{}
-	FileName  string
-	Logger    *logger.Logger
+	Globals  *global.Global
+	Context  context.Context
+	Runner   chan struct{}
+	FileName string
 }
 
 // BuildResult is an encapsulated tuple of *mruby.MrbValue and error used for
@@ -43,8 +40,6 @@ type BuildResult struct {
 
 // Builder implements the builder core.
 type Builder struct {
-	Logger *logger.Logger // public so its output can be tested
-
 	result    BuildResult
 	config    *BuildConfig
 	mrb       *mruby.Mrb
@@ -53,7 +48,7 @@ type Builder struct {
 }
 
 func (b *Builder) keep(name string) bool {
-	for _, fun := range b.config.OmitFuncs {
+	for _, fun := range b.config.Globals.OmitFuncs {
 		if name == fun {
 			return false
 		}
@@ -63,25 +58,25 @@ func (b *Builder) keep(name string) bool {
 
 // NewBuilder creates a new builder. Returns error on docker or mruby issues.
 func NewBuilder(bc BuildConfig) (*Builder, error) {
-	if !bc.TTY {
+	if bc.Globals == nil {
+		bc.Globals = &global.Global{}
+	}
+
+	if !bc.Globals.TTY {
 		color.NoColor = true
 		copy.NoTTY = true
 	}
 
-	log := bc.Logger
-
-	if log == nil {
-		log = logger.New(bc.FileName, true)
+	if bc.Globals.Logger == nil {
+		bc.Globals.Logger = logger.New(bc.FileName, true)
 	}
 
-	exec, err := NewExecutor(bc.Context, "docker", log, bc.ShowRun, bc.Cache, bc.TTY)
+	exec, err := NewExecutor(bc.Context, "docker", bc.Globals)
 	if err != nil {
 		return nil, err
 	}
 
 	builder := &Builder{
-		Logger: log,
-
 		config: &bc,
 		mrb:    mruby.NewMrb(),
 		exec:   exec,
@@ -134,7 +129,7 @@ func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
 		cacheKey := strings.Join(append([]string{name}, strArgs...), ", ")
 		cacheKey = base64.StdEncoding.EncodeToString([]byte(cacheKey))
 
-		b.Logger.BuildStep(name, strings.Join(strArgs, ", "))
+		b.config.Globals.Logger.BuildStep(name, strings.Join(strArgs, ", "))
 
 		if os.Getenv("BOX_DEBUG") != "" {
 			content, _ := json.MarshalIndent(b.exec.Config(), "", "  ")
@@ -153,6 +148,11 @@ func (b *Builder) wrapVerbFunc(name string, vd *verbDefinition) mruby.Func {
 
 		return nil, nil
 	}
+}
+
+// Config returns the BuildConfig associated with this builder
+func (b *Builder) Config() *BuildConfig {
+	return b.config
 }
 
 // AddVerb adds a function to the mruby dispatch as well as adding hooks around
@@ -283,10 +283,10 @@ func (b *Builder) Close() error {
 }
 
 // NewExecutor returns a valid executor for the given name, or error.
-func NewExecutor(ctx context.Context, name string, log *logger.Logger, showRun, useCache, tty bool) (executor.Executor, error) {
+func NewExecutor(ctx context.Context, name string, globals *global.Global) (executor.Executor, error) {
 	switch name {
 	case "docker":
-		return docker.NewDocker(ctx, log, showRun, useCache, tty)
+		return docker.NewDocker(ctx, globals)
 	}
 
 	return nil, fmt.Errorf("Executor %q not found", name)

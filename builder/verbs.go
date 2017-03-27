@@ -196,7 +196,7 @@ func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 	defer signal.Handler.RemoveFile(f.Name())
 
 	defer os.Remove(f.Name())
-	if err := copy.WithProgress(f, rc, b.Logger, "Downloading image contents to host"); err != nil && err != io.EOF {
+	if err := copy.WithProgress(f, rc, b.config.Globals.Logger, "Downloading image contents to host"); err != nil && err != io.EOF {
 		f.Close()
 		return nil, createException(m, err.Error())
 	}
@@ -213,7 +213,7 @@ func flatten(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, 
 		return nil, createException(m, err.Error())
 	}
 
-	fmt.Printf("%s%s\n", b.Logger.Plan(), b.Logger.Notice(fmt.Sprintf("Flattened Image: %s", strings.SplitN(b.exec.Config().Image, ":", 2)[1][:12])))
+	fmt.Printf("%s%s\n", b.config.Globals.Logger.Plan(), b.config.Globals.Logger.Notice(fmt.Sprintf("Flattened Image: %s", strings.SplitN(b.exec.Config().Image, ":", 2)[1][:12])))
 	return nil, nil
 }
 
@@ -233,7 +233,7 @@ func tag(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		return nil, createException(m, err.Error())
 	}
 
-	b.Logger.Tag(name)
+	b.config.Globals.Logger.Tag(name)
 
 	return nil, nil
 }
@@ -327,7 +327,7 @@ func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 		return nil, createException(m, "no command to run in run statement")
 	}
 
-	runState := b.exec.GetShowRun()
+	runState := b.config.Globals.ShowRun
 	output := runState
 
 	if output {
@@ -349,13 +349,13 @@ func run(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self
 	}
 
 	b.exec.Config().TemporaryCommand([]string{"/bin/sh", "-c"}, []string{args[0].String()})
-	b.exec.ShowRun(output)
+	b.config.Globals.ShowRun = output
 
 	if err := b.exec.Commit(cacheKey, b.exec.RunHook); err != nil {
 		return nil, createException(m, err.Error())
 	}
 
-	b.exec.ShowRun(runState)
+	b.config.Globals.ShowRun = runState
 
 	return nil, nil
 }

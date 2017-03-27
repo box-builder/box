@@ -8,6 +8,7 @@ import (
 	"strings"
 	. "testing"
 
+	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/logger"
 	bt "github.com/box-builder/box/tar"
 	"github.com/docker/docker/api/types"
@@ -59,7 +60,11 @@ func (ds *dockerSuite) TearDownSuite(c *C) {
 }
 
 func (ds *dockerSuite) TestCreate(c *C) {
-	d, err := NewDocker(context.Background(), logger.New("", false), true, false, ds.tty)
+	d, err := NewDocker(context.Background(), &global.Global{
+		Logger:  logger.New("", false),
+		ShowRun: true,
+		TTY:     ds.tty,
+	})
 	c.Assert(err, IsNil)
 
 	id, err := d.Create()
@@ -71,13 +76,17 @@ func (ds *dockerSuite) TestCreate(c *C) {
 }
 
 func (ds *dockerSuite) TestCopy(c *C) {
-	d, err := NewDocker(context.Background(), logger.New("", false), true, true, ds.tty)
+	d, err := NewDocker(context.Background(), &global.Global{
+		Logger:  logger.New("", false),
+		ShowRun: true,
+		TTY:     ds.tty,
+	})
 	c.Assert(err, IsNil)
 
 	_, err = d.Layers().Fetch(d.config, "debian:latest")
 	c.Assert(err, IsNil)
 
-	file, _, err := bt.Archive(context.Background(), ".", ".", []string{}, d.logger)
+	file, _, err := bt.Archive(context.Background(), ".", ".", []string{}, d.globals.Logger)
 	c.Assert(err, IsNil)
 
 	f, err := os.Open(file)
@@ -119,7 +128,12 @@ func (ds *dockerSuite) TestCopy(c *C) {
 func (ds *dockerSuite) TestCommitCache(c *C) {
 	ds.clearDockerPrefix(c, "asdf")
 
-	d, err := NewDocker(context.Background(), logger.New("", false), true, true, ds.tty)
+	d, err := NewDocker(context.Background(), &global.Global{
+		Logger:  logger.New("", false),
+		ShowRun: true,
+		Cache:   true,
+		TTY:     ds.tty,
+	})
 	c.Assert(err, IsNil)
 	c.Assert(d.Image().ImageID(), Equals, "")
 	ok, err := d.Image().CheckCache("asdf")
@@ -133,7 +147,12 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 
-	d, err = NewDocker(context.Background(), logger.New("", false), true, true, ds.tty)
+	d, err = NewDocker(context.Background(), &global.Global{
+		Logger:  logger.New("", false),
+		ShowRun: true,
+		Cache:   true,
+		TTY:     ds.tty,
+	})
 	c.Assert(err, IsNil)
 
 	ok, err = d.Image().CheckCache("asdf")
@@ -147,7 +166,12 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 	c.Assert(d.Commit("asdf3", nil), IsNil)
 	c.Assert(d.Image().ImageID(), Not(Equals), "")
 
-	d, err = NewDocker(context.Background(), logger.New("", false), true, true, ds.tty)
+	d, err = NewDocker(context.Background(), &global.Global{
+		Logger:  logger.New("", false),
+		ShowRun: true,
+		Cache:   true,
+		TTY:     ds.tty,
+	})
 	c.Assert(err, IsNil)
 
 	ok, err = d.Image().CheckCache("asdf")
@@ -161,7 +185,12 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 }
 
 func (ds *dockerSuite) clearDockerPrefix(c *C, prefix string) {
-	d, err := NewDocker(context.Background(), logger.New("", false), true, true, ds.tty)
+	d, err := NewDocker(context.Background(), &global.Global{
+		Logger:  logger.New("", false),
+		ShowRun: true,
+		Cache:   true,
+		TTY:     ds.tty,
+	})
 	c.Assert(err, IsNil)
 	c.Assert(d.Image().ImageID(), Equals, "")
 	// clear out any stale images
@@ -188,25 +217,4 @@ func (ds *dockerSuite) clearDockerPrefix(c *C, prefix string) {
 			}
 		}
 	}
-}
-
-func (ds *dockerSuite) TestParameters(c *C) {
-	d, err := NewDocker(context.Background(), logger.New("", false), true, false, false)
-	c.Assert(err, IsNil)
-	c.Assert(d.tty, Equals, false)
-	c.Assert(d.Image().GetCache(), Equals, false)
-
-	d, err = NewDocker(context.Background(), logger.New("", false), true, true, true)
-	c.Assert(err, IsNil)
-	c.Assert(d.tty, Equals, true)
-	c.Assert(d.Image().GetCache(), Equals, true)
-
-	d, err = NewDocker(context.Background(), logger.New("", false), true, false, false)
-	c.Assert(err, IsNil)
-	d.SetStdin(true)
-	c.Assert(d.stdin, Equals, true)
-	d.Image().UseCache(true)
-	c.Assert(d.Image().GetCache(), Equals, true)
-	c.Assert(d.Image().ImageID(), Equals, "")
-	c.Assert(d.Config(), NotNil)
 }

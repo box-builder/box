@@ -9,6 +9,7 @@ import (
 
 	"github.com/box-builder/box/builder"
 	"github.com/box-builder/box/copy"
+	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/logger"
 	"github.com/box-builder/box/multi"
 	"github.com/box-builder/box/repl"
@@ -127,14 +128,16 @@ func main() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		runChan := make(chan struct{})
 		buildConfig := builder.BuildConfig{
-			ShowRun:   true,
-			TTY:       tty,
-			OmitFuncs: ctx.GlobalStringSlice("omit"),
-			Cache:     getCache(ctx),
-			Context:   cancelCtx,
-			Runner:    runChan,
-			FileName:  args[0],
-			Logger:    logger.New(args[0], notrim),
+			Globals: &global.Global{
+				ShowRun:   true,
+				TTY:       tty,
+				OmitFuncs: ctx.GlobalStringSlice("omit"),
+				Cache:     getCache(ctx),
+				Logger:    logger.New(args[0], notrim),
+			},
+			Context:  cancelCtx,
+			Runner:   runChan,
+			FileName: args[0],
 		}
 
 		b, err := mkBuilder(cancel, buildConfig)
@@ -197,14 +200,16 @@ func runMulti(ctx *cli.Context) {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		runChan := make(chan struct{})
 		buildConfig := builder.BuildConfig{
-			ShowRun:   false,
-			TTY:       true,
-			OmitFuncs: append(ctx.StringSlice("omit"), "debug"),
-			Cache:     getCache(ctx),
-			Context:   cancelCtx,
-			Runner:    runChan,
-			FileName:  filename,
-			Logger:    logger.New(filename, notrim),
+			Globals: &global.Global{
+				ShowRun:   false,
+				TTY:       true,
+				OmitFuncs: append(ctx.StringSlice("omit"), "debug"),
+				Cache:     getCache(ctx),
+				Logger:    logger.New(filename, notrim),
+			},
+			Context:  cancelCtx,
+			Runner:   runChan,
+			FileName: filename,
 		}
 		signal.Handler.AddFunc(cancel)
 		signal.Handler.AddRunner(runChan)

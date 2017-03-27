@@ -30,12 +30,12 @@ func (d *Docker) handleRunError(ctx context.Context, id string, errChan chan err
 	select {
 	case <-ctx.Done():
 		if ctx.Err() != nil {
-			d.logger.Error(ctx.Err())
+			d.globals.Logger.Error(ctx.Err())
 		}
 		d.Destroy(id)
 	case err, ok := <-errChan:
 		if ok {
-			d.logger.Error(err)
+			d.globals.Logger.Error(err)
 			d.Destroy(id)
 		}
 	}
@@ -106,16 +106,16 @@ func (d *Docker) startAndWait(ctx context.Context, id string, reader io.Reader, 
 
 	var writer io.Writer = os.Stdout
 
-	if !d.stdin && d.showRun {
-		d.logger.BeginOutput()
-		defer d.logger.EndOutput()
+	if !d.stdin && d.globals.ShowRun {
+		d.globals.Logger.BeginOutput()
+		defer d.globals.Logger.EndOutput()
 	}
 
-	if !d.showRun {
+	if !d.globals.ShowRun {
 		writer = bytes.NewBuffer([]byte{})
 	}
 
-	if !d.tty {
+	if !d.globals.TTY {
 		go func() {
 			// docker mux's the streams, and requires this stdcopy library to unpack them.
 			_, err = stdcopy.StdCopy(writer, writer, reader)

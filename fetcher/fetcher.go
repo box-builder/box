@@ -7,14 +7,14 @@ import (
 	"io/ioutil"
 
 	"github.com/box-builder/box/builder/config"
-	"github.com/box-builder/box/logger"
+	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/pull"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
 
 // Docker does stuff
-func Docker(context context.Context, logger *logger.Logger, client *client.Client, tty bool, config *config.Config, name string) (string, []string, error) {
+func Docker(context context.Context, globals *global.Global, client *client.Client, config *config.Config, name string) (string, []string, error) {
 	inspect, _, err := client.ImageInspectWithRaw(context, name)
 	if err != nil {
 		reader, err := client.ImagePull(context, name, types.ImagePullOptions{})
@@ -22,16 +22,16 @@ func Docker(context context.Context, logger *logger.Logger, client *client.Clien
 			return "", nil, err
 		}
 
-		if !tty {
-			logger.Print(fmt.Sprintf("Pulling %q... ", name))
+		if !globals.TTY {
+			globals.Logger.Print(fmt.Sprintf("Pulling %q... ", name))
 
 			if _, err := io.Copy(ioutil.Discard, reader); err != io.EOF && err != nil {
 				return "", nil, err
 			}
 
-			fmt.Fprintln(logger.Output(), "done.")
+			fmt.Fprintln(globals.Logger.Output(), "done.")
 		} else {
-			pull.NewProgress(tty, reader).Process()
+			pull.NewProgress(globals.TTY, reader).Process()
 		}
 
 		select {

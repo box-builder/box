@@ -11,6 +11,7 @@ import (
 	. "testing"
 
 	"github.com/box-builder/box/builder"
+	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/logger"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -126,11 +127,13 @@ func mkBuilders(plans map[int]string) []*builder.Builder {
 		l.Record()
 
 		b, err := builder.NewBuilder(builder.BuildConfig{
+			Globals: &global.Global{
+				Logger: l,
+				Cache:  os.Getenv("NO_CACHE") == "",
+			},
 			Context:  context.Background(),
 			Runner:   make(chan struct{}),
-			Cache:    os.Getenv("NO_CACHE") == "",
 			FileName: mkPlanDir(dir, i),
-			Logger:   l,
 		})
 
 		if err != nil {
@@ -214,7 +217,7 @@ func (ms *multiSuite) TestMultiFrom(c *C) {
 	var found bool
 
 	for _, b := range mb.builders {
-		if strings.Contains(b.Logger.Output().(*bytes.Buffer).String(), fmt.Sprintf("Pulling %q", imageName)) {
+		if strings.Contains(b.Config().Globals.Logger.Output().(*bytes.Buffer).String(), fmt.Sprintf("Pulling %q", imageName)) {
 			if found {
 				c.Fatal("Found two pulls")
 			}

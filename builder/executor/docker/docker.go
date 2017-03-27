@@ -10,8 +10,8 @@ import (
 
 	"github.com/box-builder/box/builder/config"
 	"github.com/box-builder/box/builder/executor"
+	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/layers"
-	"github.com/box-builder/box/logger"
 	"github.com/box-builder/box/util"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -19,20 +19,18 @@ import (
 
 // Docker implements an executor that talks to docker to achieve its goals.
 type Docker struct {
-	showRun bool
+	globals *global.Global
 	client  *client.Client
 	config  *config.Config
-	tty     bool
 	stdin   bool
 	layers  layers.Layers
 	image   layers.Image
 	context context.Context
-	logger  *logger.Logger
 }
 
 // NewDocker constructs a new docker instance, for executing against docker
 // engines.
-func NewDocker(ctx context.Context, log *logger.Logger, showRun, useCache, tty bool) (*Docker, error) {
+func NewDocker(ctx context.Context, globals *global.Global) (*Docker, error) {
 	client, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
@@ -40,31 +38,34 @@ func NewDocker(ctx context.Context, log *logger.Logger, showRun, useCache, tty b
 
 	config := config.NewConfig()
 
-	l, err := layers.NewDocker(ctx, tty, log)
+	l, err := layers.NewDocker(ctx, globals)
 	if err != nil {
 		return nil, err
 	}
 
 	i, err := layers.NewDockerImage(ctx, &layers.ImageConfig{
-		Config:   config,
-		Layers:   l,
-		Logger:   log,
-		UseCache: useCache,
+		Config:  config,
+		Layers:  l,
+		Globals: globals,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &Docker{
-		showRun: showRun,
-		tty:     tty,
+		globals: globals,
 		client:  client,
 		config:  config,
 		context: ctx,
-		logger:  log,
 		layers:  l,
 		image:   i,
 	}, nil
+}
+
+// SetStdin turns on the stdin features during run invocations. It is used to
+// facilitate debugging.
+func (d *Docker) SetStdin(on bool) {
+	d.stdin = on
 }
 
 // Image returns the layers.Image interface for working with Docker
@@ -75,28 +76,6 @@ func (d *Docker) Image() layers.Image {
 // Layers returns the layers.Layers interface for working with Docker
 func (d *Docker) Layers() layers.Layers {
 	return d.layers
-}
-
-// ShowRun toggles the visibility of run output.
-func (d *Docker) ShowRun(ok bool) {
-	d.showRun = ok
-}
-
-// GetShowRun returns the visibility of run output.
-func (d *Docker) GetShowRun() bool {
-	return d.showRun
-}
-
-// SetStdin turns on the stdin features during run invocations. It is used to
-// facilitate debugging.
-func (d *Docker) SetStdin(on bool) {
-	d.stdin = on
-}
-
-// UseTTY determines whether or not to allow docker to use a TTY for both run
-// and pull operations.
-func (d *Docker) UseTTY(arg bool) {
-	d.tty = arg
 }
 
 // SetContext sets the context for subsequent calls.
@@ -154,7 +133,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 		return err
 	}
 
-	commitResp, err := d.client.ContainerCommit(d.context, id, types.ContainerCommitOptions{Config: d.config.ToDocker(false, d.tty, d.stdin), Comment: cacheKey})
+	commitResp, err := d.client.ContainerCommit(d.context, id, types.ContainerCommitOptions{Config: d.config.ToDocker(false, d.globals.TTY, d.stdin), Comment: cacheKey})
 	if err != nil {
 		return fmt.Errorf("Error during commit: %v", err)
 	}
@@ -215,7 +194,7 @@ func (d *Docker) CopyOneFileFromContainer(fn string) ([]byte, error) {
 func (d *Docker) Create() (string, error) {
 	cont, err := d.client.ContainerCreate(
 		d.context,
-		d.config.ToDocker(true, d.tty, d.stdin),
+		d.config.ToDocker(true, d.globals.TTY, d.stdin),
 		nil,
 		nil,
 		"",
