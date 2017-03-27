@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/box-builder/box/builder/config"
-	"github.com/box-builder/box/logger"
+	"github.com/box-builder/box/global"
 )
 
 // Image needs a description
@@ -23,12 +23,6 @@ type Image interface {
 
 	// CheckCache consults the cache to see if there are any items which fit it.
 	CheckCache(string) (bool, error)
-
-	// UseCache determines if the cache should be considered or not.
-	UseCache(bool)
-
-	// GetCache gets the current value of whether or not to use the cache
-	GetCache() bool
 
 	// ImageID returns the image identifier of the most recent layer.
 	ImageID() string
@@ -68,8 +62,7 @@ type Layers interface {
 
 // ImageConfig sets the properties used to construct an
 type ImageConfig struct {
-	Layers   Layers
-	UseCache bool
-	Config   *config.Config
-	Logger   *logger.Logger
+	Layers  Layers
+	Config  *config.Config
+	Globals *global.Global
 }

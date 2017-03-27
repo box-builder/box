@@ -51,15 +51,6 @@ type Executor interface {
 	// facilitate debugging.
 	SetStdin(bool)
 
-	// UseTTY determines whether or not to allow docker to use a TTY for both run and pull operations.
-	UseTTY(bool)
-
-	// ShowRun toggles the visibility of run output.
-	ShowRun(bool)
-
-	// GetShowRun returns the visibility of run output.
-	GetShowRun() bool
-
 	// Layers returns the layer handler for this executor.
 	Layers() layers.Layers
 

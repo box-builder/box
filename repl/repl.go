@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/box-builder/box/builder"
+	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/logger"
 	"github.com/box-builder/box/signal"
 	"github.com/chzyer/readline"
@@ -38,12 +39,14 @@ func NewRepl(omit []string, log *logger.Logger) (*Repl, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	b, err := builder.NewBuilder(builder.BuildConfig{
-		OmitFuncs: omit,
-		TTY:       true,
-		Cache:     false,
-		Context:   ctx,
-		ShowRun:   true,
-		Logger:    log,
+		Globals: &global.Global{
+			OmitFuncs: omit,
+			TTY:       true,
+			Cache:     false,
+			ShowRun:   true,
+			Logger:    log,
+		},
+		Context: ctx,
 	})
 
 	if err != nil {

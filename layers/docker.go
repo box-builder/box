@@ -10,8 +10,8 @@ import (
 
 	"github.com/box-builder/box/builder/config"
 	"github.com/box-builder/box/fetcher"
+	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/image"
-	"github.com/box-builder/box/logger"
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/daemon"
 	"github.com/containers/image/signature"
@@ -25,18 +25,17 @@ const megaByte = 1024 * 1024
 // Docker needs a documetnation
 type Docker struct {
 	context      context.Context
-	tty          bool
 	doSkipLayers bool
 	skipLayers   []string
 	layers       []string
 	images       []string
 	client       *client.Client
 	layerSet     map[string]struct{}
-	logger       *logger.Logger
+	globals      *global.Global
 }
 
 // NewDocker needs a documetnation
-func NewDocker(ctx context.Context, tty bool, logger *logger.Logger) (*Docker, error) {
+func NewDocker(ctx context.Context, globals *global.Global) (*Docker, error) {
 	client, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
@@ -44,8 +43,7 @@ func NewDocker(ctx context.Context, tty bool, logger *logger.Logger) (*Docker, e
 	return &Docker{
 		client:     client,
 		context:    ctx,
-		tty:        tty,
-		logger:     logger,
+		globals:    globals,
 		layerSet:   map[string]struct{}{},
 		images:     []string{},
 		skipLayers: []string{},
@@ -144,22 +142,22 @@ func (d *Docker) calculateCommits(layers []*image.Layer) []*image.Layer {
 func (d *Docker) consumeEdits(progressChan chan ctypes.ProgressProperties) {
 	var last string
 	for prog := range progressChan {
-		if d.tty {
+		if d.globals.TTY {
 			digest := prog.Artifact.Digest.String()
 
 			if digest == last {
-				fmt.Fprint(d.logger.Output(), "\r")
+				fmt.Fprint(d.globals.Logger.Output(), "\r")
 			} else if last != "" {
-				fmt.Fprintln(d.logger.Output())
+				fmt.Fprintln(d.globals.Logger.Output())
 			}
 
-			d.logger.Progress(strings.SplitN(digest, ":", 2)[1][:12], float64(prog.Offset/megaByte))
+			d.globals.Logger.Progress(strings.SplitN(digest, ":", 2)[1][:12], float64(prog.Offset/megaByte))
 			last = digest
 		}
 	}
 
-	if d.tty {
-		fmt.Fprintln(d.logger.Output())
+	if d.globals.TTY {
+		fmt.Fprintln(d.globals.Logger.Output())
 	}
 }
 
@@ -197,10 +195,10 @@ func (d *Docker) makeImage(from string) (string, error) {
 
 	go d.consumeEdits(progressChan)
 
-	if d.tty {
-		d.logger.Print(d.logger.Notice("Editing image\n"))
+	if d.globals.TTY {
+		d.globals.Logger.Print(d.globals.Logger.Notice("Editing image\n"))
 	} else {
-		d.logger.Print(d.logger.Notice("Editing image..."))
+		d.globals.Logger.Print(d.globals.Logger.Notice("Editing image..."))
 	}
 
 	img2, err := copy.Image(pc, tgt, ref, &copy.Options{
@@ -223,8 +221,8 @@ func (d *Docker) makeImage(from string) (string, error) {
 		return "", err
 	}
 
-	if !d.tty {
-		fmt.Fprintln(d.logger.Output(), "done.")
+	if !d.globals.TTY {
+		fmt.Fprintln(d.globals.Logger.Output(), "done.")
 	}
 
 	return img2.ConfigInfo().Digest.String(), nil
@@ -266,7 +264,7 @@ func (d *Docker) Lookup(name string) (string, error) {
 // Fetch retrieves a docker image, overwrites the container configuration, and
 // returns its id.
 func (d *Docker) Fetch(config *config.Config, name string) (string, error) {
-	location, layers, err := fetcher.Docker(d.context, d.logger, d.client, d.tty, config, name)
+	location, layers, err := fetcher.Docker(d.context, d.globals, d.client, config, name)
 	if err != nil {
 		return "", err
 	}
