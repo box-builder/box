@@ -8,8 +8,7 @@ These are the functions supported by Box.
 
 `save` saves an image with parameters:
 
-* `tag`: tag the image in the docker image store. This does not generate a
-  commit, like the `tag` verb does.
+* `tag`: tag the image in the docker image store.
 * `file`: save the image to a file. The resulting file will be a bare tarball
   with the image contents, suitable for `docker load`.
 * `type`: Two options: `docker`, and `oci`.

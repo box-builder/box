@@ -10,8 +10,8 @@ import (
 
 	"github.com/box-builder/box/builder/config"
 	"github.com/box-builder/box/fetcher"
-	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/image"
+	"github.com/box-builder/box/types"
 	"github.com/containers/image/copy"
 	"github.com/containers/image/docker/daemon"
 	"github.com/containers/image/signature"
@@ -24,25 +24,23 @@ const megaByte = 1024 * 1024
 
 // Docker needs a documetnation
 type Docker struct {
-	context      context.Context
 	doSkipLayers bool
 	skipLayers   []string
 	layers       []string
 	images       []string
 	client       *client.Client
 	layerSet     map[string]struct{}
-	globals      *global.Global
+	globals      *types.Global
 }
 
 // NewDocker needs a documetnation
-func NewDocker(ctx context.Context, globals *global.Global) (*Docker, error) {
+func NewDocker(globals *types.Global) (*Docker, error) {
 	client, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
 	}
 	return &Docker{
 		client:     client,
-		context:    ctx,
 		globals:    globals,
 		layerSet:   map[string]struct{}{},
 		images:     []string{},
@@ -51,17 +49,12 @@ func NewDocker(ctx context.Context, globals *global.Global) (*Docker, error) {
 	}, nil
 }
 
-// SetContext sets the context for subsequent calls.
-func (d *Docker) SetContext(ctx context.Context) {
-	d.context = ctx
-}
-
 // AddImage adds layers to the layer list from a provided image, in order of
 // appearance. Any existing layers are skipped over, removing them from the list.
 func (d *Docker) AddImage(image string) error {
 	d.images = append(d.images, image)
 
-	resp, _, err := d.client.ImageInspectWithRaw(d.context, image)
+	resp, _, err := d.client.ImageInspectWithRaw(d.globals.Context, image)
 	if err != nil {
 		return err
 	}
@@ -253,7 +246,7 @@ func (d *Docker) MakeImage(config *config.Config) (string, error) {
 
 // Lookup an image by name, returning the id.
 func (d *Docker) Lookup(name string) (string, error) {
-	img, _, err := d.client.ImageInspectWithRaw(d.context, name)
+	img, _, err := d.client.ImageInspectWithRaw(d.globals.Context, name)
 	if err != nil {
 		return "", err
 	}
@@ -264,7 +257,7 @@ func (d *Docker) Lookup(name string) (string, error) {
 // Fetch retrieves a docker image, overwrites the container configuration, and
 // returns its id.
 func (d *Docker) Fetch(config *config.Config, name string) (string, error) {
-	location, layers, err := fetcher.Docker(d.context, d.globals, d.client, config, name)
+	location, layers, err := fetcher.Docker(d.globals.Context, d.globals, d.client, config, name)
 	if err != nil {
 		return "", err
 	}

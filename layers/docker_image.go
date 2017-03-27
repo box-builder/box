@@ -28,11 +28,10 @@ import (
 type DockerImage struct {
 	imageConfig *ImageConfig
 	client      *client.Client
-	context     context.Context
 }
 
-// NewDockerImage constructs a new DockerImage
-func NewDockerImage(context context.Context, imageConfig *ImageConfig) (*DockerImage, error) {
+// NewDockerImage contypes a new DockerImage
+func NewDockerImage(imageConfig *ImageConfig) (*DockerImage, error) {
 	client, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
@@ -41,13 +40,7 @@ func NewDockerImage(context context.Context, imageConfig *ImageConfig) (*DockerI
 	return &DockerImage{
 		imageConfig: imageConfig,
 		client:      client,
-		context:     context,
 	}, nil
-}
-
-// SetContext sets the current context for execution
-func (d *DockerImage) SetContext(ctx context.Context) {
-	d.context = ctx
 }
 
 func (d *DockerImage) ociSave(filename, tag string) error {
@@ -104,7 +97,7 @@ func (d *DockerImage) ociSave(filename, tag string) error {
 		return err
 	}
 
-	file, _, err := tar.Archive(d.context, tmpdir, "", nil, d.imageConfig.Globals.Logger)
+	file, _, err := tar.Archive(d.imageConfig.Globals.Context, tmpdir, "", nil, d.imageConfig.Globals.Logger)
 	if err != nil {
 		return err
 	}
@@ -126,7 +119,7 @@ func (d *DockerImage) ociSave(filename, tag string) error {
 }
 
 func (d *DockerImage) dockerSave(f io.WriteCloser, filename, tag string) error {
-	r, err := d.client.ImageSave(d.context, []string{d.imageConfig.Config.Image, tag})
+	r, err := d.client.ImageSave(d.imageConfig.Globals.Context, []string{d.imageConfig.Config.Image, tag})
 	if err != nil {
 		return err
 	}
@@ -197,7 +190,7 @@ func (d *DockerImage) Flatten(id string, size int64, tw io.Reader) error {
 		}
 	}()
 
-	resp, err := d.client.ImageLoad(d.context, r, true)
+	resp, err := d.client.ImageLoad(d.imageConfig.Globals.Context, r, true)
 	if err != nil {
 		return err
 	}
@@ -234,7 +227,7 @@ func (d *DockerImage) Flatten(id string, size int64, tw io.Reader) error {
 
 // Tag an image with the provided string.
 func (d *DockerImage) Tag(tag string) error {
-	return d.client.ImageTag(d.context, d.imageConfig.Config.Image, tag)
+	return d.client.ImageTag(d.imageConfig.Globals.Context, d.imageConfig.Config.Image, tag)
 }
 
 // CheckCache consults the cache and returns true or false depending on whether

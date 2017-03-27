@@ -11,8 +11,9 @@ import (
 	. "testing"
 
 	"github.com/box-builder/box/builder"
-	"github.com/box-builder/box/global"
+	"github.com/box-builder/box/builder/command"
 	"github.com/box-builder/box/logger"
+	btypes "github.com/box-builder/box/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 
@@ -95,7 +96,7 @@ func (ms *multiSuite) SetUpSuite(c *C) {
 
 func (ms *multiSuite) SetUpTest(c *C) {
 	os.Setenv("NO_CACHE", "1")
-	builder.ResetPulls()
+	command.ResetPulls()
 }
 
 func mkPlanDir(dir string, i int) string {
@@ -127,11 +128,11 @@ func mkBuilders(plans map[int]string) []*builder.Builder {
 		l.Record()
 
 		b, err := builder.NewBuilder(builder.BuildConfig{
-			Globals: &global.Global{
-				Logger: l,
-				Cache:  os.Getenv("NO_CACHE") == "",
+			Globals: &btypes.Global{
+				Logger:  l,
+				Cache:   os.Getenv("NO_CACHE") == "",
+				Context: context.Background(),
 			},
-			Context:  context.Background(),
 			Runner:   make(chan struct{}),
 			FileName: mkPlanDir(dir, i),
 		})

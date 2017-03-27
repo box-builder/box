@@ -21,7 +21,7 @@ type Logger struct {
 	notrim bool
 }
 
-// New constructs a new per-plan logger.
+// New contypes a new per-plan logger.
 func New(plan string, notrim bool) *Logger {
 	return &Logger{plan: plan, output: os.Stdout, notrim: notrim}
 }

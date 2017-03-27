@@ -8,7 +8,7 @@ import (
 )
 
 // StringSliceState is a state tracker for two types of states: image-level and
-// temporary (run commands, etc) commands.
+// temporary (run command, etc) command.
 type StringSliceState struct {
 	Temporary []string
 	Image     []string
@@ -22,7 +22,7 @@ type StringState struct {
 
 // Config is a basic configuration of an image at each step. It is kept in sync
 // by commit routines in the executor. Setting properties here will propagate
-// them to various image-manipulating commands when needed.
+// them to various image-manipulating command when needed.
 type Config struct {
 	Image      string            // Image Identifier, may be different across executors.
 	User       StringState       // the currently configured user for this image.

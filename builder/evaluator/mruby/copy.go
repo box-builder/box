@@ -1,14 +1,13 @@
-package builder
+package mruby
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/box-builder/box/tar"
+	"github.com/box-builder/box/builder/config"
 	"github.com/box-builder/box/util"
 	mruby "github.com/mitchellh/go-mruby"
 )
@@ -59,11 +58,7 @@ func parseCopyArgs(args []*mruby.MrbValue) (string, string, []string, error) {
 	return source, target, ignoreList, nil
 }
 
-func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, []string, error) {
-	if err := checkImage(b); err != nil {
-		return "", "", nil, err
-	}
-
+func checkCopyArgs(workdir config.StringState, args []*mruby.MrbValue) (string, string, []string, error) {
 	source, target, ignoreList, err := parseCopyArgs(args)
 	if err != nil {
 		return "", "", nil, err
@@ -95,7 +90,6 @@ func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, []string
 		rel = source
 	}
 
-	workdir := b.exec.Config().WorkDir
 	var targetWd string
 
 	if workdir.Temporary == "" {
@@ -116,59 +110,10 @@ func checkCopyArgs(b *Builder, args []*mruby.MrbValue) (string, string, []string
 	return filepath.Clean(rel), target, ignoreList, nil
 }
 
-func doCopy(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-	rel, target, ignoreList, err := checkCopyArgs(b, args)
+func (m *MRuby) doCopy(args []*mruby.MrbValue, self *mruby.MrbValue) error {
+	source, target, ignores, err := checkCopyArgs(m.Exec.Config().WorkDir, args)
 	if err != nil {
-		return nil, createException(m, err.Error())
+		return err
 	}
-
-	list, err := util.ReadLines(".dockerignore")
-	if os.IsNotExist(err) {
-		list = []string{}
-	} else if err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	ignoreList = append(ignoreList, list...)
-
-	// XXX for if we ever add volume support back
-	for _, volume := range b.exec.Config().Volumes {
-		if strings.HasPrefix(target, volume) {
-			return nil, createException(m, fmt.Sprintf("Volume %q cannot be copied into (you tried %q). This is caused by a bug in docker. We are working with docker on a fix.", volume, target))
-		}
-	}
-
-	fn, cacheKey, err := tar.Archive(b.config.Context, rel, target, ignoreList, b.config.Globals.Logger)
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
-	defer os.Remove(fn)
-
-	cacheKey = fmt.Sprintf("box:copy %s", cacheKey)
-
-	cached, err := b.exec.Image().CheckCache(cacheKey)
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	if cached {
-		return nil, nil
-	}
-
-	f, err := os.Open(fn)
-	if err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	defer f.Close()
-
-	hook := func(ctx context.Context, id string) (string, error) {
-		return "", b.exec.CopyToContainer(id, f)
-	}
-
-	if err := b.exec.Commit(cacheKey, hook); err != nil {
-		return nil, createException(m, err.Error())
-	}
-
-	return nil, nil
+	return m.Interp.Copy(source, target, ignores)
 }

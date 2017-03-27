@@ -7,14 +7,14 @@ import (
 	"io/ioutil"
 
 	"github.com/box-builder/box/builder/config"
-	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/pull"
+	btypes "github.com/box-builder/box/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
 
 // Docker does stuff
-func Docker(context context.Context, globals *global.Global, client *client.Client, config *config.Config, name string) (string, []string, error) {
+func Docker(context context.Context, globals *btypes.Global, client *client.Client, config *config.Config, name string) (string, []string, error) {
 	inspect, _, err := client.ImageInspectWithRaw(context, name)
 	if err != nil {
 		reader, err := client.ImagePull(context, name, types.ImagePullOptions{})

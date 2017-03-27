@@ -9,7 +9,7 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/box-builder/box/global"
+	btypes "github.com/box-builder/box/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/term"
@@ -17,19 +17,18 @@ import (
 
 func runBuilder(script string) (*Builder, error) {
 	b, err := NewBuilder(BuildConfig{
-		Globals: &global.Global{
+		Globals: &btypes.Global{
 			Cache:   os.Getenv("NO_CACHE") == "",
 			ShowRun: true,
+			Context: context.Background(),
 		},
-		Context: context.Background(),
-		Runner:  make(chan struct{}),
+		Runner: make(chan struct{}),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	result := b.RunScript(script)
-	return b, result.Err
+	return b, b.eval.RunScript(script)
 }
 
 func readContainerFile(c *C, b *Builder, fn string) []byte {
