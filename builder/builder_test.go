@@ -15,6 +15,8 @@ import (
 	. "testing"
 	"time"
 
+	"github.com/box-builder/box/builder/command"
+	btypes "github.com/box-builder/box/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/docker/client"
@@ -49,7 +51,7 @@ func (bs *builderSuite) SetUpSuite(c *C) {
 
 func (bs *builderSuite) SetUpTest(c *C) {
 	os.Setenv("NO_CACHE", "1")
-	ResetPulls()
+	command.ResetPulls()
 }
 
 func (bs *builderSuite) TearDownTest(c *C) {
@@ -104,36 +106,34 @@ func (bs *builderSuite) TestAfter(c *C) {
 func (bs *builderSuite) TestContext(c *C) {
 	toCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 
-	b, err := NewBuilder(BuildConfig{Context: toCtx, Runner: make(chan struct{})})
+	b, err := NewBuilder(BuildConfig{Globals: &btypes.Global{Context: toCtx}, Runner: make(chan struct{})})
 	c.Assert(err, IsNil)
 
 	errChan := make(chan error)
 
 	go func() {
-		result := b.RunScript(`
+		errChan <- b.eval.RunScript(`
 			from "debian"
 			run "sleep 2"
 			run "ls"
 		`)
-		errChan <- result.Err
 	}()
 
 	c.Assert(<-errChan, NotNil)
 	b.Close()
 
 	cancelCtx, cancel := context.WithCancel(context.Background())
-	b, err = NewBuilder(BuildConfig{Context: cancelCtx, Runner: make(chan struct{})})
+	b, err = NewBuilder(BuildConfig{Globals: &btypes.Global{Context: cancelCtx}, Runner: make(chan struct{})})
 	c.Assert(err, IsNil)
 
-	ResetPulls() // manually reset so the download starts again
+	command.ResetPulls() // manually reset so the download starts again
 
 	go func() {
-		result := b.RunScript(`
+		errChan <- b.eval.RunScript(`
 			from "debian"
 			run "sleep 2"
 			run "ls"
 		`)
-		errChan <- result.Err
 	}()
 
 	go func() {
@@ -161,14 +161,14 @@ func (bs *builderSuite) TestImport(c *C) {
     import "%s"
   `, f.Name()))
 	c.Assert(err, IsNil)
-	c.Assert(b.ImageID(), Not(Equals), "")
+	c.Assert(b.exec.Image().ImageID(), Not(Equals), "")
 	b.Close()
 
 	b, err = runBuilder(`
     import "/nonexistent"
   `)
 	c.Assert(err, NotNil)
-	c.Assert(b.ImageID(), Equals, "")
+	c.Assert(b.exec.Image().ImageID(), Equals, "")
 	b.Close()
 }
 
@@ -415,7 +415,7 @@ func (bs *builderSuite) TestTag(c *C) {
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "test")
 	c.Assert(err, IsNil)
 
-	c.Assert(inspect.RepoTags, DeepEquals, []string{"test:latest"})
+	c.Assert(inspect.RepoTags, DeepEquals, []string{"debian:latest", "test:latest"})
 	b.Close()
 }
 

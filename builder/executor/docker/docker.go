@@ -10,8 +10,8 @@ import (
 
 	"github.com/box-builder/box/builder/config"
 	"github.com/box-builder/box/builder/executor"
-	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/layers"
+	btypes "github.com/box-builder/box/types"
 	"github.com/box-builder/box/util"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -19,18 +19,17 @@ import (
 
 // Docker implements an executor that talks to docker to achieve its goals.
 type Docker struct {
-	globals *global.Global
+	globals *btypes.Global
 	client  *client.Client
 	config  *config.Config
 	stdin   bool
 	layers  layers.Layers
 	image   layers.Image
-	context context.Context
 }
 
-// NewDocker constructs a new docker instance, for executing against docker
+// NewDocker contypes a new docker instance, for executing against docker
 // engines.
-func NewDocker(ctx context.Context, globals *global.Global) (*Docker, error) {
+func NewDocker(globals *btypes.Global) (*Docker, error) {
 	client, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
@@ -38,12 +37,12 @@ func NewDocker(ctx context.Context, globals *global.Global) (*Docker, error) {
 
 	config := config.NewConfig()
 
-	l, err := layers.NewDocker(ctx, globals)
+	l, err := layers.NewDocker(globals)
 	if err != nil {
 		return nil, err
 	}
 
-	i, err := layers.NewDockerImage(ctx, &layers.ImageConfig{
+	i, err := layers.NewDockerImage(&layers.ImageConfig{
 		Config:  config,
 		Layers:  l,
 		Globals: globals,
@@ -56,7 +55,6 @@ func NewDocker(ctx context.Context, globals *global.Global) (*Docker, error) {
 		globals: globals,
 		client:  client,
 		config:  config,
-		context: ctx,
 		layers:  l,
 		image:   i,
 	}, nil
@@ -78,13 +76,6 @@ func (d *Docker) Layers() layers.Layers {
 	return d.layers
 }
 
-// SetContext sets the context for subsequent calls.
-func (d *Docker) SetContext(ctx context.Context) {
-	d.context = ctx
-	d.Layers().SetContext(ctx)
-	d.Image().SetContext(ctx)
-}
-
 // LoadConfig loads the configuration into the executor.
 func (d *Docker) LoadConfig(c *config.Config) error {
 	d.config = c
@@ -98,7 +89,7 @@ func (d *Docker) Config() *config.Config {
 
 // Commit commits an entry to the layer list.
 func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
-	if err := util.CheckContext(d.context); err != nil {
+	if err := util.CheckContext(d.globals.Context); err != nil {
 		return err
 	}
 
@@ -111,7 +102,7 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 
 	if hook != nil {
 		// FIXME this cache key handling is terrible.
-		tmp, err := hook(d.context, id)
+		tmp, err := hook(d.globals.Context, id)
 		if err != nil {
 			return err
 		}
@@ -122,24 +113,24 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 	}
 
 	select {
-	case <-d.context.Done():
-		if d.context.Err() == context.Canceled {
-			return d.context.Err()
+	case <-d.globals.Context.Done():
+		if d.globals.Context.Err() == context.Canceled {
+			return d.globals.Context.Err()
 		}
 	default:
 	}
 
-	if err := util.CheckContext(d.context); err != nil {
+	if err := util.CheckContext(d.globals.Context); err != nil {
 		return err
 	}
 
-	commitResp, err := d.client.ContainerCommit(d.context, id, types.ContainerCommitOptions{Config: d.config.ToDocker(false, d.globals.TTY, d.stdin), Comment: cacheKey})
+	commitResp, err := d.client.ContainerCommit(d.globals.Context, id, types.ContainerCommitOptions{Config: d.config.ToDocker(false, d.globals.TTY, d.stdin), Comment: cacheKey})
 	if err != nil {
 		return fmt.Errorf("Error during commit: %v", err)
 	}
 
 	// try a clean remove first, otherwise the defer above will take over in a last-ditch attempt
-	err = d.client.ContainerRemove(d.context, id, types.ContainerRemoveOptions{})
+	err = d.client.ContainerRemove(d.globals.Context, id, types.ContainerRemoveOptions{})
 	if err != nil {
 		return fmt.Errorf("Could not remove intermediate container %q: %v", id, err)
 	}
@@ -158,7 +149,7 @@ func (d *Docker) CopyOneFileFromContainer(fn string) ([]byte, error) {
 
 	defer d.Destroy(id)
 
-	rc, _, err := d.client.CopyFromContainer(d.context, id, fn)
+	rc, _, err := d.client.CopyFromContainer(d.globals.Context, id, fn)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +184,7 @@ func (d *Docker) CopyOneFileFromContainer(fn string) ([]byte, error) {
 // Create creates a new container based on the existing configuration.
 func (d *Docker) Create() (string, error) {
 	cont, err := d.client.ContainerCreate(
-		d.context,
+		d.globals.Context,
 		d.config.ToDocker(true, d.globals.TTY, d.stdin),
 		nil,
 		nil,
@@ -212,7 +203,7 @@ func (d *Docker) Destroy(id string) error {
 // CopyFromContainer copies a series of files in a similar fashion to
 // CopyToContainer, just in reverse.
 func (d *Docker) CopyFromContainer(id, path string) (io.Reader, int64, error) {
-	rc, stat, err := d.client.CopyFromContainer(d.context, id, path)
+	rc, stat, err := d.client.CopyFromContainer(d.globals.Context, id, path)
 	return rc, stat.Size, err
 }
 
@@ -220,5 +211,5 @@ func (d *Docker) CopyFromContainer(id, path string) (io.Reader, int64, error) {
 // containerto the container so it can then be committed. It does not close the
 // reader.
 func (d *Docker) CopyToContainer(id string, r io.Reader) error {
-	return d.client.CopyToContainer(d.context, id, "/", r, types.CopyToContainerOptions{})
+	return d.client.CopyToContainer(d.globals.Context, id, "/", r, types.CopyToContainerOptions{})
 }

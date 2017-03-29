@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 
-	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/logger"
+	"github.com/box-builder/box/types"
 
 	. "gopkg.in/check.v1"
 )
 
 var (
-	runGlobals = &global.Global{Logger: logger.New("", false), ShowRun: true}
+	runGlobals = &types.Global{Context: context.Background(), Logger: logger.New("", false), ShowRun: true}
 )
 
 func (ds *dockerSuite) TestRunCommit(c *C) {
@@ -23,14 +23,14 @@ func (ds *dockerSuite) TestRunCommit(c *C) {
 		return "", errors.New("an error")
 	}
 
-	d, err := NewDocker(context.Background(), runGlobals)
+	d, err := NewDocker(runGlobals)
 	c.Assert(err, IsNil)
 	id, err := d.Layers().Fetch(d.config, "debian:latest")
 	c.Assert(err, IsNil)
 	c.Assert(d.Commit("", commit), IsNil)
 	c.Assert(d.config.Image, Not(Equals), id)
 
-	d, err = NewDocker(context.Background(), runGlobals)
+	d, err = NewDocker(runGlobals)
 	c.Assert(err, IsNil)
 	id, err = d.Layers().Fetch(d.config, "debian:latest")
 	c.Assert(err, IsNil)
@@ -39,7 +39,7 @@ func (ds *dockerSuite) TestRunCommit(c *C) {
 }
 
 func (ds *dockerSuite) TestRunHook(c *C) {
-	d, err := NewDocker(context.Background(), runGlobals)
+	d, err := NewDocker(runGlobals)
 	c.Assert(err, IsNil)
 	id, err := d.Layers().Fetch(d.config, "debian:latest")
 	c.Assert(err, IsNil)
@@ -49,7 +49,7 @@ func (ds *dockerSuite) TestRunHook(c *C) {
 	c.Assert(d.Commit("test", d.RunHook), IsNil)
 	c.Assert(d.config.Image, Not(Equals), id)
 
-	d, err = NewDocker(context.Background(), runGlobals)
+	d, err = NewDocker(runGlobals)
 	c.Assert(err, IsNil)
 	id, err = d.Layers().Fetch(d.config, "debian:latest")
 	c.Assert(err, IsNil)

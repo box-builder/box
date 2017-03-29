@@ -12,9 +12,9 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/box-builder/box/builder/config"
-	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/image"
 	"github.com/box-builder/box/logger"
+	btypes "github.com/box-builder/box/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/term"
@@ -65,11 +65,11 @@ func (ds *dockerSuite) TearDownSuite(c *C) {
 func (ds *dockerSuite) TestLookup(c *C) {
 	imageName := "alpine"
 
-	d, err := NewDocker(context.Background(), &global.Global{TTY: ds.tty, Logger: logger.New("", false)})
+	d, err := NewDocker(&btypes.Global{Context: context.Background(), TTY: ds.tty, Logger: logger.New("", false)})
 	c.Assert(err, IsNil)
 
 	// XXX ok if this call fails
-	d.client.ImageRemove(d.context, imageName, types.ImageRemoveOptions{PruneChildren: true, Force: true})
+	d.client.ImageRemove(d.globals.Context, imageName, types.ImageRemoveOptions{PruneChildren: true, Force: true})
 
 	id, err := d.Lookup(imageName)
 	c.Assert(err, NotNil)
@@ -87,7 +87,7 @@ func (ds *dockerSuite) TestLookup(c *C) {
 func (ds *dockerSuite) TestMakeImage(c *C) {
 	imageName := "postgres"
 
-	d, err := NewDocker(context.Background(), &global.Global{TTY: ds.tty, Logger: logger.New("", false)})
+	d, err := NewDocker(&btypes.Global{Context: context.Background(), TTY: ds.tty, Logger: logger.New("", false)})
 	c.Assert(err, IsNil)
 
 	_, err = d.Fetch(ds.config, imageName)
@@ -175,7 +175,7 @@ func (ds *dockerSuite) TestMakeImage(c *C) {
 }
 
 func (ds *dockerSuite) TestFetch(c *C) {
-	d, err := NewDocker(context.Background(), &global.Global{TTY: ds.tty, Logger: logger.New("", false)})
+	d, err := NewDocker(&btypes.Global{Context: context.Background(), TTY: ds.tty, Logger: logger.New("", false)})
 	c.Assert(err, IsNil)
 
 	id, err := d.Fetch(ds.config, "debian:latest")

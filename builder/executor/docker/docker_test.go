@@ -8,9 +8,9 @@ import (
 	"strings"
 	. "testing"
 
-	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/logger"
 	bt "github.com/box-builder/box/tar"
+	btypes "github.com/box-builder/box/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/term"
@@ -60,7 +60,8 @@ func (ds *dockerSuite) TearDownSuite(c *C) {
 }
 
 func (ds *dockerSuite) TestCreate(c *C) {
-	d, err := NewDocker(context.Background(), &global.Global{
+	d, err := NewDocker(&btypes.Global{
+		Context: context.Background(),
 		Logger:  logger.New("", false),
 		ShowRun: true,
 		TTY:     ds.tty,
@@ -76,7 +77,8 @@ func (ds *dockerSuite) TestCreate(c *C) {
 }
 
 func (ds *dockerSuite) TestCopy(c *C) {
-	d, err := NewDocker(context.Background(), &global.Global{
+	d, err := NewDocker(&btypes.Global{
+		Context: context.Background(),
 		Logger:  logger.New("", false),
 		ShowRun: true,
 		TTY:     ds.tty,
@@ -128,7 +130,8 @@ func (ds *dockerSuite) TestCopy(c *C) {
 func (ds *dockerSuite) TestCommitCache(c *C) {
 	ds.clearDockerPrefix(c, "asdf")
 
-	d, err := NewDocker(context.Background(), &global.Global{
+	d, err := NewDocker(&btypes.Global{
+		Context: context.Background(),
 		Logger:  logger.New("", false),
 		ShowRun: true,
 		Cache:   true,
@@ -147,7 +150,8 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 
-	d, err = NewDocker(context.Background(), &global.Global{
+	d, err = NewDocker(&btypes.Global{
+		Context: context.Background(),
 		Logger:  logger.New("", false),
 		ShowRun: true,
 		Cache:   true,
@@ -166,7 +170,8 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 	c.Assert(d.Commit("asdf3", nil), IsNil)
 	c.Assert(d.Image().ImageID(), Not(Equals), "")
 
-	d, err = NewDocker(context.Background(), &global.Global{
+	d, err = NewDocker(&btypes.Global{
+		Context: context.Background(),
 		Logger:  logger.New("", false),
 		ShowRun: true,
 		Cache:   true,
@@ -185,7 +190,8 @@ func (ds *dockerSuite) TestCommitCache(c *C) {
 }
 
 func (ds *dockerSuite) clearDockerPrefix(c *C, prefix string) {
-	d, err := NewDocker(context.Background(), &global.Global{
+	d, err := NewDocker(&btypes.Global{
+		Context: context.Background(),
 		Logger:  logger.New("", false),
 		ShowRun: true,
 		Cache:   true,

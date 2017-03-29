@@ -7,12 +7,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/box-builder/box/builder"
-	"github.com/box-builder/box/global"
+	"github.com/box-builder/box/builder/command"
+	"github.com/box-builder/box/builder/evaluator"
+	"github.com/box-builder/box/builder/evaluator/mruby"
+	"github.com/box-builder/box/builder/executor/docker"
 	"github.com/box-builder/box/logger"
 	"github.com/box-builder/box/signal"
+	"github.com/box-builder/box/types"
 	"github.com/chzyer/readline"
-	mruby "github.com/mitchellh/go-mruby"
 )
 
 const (
@@ -23,11 +25,12 @@ const (
 // Repl encapsulates a series of items used to create a read-evaluate-print
 // loop so that end users can manually enter build instructions.
 type Repl struct {
-	readline *readline.Instance
-	builder  *builder.Builder
+	readline  *readline.Instance
+	evaluator evaluator.Evaluator
+	globals   *types.Global
 }
 
-// NewRepl constructs a new Repl.
+// NewRepl contypes a new Repl.
 func NewRepl(omit []string, log *logger.Logger) (*Repl, error) {
 	rl, err := readline.New(normalPrompt)
 	if err != nil {
@@ -37,18 +40,28 @@ func NewRepl(omit []string, log *logger.Logger) (*Repl, error) {
 	signal.Handler.Exit = false
 	signal.Handler.IgnoreRunners = true
 	ctx, cancel := context.WithCancel(context.Background())
+	globals := &types.Global{
+		OmitFuncs: omit,
+		TTY:       true,
+		Cache:     false,
+		ShowRun:   true,
+		Logger:    log,
+		Context:   ctx,
+	}
 
-	b, err := builder.NewBuilder(builder.BuildConfig{
-		Globals: &global.Global{
-			OmitFuncs: omit,
-			TTY:       true,
-			Cache:     false,
-			ShowRun:   true,
-			Logger:    log,
-		},
-		Context: ctx,
+	exec, err := docker.NewDocker(globals)
+	if err != nil {
+		cancel()
+		rl.Close()
+		return nil, err
+	}
+
+	e, err := mruby.NewMRuby(&mruby.Config{
+		Filename: "repl",
+		Globals:  globals,
+		Interp:   command.NewInterpreter(globals, exec),
+		Exec:     exec,
 	})
-
 	if err != nil {
 		cancel()
 		rl.Close()
@@ -57,7 +70,7 @@ func NewRepl(omit []string, log *logger.Logger) (*Repl, error) {
 
 	signal.Handler.AddFunc(cancel)
 
-	return &Repl{readline: rl, builder: b}, nil
+	return &Repl{readline: rl, evaluator: e, globals: globals}, nil
 }
 
 // Loop runs the loop. Returns nil on io.EOF, otherwise errors are forwarded.
@@ -71,11 +84,6 @@ func (r *Repl) Loop() error {
 
 	var line string
 	var stackKeep int
-	var result builder.BuildResult
-
-	p := mruby.NewParser(r.builder.Mrb())
-	compileContext := mruby.NewCompileContext(r.builder.Mrb())
-	compileContext.CaptureErrors(true)
 
 	for {
 		tmp, err := r.readline.Readline()
@@ -108,25 +116,27 @@ func (r *Repl) Loop() error {
 			os.Exit(0)
 		}
 
-		if _, err := p.Parse(line, compileContext); err != nil {
+		ctx, cancel := context.WithCancel(context.Background())
+		r.globals.Context = ctx
+		signal.Handler.AddFunc(cancel)
+
+		newKeep, err := r.evaluator.RunCode(line, stackKeep)
+		if err != nil && newKeep == stackKeep {
 			r.readline.SetPrompt(multilinePrompt)
 			continue
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
-		r.builder.SetContext(ctx)
-		signal.Handler.AddFunc(cancel)
+		stackKeep = newKeep
 
-		result, stackKeep = r.builder.RunCode(p.GenerateCode(), stackKeep)
 		line = ""
 		r.readline.SetPrompt(normalPrompt)
-		if result.Err != nil {
-			fmt.Printf("+++ Error: %v\n", result.Err)
+		if err != nil {
+			fmt.Printf("+++ Error: %v\n", err)
 			continue
 		}
 
-		if result.Value.String() != "" {
-			fmt.Println(result.Value)
+		if r.evaluator.Result().Value != "" {
+			fmt.Println(r.evaluator.Result().Value)
 		}
 	}
 }

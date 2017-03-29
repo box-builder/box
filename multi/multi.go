@@ -5,6 +5,7 @@ import (
 
 	"github.com/box-builder/box/builder"
 	"github.com/box-builder/box/logger"
+	"github.com/box-builder/box/types"
 )
 
 // Builder is the entrypoint to the multi-build system. It contains several
@@ -13,7 +14,7 @@ type Builder struct {
 	builders []*builder.Builder
 }
 
-// NewBuilder constructs a *Builder.
+// NewBuilder contypes a *Builder.
 func NewBuilder(builders []*builder.Builder) *Builder {
 	return &Builder{builders: builders}
 }
@@ -29,7 +30,7 @@ func (b *Builder) Build() {
 func (b *Builder) Wait() error {
 	log := logger.New("multi", false)
 
-	resChan := make(chan builder.BuildResult, len(b.builders))
+	resChan := make(chan types.BuildResult, len(b.builders))
 
 	for _, br := range b.builders {
 		go func(br *builder.Builder) {

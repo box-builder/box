@@ -9,11 +9,11 @@ import (
 
 	"github.com/box-builder/box/builder"
 	"github.com/box-builder/box/copy"
-	"github.com/box-builder/box/global"
 	"github.com/box-builder/box/logger"
 	"github.com/box-builder/box/multi"
 	"github.com/box-builder/box/repl"
 	"github.com/box-builder/box/signal"
+	"github.com/box-builder/box/types"
 	"github.com/docker/docker/pkg/term"
 	"github.com/urfave/cli"
 )
@@ -128,14 +128,14 @@ func main() {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		runChan := make(chan struct{})
 		buildConfig := builder.BuildConfig{
-			Globals: &global.Global{
+			Globals: &types.Global{
 				ShowRun:   true,
 				TTY:       tty,
 				OmitFuncs: ctx.GlobalStringSlice("omit"),
 				Cache:     getCache(ctx),
 				Logger:    logger.New(args[0], notrim),
+				Context:   cancelCtx,
 			},
-			Context:  cancelCtx,
 			Runner:   runChan,
 			FileName: args[0],
 		}
@@ -154,8 +154,8 @@ func main() {
 			os.Exit(1)
 		}
 
-		if result.Value.String() != "" {
-			log.EvalResponse(result.Value.String())
+		if result.Value != "" {
+			log.EvalResponse(result.Value)
 		}
 
 		tag := ctx.String("tag")
@@ -168,7 +168,7 @@ func main() {
 			log.Tag(tag)
 		}
 
-		id := b.ImageID()
+		id := result.Value
 
 		if strings.Contains(id, ":") {
 			id = strings.SplitN(id, ":", 2)[1]
@@ -200,14 +200,14 @@ func runMulti(ctx *cli.Context) {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		runChan := make(chan struct{})
 		buildConfig := builder.BuildConfig{
-			Globals: &global.Global{
+			Globals: &types.Global{
 				ShowRun:   false,
 				TTY:       true,
 				OmitFuncs: append(ctx.StringSlice("omit"), "debug"),
 				Cache:     getCache(ctx),
 				Logger:    logger.New(filename, notrim),
+				Context:   cancelCtx,
 			},
-			Context:  cancelCtx,
 			Runner:   runChan,
 			FileName: filename,
 		}
