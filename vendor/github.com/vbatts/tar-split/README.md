@@ -107,7 +107,7 @@ But let's look at a larger archive, with many files.
 ```bash
 $ ls -sh ./d.tar
 1.4G ./d.tar
-$ tar-split checksize ~/d.tar
+$ tar-split checksize ~/d.tar 
 inspecting "/home/vbatts/d.tar" (size 1420749k)
  -- number of files: 38718
  -- size of metadata uncompressed: 43261k
@@ -134,3 +134,4 @@ bytes-per-file rate for the storage implications.
 ## License
 
 See [LICENSE](LICENSE)
+

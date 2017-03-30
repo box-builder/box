@@ -3,7 +3,7 @@
 Go clients for talking to a [kubernetes](http://kubernetes.io/) cluster.
 
 ## Table of Contents
-
+ 
 - [What's included](#whats-included)
 - [Versioning](#versioning)
   - [Compatibility: your code <-> client-go](#compatibility-your-code---client-go)
@@ -34,7 +34,7 @@ We will create a new branch for each increment in the major version number or mi
 
 The master branch will track the head in the main Kubernetes repo and accumulating changes. We will make a new client-go major/minor/patch version when:
 * A new major (very rare) or a new minor version is released in the Kubernetes main repository.
-* A feature or a bug fix in the master branch is popular and users want it in a stable branch or with a stable tag.
+* A feature or a bug fix in the master branch is popular and users want it in a stable branch or with a stable tag. 
 
 #### Compatibility: your code <-> client-go
 
@@ -42,7 +42,7 @@ The master branch will track the head in the main Kubernetes repo and accumulati
 
 #### Compatibility: client-go <-> Kubernetes clusters
 
-`client-go` versions will be backwards compatible with many Kubernetes clusters. As we increment `client-go` versions, we will note which Kubernetes versions we expect them to work with.
+`client-go` versions will be backwards compatible with many Kubernetes clusters. As we increment `client-go` versions, we will note which Kubernetes versions we expect them to work with. 
 
 We do not back-port new Kubernetes features into older clients. If you need a new feature, you are expected to upgrade to the new client. You can check out the [CHANGELOG](./CHANGELOG.md) for notable changes.
 
