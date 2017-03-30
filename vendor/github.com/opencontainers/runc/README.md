@@ -14,7 +14,7 @@ You can find official releases of `runc` on the [release](https://github.com/ope
 
 ## Building
 
-`runc` currently supports the Linux platform with various architecture support.
+`runc` currently supports the Linux platform with various architecture support. 
 It must be built with Go version 1.6 or higher in order for some features to function properly.
 
 ```bash

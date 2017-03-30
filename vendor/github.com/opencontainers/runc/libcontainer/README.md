@@ -242,3 +242,4 @@ generated when building libcontainer with docker.
 
 Code and documentation copyright 2014 Docker, inc. Code released under the Apache 2.0 license.
 Docs released under Creative commons.
+
