@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/box-builder/box/logger"
+	"github.com/box-builder/progress"
 	"github.com/docker/docker/pkg/term"
 	"github.com/fatih/color"
 )
@@ -17,9 +18,8 @@ var NoTTY bool
 var NoOut bool
 
 const (
-	megaByte   = float64(1024 * 1024)
-	readerSize = 65536
-	interval   = 10 * time.Millisecond
+	megaByte = float64(1024 * 1024)
+	interval = 10 * time.Millisecond
 )
 
 // WithProgress implements io.Copy with a buffered reader, then measures
@@ -30,40 +30,38 @@ func WithProgress(writer io.Writer, reader io.Reader, logger *logger.Logger, pre
 	var printed bool
 
 	defer color.Unset()
-	defer func() {
-		if printed && !NoOut && !NoTTY {
+	defer func(printed *bool) {
+		if *printed && !NoOut && !NoTTY {
 			fmt.Println()
 		}
-	}()
+	}(&printed)
+
+	endChan := make(chan struct{})
 
 	// if there is no terminal, this will be non-nil; we will not print progress
 	// below if this is the case.
-	_, termErr := term.GetWinsize(0)
+	if _, termErr := term.GetWinsize(0); termErr == nil && !NoOut && !NoTTY {
+		pr := progress.NewReader(prefix, reader, interval)
+		count := float64(0)
 
-	count := float64(0)
-	buf := make([]byte, readerSize)
-	t := time.Now()
-	for {
-		rn, rerr := reader.Read(buf)
-		if rerr != nil && rerr != io.EOF {
-			return rerr
+		go func(pr *progress.Reader, printed *bool) {
+			<-pr.C
+			for tick := range pr.C {
+				*printed = true
+				count += float64(tick.Value)
+				logger.Progress(tick.Artifact, count/megaByte)
+			}
+			close(endChan)
+		}(pr, &printed)
+
+		if _, err := io.Copy(writer, pr); err != nil {
+			return err
 		}
-
-		count += float64(rn)
-
-		if termErr == nil && !NoOut && !NoTTY && time.Since(t) > interval {
-			printed = true
-			logger.Progress(prefix, count/megaByte)
-			t = time.Now()
-		}
-
-		_, werr := writer.Write(buf[:rn])
-		if werr != nil && werr != io.EOF {
-			return werr
-		}
-
-		if rerr == io.EOF || rn == 0 {
-			return nil
-		}
+		close(pr.C)
+		<-endChan
+		return nil
 	}
+
+	_, err := io.Copy(writer, reader)
+	return err
 }
