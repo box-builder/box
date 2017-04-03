@@ -1,9 +1,12 @@
 site_name: Box
-theme: slate
+theme: null
+theme_dir: 'docs-theme'
 repo_url: https://github.com/box-builder/box
+extra_css: [extra.css]
 pages:
   - "Intro": "index.md"
   - "Usage": "usage.md"
+  - "Installation": "installation.md"
   - "User Guide":
     - "Command-Line Options": "user-guide/cli.md"
     - "Verbs": "user-guide/verbs.md"
