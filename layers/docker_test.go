@@ -105,7 +105,7 @@ func (ds *dockerSuite) TestMakeImage(c *C) {
 	_, err = io.Copy(tf, rc)
 	c.Assert(err, IsNil)
 
-	layers, dir, err := image.Unpack(tf.Name())
+	layers, dir, err := image.Unpack(d.globals, tf.Name())
 	defer os.RemoveAll(dir)
 	c.Assert(err, IsNil)
 
@@ -132,17 +132,15 @@ func (ds *dockerSuite) TestMakeImage(c *C) {
 	omitLayer2, layerCopy := omit(layerCopy)
 
 	layers = layerCopy
-
 	d.skipLayers = []string{omitLayer1.LayerID(), omitLayer2.LayerID()}
-	layerStrings := []string{}
 
+	layerStrings := []string{}
 	for _, layer := range layers {
 		layerStrings = append(layerStrings, layer.LayerID())
 	}
-
 	d.layers = layerStrings
-	id, err := d.MakeImage(ds.config)
 
+	id, err := d.MakeImage(ds.config)
 	c.Assert(err, IsNil)
 	c.Assert(id, Not(Equals), "")
 
@@ -158,7 +156,7 @@ func (ds *dockerSuite) TestMakeImage(c *C) {
 	_, err = io.Copy(tf2, rc)
 	c.Assert(err, IsNil)
 
-	layers2, dir2, err := image.Unpack(tf2.Name())
+	layers2, dir2, err := image.Unpack(d.globals, tf2.Name())
 	defer os.RemoveAll(dir2)
 	c.Assert(err, IsNil)
 
@@ -168,7 +166,7 @@ func (ds *dockerSuite) TestMakeImage(c *C) {
 		c.Assert(layers[i].LayerID(), Equals, layers2[i].LayerID())
 	}
 
-	layersOrig, _, err := image.Unpack(tf.Name())
+	layersOrig, _, err := image.Unpack(d.globals, tf.Name())
 	c.Assert(err, IsNil)
 
 	c.Assert(len(layersOrig)-2, Equals, len(layers))

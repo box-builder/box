@@ -16,7 +16,8 @@ import (
 
 // Layer is one unit of storage. FIXME complete this later
 type Layer struct {
-	id string
+	chainID string
+	id      string
 
 	globals *types.Global
 }
@@ -99,6 +100,11 @@ func NewLayer(globals *types.Global, id string) *Layer {
 // LayerID returns the layer id.
 func (l *Layer) LayerID() string {
 	return l.id
+}
+
+// ChainID returns the chain id
+func (l *Layer) ChainID() string {
+	return l.chainID
 }
 
 // Copy copies a layer into the tarfile.
