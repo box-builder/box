@@ -18,7 +18,7 @@ func (i *Interpreter) Flatten() error {
 
 	defer i.exec.Destroy(id)
 
-	rc, size, err := i.exec.CopyFromContainer(id, "/")
+	rc, _, err := i.exec.CopyFromContainer(id, "/")
 	if err != nil {
 		return err
 	}
@@ -45,5 +45,5 @@ func (i *Interpreter) Flatten() error {
 
 	defer f.Close()
 
-	return i.exec.Image().Flatten(id, size, f)
+	return i.exec.Image().Flatten(f)
 }

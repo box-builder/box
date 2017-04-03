@@ -165,8 +165,8 @@ func (d *DockerImage) Save(filename, kind, tag string) error {
 
 // Flatten copies a tarred up series of files (passed in through the
 // io.Reader handle) to the image where they are untarred.
-func (d *DockerImage) Flatten(id string, size int64, tw io.Reader) error {
-	imgName, err := image.Flatten(d.imageConfig.Config, id, size, tw, d.imageConfig.Globals.Logger)
+func (d *DockerImage) Flatten(tw io.Reader) error {
+	imgName, err := image.NewImage(d.imageConfig.Globals, nil, d.imageConfig.Config, nil).Flatten(tw)
 	if err != nil {
 		return err
 	}

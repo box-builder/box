@@ -12,7 +12,7 @@ type Image interface {
 	// Flatten copies a tarred up series of files (passed in through the
 	// io.Reader handle) to the image where they are untarred. The first argument
 	// is the parent image to use.
-	Flatten(string, int64, io.Reader) error
+	Flatten(io.Reader) error
 
 	// Tag the current layer. Takes a tag name as argument.
 	Tag(string) error
