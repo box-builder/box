@@ -22,7 +22,6 @@ import (
 // Layer is the metadata surrounding an image layer.
 type Layer struct {
 	layer         string
-	filename      string
 	layerFilename string
 }
 
@@ -70,18 +69,12 @@ func extractLayers(img *imageInfo, dir, file string) error {
 				return errors.New("layer not found")
 			}
 
-			out, err := os.Create(filepath.Join(dir, layerID))
-			if err != nil {
-				return err
-			}
-
-			sum, err := bt.SumWithCopy(out, tr, logger.New(layerID[:12], false), fmt.Sprintf("Unpacking Layer ID %s", layerID[:12]))
+			sum, err := bt.SumWithCopy(ioutil.Discard, tr, logger.New(layerID[:12], false), fmt.Sprintf("Unpacking Layer ID %s", layerID[:12]))
 			if err != nil {
 				return err
 			}
 
 			l.layer = sum
-			l.filename = out.Name()
 		}
 	}
 
