@@ -36,10 +36,8 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 		bc.Globals = &types.Global{Context: context.Background()}
 	}
 
-	if !bc.Globals.TTY {
-		color.NoColor = true
-		copy.NoTTY = true
-	}
+	color.NoColor = !bc.Globals.Color
+	copy.NoTTY = !bc.Globals.TTY
 
 	if bc.Globals.Logger == nil {
 		bc.Globals.Logger = logger.New(bc.FileName, true)
