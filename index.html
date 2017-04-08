@@ -57,7 +57,7 @@
             
             
                 <li >
-                    <a href="build-plans/">Build Plans</a>
+                    <a href="usage/">Usage</a>
                 </li>
             
             
@@ -103,7 +103,7 @@
                     </a>
                 </li>
                 <li >
-                    <a rel="prev" href="build-plans/">
+                    <a rel="prev" href="usage/">
                         Next <i class="fa fa-arrow-right"></i>
                     </a>
                 </li>
@@ -131,29 +131,21 @@
             <li><a href="#installation">Installation</a></li>
         
     
-        <li class="main "><a href="#invocation">Invocation</a></li>
+        <li class="main "><a href="#build-plans">Build Plans</a></li>
         
-            <li><a href="#use-the-shell">Use the shell</a></li>
+            <li><a href="#box-build-plans-are-programs">Box Build Plans are Programs</a></li>
         
-            <li><a href="#with-a-plan">With a Plan</a></li>
+            <li><a href="#powered-by-mruby">Powered by mruby</a></li>
         
-            <li><a href="#with-multiple-plans">With Multiple Plans</a></li>
+            <li><a href="#tagging-and-image-editing">Tagging and Image Editing</a></li>
         
-    
-        <li class="main "><a href="#making-box-plans">Making Box Plans</a></li>
+            <li><a href="#the-debugger">The Debugger</a></li>
         
-    
-        <li class="main "><a href="#example-box-plan">Example Box Plan</a></li>
+            <li><a href="#verb-properties">Verb Properties</a></li>
         
-            <li><a href="#ignoring-files">Ignoring files</a></li>
+            <li><a href="#experiment-with-the-repl">Experiment with the REPL</a></li>
         
-            <li><a href="#the-build-cache">The Build Cache</a></li>
-        
-    
-        <li class="main "><a href="#example-box-plan-advanced-version">Example Box Plan (advanced version)</a></li>
-        
-    
-        <li class="main "><a href="#caveats">Caveats</a></li>
+            <li><a href="#parallel-building">Parallel Building</a></li>
         
     
     </ul>
@@ -186,7 +178,8 @@ allow new actions, such as flattening and tagging images.</p>
 <p><strong><a href="https://github.com/box-builder/box/releases/">Download a Release</a></strong></p>
 <h3 id="installation">Installation</h3>
 <p>Quick Install: <code>curl -sSL box-builder.sh | sudo bash</code></p>
-<p>Just <code>gunzip</code> the downloaded file and put it in your path:</p>
+<p>Or <a href="https://github.com/box-builder/box/releases">download a release</a>: Just
+<code>gunzip</code> the downloaded file and put it in your path:</p>
 <pre><code class="bash">$ gunzip box.$(uname -s).gz
 $ chmod 755 box.$(uname -s)
 $ sudo mv box.$(uname -s) /usr/local/bin/box
@@ -194,151 +187,110 @@ $ sudo mv box.$(uname -s) /usr/local/bin/box
 
 <p>Alternatively, we have a <a href="https://github.com/box-builder/homebrew-box">homebrew tap</a>
 and debian and redhat packages on the <a href="https://github.com/box-builder/box/releases">releases page</a>.</p>
-<h2 id="invocation">Invocation</h2>
-<h3 id="use-the-shell">Use the shell</h3>
-<p>If you want to try out box quickly, you can use the shell interface, AKA
-repl (read-eval-print loop):</p>
-<pre><code class="bash">$ box repl
-# or
-$ box shell
+<h2 id="build-plans">Build Plans</h2>
+<p>Build Plans power Box and are the core of its functionality. This
+document describes how you can power box by writing build plans, and
+what techniques to use while writing them.</p>
+<h3 id="box-build-plans-are-programs">Box Build Plans are Programs</h3>
+<p>Exploit this! Use functions! Set variables and constants!</p>
+<p>run this plan with:</p>
+<pre><code class="shell">GOLANG_VERSION=1.7.5 box &lt;plan file&gt;
 </code></pre>
 
-<p>This video gives a quick demo of the shell:</p>
-<script type="text/javascript" src="https://asciinema.org/a/c1n0h0g73f10x4cuzjf1i51vg.js" id="asciicast-c1n0h0g73f10x4cuzjf1i51vg" async></script>
+<pre><code class="ruby">from &quot;ubuntu&quot;
 
-<h3 id="with-a-plan">With a Plan</h3>
-<p>The commandline tool <code>box</code> accepts a file (your "build plan") as a commandline
-argument:</p>
-<pre><code class="bash">$ box myplan.rb
-</code></pre>
-
-<p>The current working directory that Box runs in is very important, it is the
-jumping-off point for most copy operations. If you run the <code>box-builder/box</code>
-container, you may wish to run it in this way:</p>
-<pre><code class="bash">$ docker run -i \
-  -v $PWD:$PWD \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -w $PWD \
-  box-builder/box:latest myplan.rb
-</code></pre>
-
-<p>For additional flags and functionality, see the help:</p>
-<pre><code class="bash">$ box --help
-</code></pre>
-
-<h3 id="with-multiple-plans">With Multiple Plans</h3>
-<p>To initiate multi-plan builds (where all builds are done at the same time) just
-invoke <code>box multi</code> and specify all the plans you want, e.g.:</p>
-<pre><code>$ box multi *.rb
-</code></pre>
-
-<p>Which will build all the <code>.rb</code> files in the current dir.</p>
-<p><strong>Note</strong>: it is important to use the <a href="./user-guide/verbs/#tag">tag</a> verb to
-avoid losing track of your images!</p>
-<h2 id="making-box-plans">Making Box Plans</h2>
-<p>Box plans are written in mruby, an embedded, smaller variant of ruby. If you
-are new to ruby, here is a tutorial that only <a href="https://github.com/jhotta/chef-fundamentals-ja/blob/master/slides/just-enough-ruby-for-chef/01_slide.md#variables">covers the basics</a>
-You will not need to be an advanced ruby user to leverage Box.</p>
-<p>Box plan terms are either functions or verbs.</p>
-<p>Verbs typically create a layer and are meant to run at the top level of the
-plan; they are not intended to return a sane value other than success/fail.
-Operations like <code>run</code> and <code>copy</code> fit into the "verb" category. These are very
-similar to the verbs you'd find in <code>docker build</code>.</p>
-<p>Functions are unique to Box and allow you to pass data both from the image into
-the build system and pass it to other calls, or just print it out for later
-use. Functions like <code>getuid</code> exist to retrieve the UID of a user as the
-container sees it, for the purposes of using it for future operations.</p>
-<p>Please take a look at our <a href="./user-guide/verbs">verbs reference</a> and <a href="./user-guide/functions">functions
-reference</a> for more information.</p>
-<h2 id="example-box-plan">Example Box Plan</h2>
-<p>Here's a basic example that downloads the newest (1.7.3) version of golang with
-curl and unpacks it. If you set an environment variable called
-<code>GO_VERSION</code>, it will use that version instead.</p>
-<pre><code class="ruby">from &quot;debian&quot;
+# this function will create a new layer running the command inside the
+# function, installing the required package.
+def install_package(pkg)
+  run &quot;apt-get install '#{pkg}' -y&quot;
+end
 
 run &quot;apt-get update&quot;
-run &quot;apt-get install curl -y&quot;
+install_package &quot;curl&quot; # `run &quot;apt-get install curl -y&quot;`
 
-go_version = getenv(&quot;GO_VERSION&quot;)
-
-if go_version.empty?
-  go_version = &quot;1.7.3&quot;
-end
-
-url = &quot;https://storage.googleapis.com/golang/go#{go_version}.linux-amd64.tar.gz&quot;
-
-run &quot;curl -sSL '#{url}' | tar -xvz -C /usr/local&quot;
+# get the local environment's setting for GOLANG_VERSION, and set it here:
+go_version = getenv(&quot;GOLANG_VERSION&quot;)
+run %Q[curl -sSL \
+    https://storage.googleapis.com/golang/go#{go_version}.linux-amd64.tar.gz \
+    | tar -xvz -C /usr/local]
 </code></pre>
 
-<h3 id="ignoring-files">Ignoring files</h3>
-<p>Just like Docker, if a <code>.dockerignore</code> file exists, the patterns, filenames,
-and directories specified in this file will be ignored from all copy operations.</p>
-<p>The <a href="./user-guide/verbs/#copy">copy</a> verb also has additional functionality to
-scope ignore rules down to specific copy statements.</p>
-<h3 id="the-build-cache">The Build Cache</h3>
-<p>The build cache is enabled by default. It is not an exact cache but constructs
-the layer graph in a non-standard way using docker's image Comment field,
-populating it with sums and command instructions in a very similar way that
-<code>docker build</code> does.</p>
-<p>If you find the behavior surprising, you can turn it off:</p>
-<pre><code>$ box --no-cache myplan.rb
-</code></pre>
-
-<h2 id="example-box-plan-advanced-version">Example Box Plan (advanced version)</h2>
-<p>This is the Box plan we use to build Box itself. It uses many of its
-features. Be sure to check the <a href="https://box-builder.github.io/box/verbs/">verbs</a> to
-refer to different constructs used in the file.</p>
-<p>You can find the latest version of it
-<a href="https://github.com/box-builder/box/blob/master/build.rb">here</a> too.</p>
-<pre><code class="ruby">from &quot;golang&quot;
-
+<h3 id="powered-by-mruby">Powered by mruby</h3>
+<p>Box uses the <a href="https://mruby.org/">mruby programming language</a>. It does
+this to get a solid language syntax, functions, variables and more.
+However, it is not a fully featured Ruby such as MRI and contains almost
+zero standard library functionality, allowing for only the basic types,
+and no I/O operations outside of the box DSL are permitted.</p>
+<p>You can however:</p>
+<ul>
+<li>Define classes, functions, variables and constants</li>
+<li>Access the environment through the
+  <a href="./user-guide/functions/#getenv">getenv</a> box function (which is also
+  <a href="./user-guide/cli/#-omit-o">omittable</a> if you don't want people to use
+  it)</li>
+<li>Retrieve the contents of container files with <a href="./user-guide/functions/#read">read</a></li>
+<li><a href="./user-guide/functions/#import">import</a> libraries (also written in
+  mruby) to re-use common build plan components.</li>
+</ul>
+<h3 id="tagging-and-image-editing">Tagging and Image Editing</h3>
+<p>You can tag images mid-plan to create multiple images, each subsets (or
+supersets, depending on how you look at it) of each other.</p>
+<p>Additionally, you can use functions like
+<a href="./user-guide/verbs/#after">after</a>, <a href="./user-guide/functions/#skip">skip</a>,
+and <a href="./user-guide/verbs/#flatten">flatten</a> to manipulate images in ways
+you may not have considered:</p>
+<pre><code class="ruby">from :ubuntu
 skip do
-  DOCKER_VERSION = &quot;1.12.4&quot;
-
-  PACKAGES = %w[
-    build-essential
-    g++
-    git
-    wget
-    curl
-    ruby
-    bison
-    flex
-    iptables
-    psmisc
-    python-pip
-  ]
-
-  workdir &quot;/&quot;
-
-  qq = getenv(&quot;CI_BUILD&quot;) != &quot;&quot; ? &quot;-qq&quot; : &quot;&quot;
-
-  run &quot;apt-get update #{qq}&quot;
-  run &quot;apt-get install -y #{qq} #{PACKAGES.join(&quot; &quot;)}&quot;
-  env &quot;GOPATH&quot; =&gt; &quot;/go&quot;
-
-  docker_path = &quot;docker-#{DOCKER_VERSION}.tgz&quot;
-  run &quot;wget -q https://get.docker.com/builds/Linux/x86_64/#{docker_path}&quot;
-  run &quot;tar -xpf #{docker_path} --strip-components=1 -C /usr/bin/&quot;
-  run &quot;rm #{docker_path}&quot;
-  copy &quot;dind&quot;, &quot;/dind&quot;
-
-  run &quot;pip -q install mkdocs mkdocs-bootswatch&quot;
-
-  copy &quot;.&quot;, &quot;/go/src/github.com/box-builder/box&quot;
-  run &quot;cd /go/src/github.com/box-builder/box &amp;&amp; make clean install&quot;
-
-  workdir &quot;/go/src/github.com/box-builder/box&quot;
-  set_exec entrypoint: [&quot;/dind&quot;], cmd: [&quot;make&quot;, &quot;docker-test&quot;]
-  tag &quot;box-test&quot;
+  run &quot;apt-get update&quot;
+  run &quot;apt-get install curl -y&quot;
+  run &quot;curl -sSL -O https://github.com/box-builder/box/releases/download/v0.4.2/box_0.4.2_amd64.deb&quot;
+  tag :downloaded
 end
 
-run &quot;mv /go/bin/box /box&quot;
-set_exec entrypoint: [&quot;/box&quot;], cmd: []
+run &quot;dpkg -i box*.deb&quot;
+after do
+  flatten
+  tag :installed
+end
 </code></pre>
 
-<h2 id="caveats">Caveats</h2>
-<p>You can see <a href="https://github.com/box-builder/box/issues">all of our issues</a> here.</p></div>
+<p>Because the tag is processed after the final edits occur, tag
+<code>installed</code> will not contain the update manifests, <code>curl</code>, or the
+<code>.deb</code>. Tag <code>downloaded</code> will, though (but will also not contain the
+installed package).</p>
+<h3 id="the-debugger">The Debugger</h3>
+<p><a href="./user-guide/verbs/#debug">debug</a> is a really powerful tool for
+establishing a breakpoint in your build plan where you can investigate
+your container.</p>
+<p>Just add a line:</p>
+<pre><code class="ruby">debug
+</code></pre>
+
+<p>And as soon as it is reached you will see a shell appear in your
+console.</p>
+<h3 id="verb-properties">Verb Properties</h3>
+<p><a href="./user-guide/verbs/#copy">copy</a>, <a href="./user-guide/verbs/#run">run</a>, and
+other support properties to modify their behavior. You should check out
+what you can do in the docs, but here are a few examples.</p>
+<pre><code class="ruby"># `output: false` runs vim without attaching to the TTY, allowing you to run this
+# command in a logging environment as well as a terminal one
+run &quot;vim +PluginInstall -c 'set nomore' +qall&quot;, output: false
+
+# `ignore_list` takes an array of string patterns to ignore from the
+# file list.
+copy &quot;*&quot;, &quot;.&quot;, ignore_list: %w[foo bar]
+</code></pre>
+
+<h3 id="experiment-with-the-repl">Experiment with the REPL</h3>
+<p>The REPL is a line interpreter that immediately gives you feedback on
+any given statement, allowing you to build an image interactively.</p>
+<p>Works great with <code>debug</code>!</p>
+<p>Launch with <code>box repl</code>.</p>
+<h3 id="parallel-building">Parallel Building</h3>
+<p><code>box multi</code> can build several plans at once. Just supply multiple
+filenames!</p>
+<p>Note that multi-builds do not return the output of run statements, largely
+because there would be a lot of noise in parallel execution.</p></div>
         </div>
 
         <footer class="col-md-12">
