@@ -3,7 +3,7 @@ theme: slate
 repo_url: https://github.com/box-builder/box
 pages:
   - "Intro": "index.md"
-  - "Build Plans": "build-plans.md"
+  - "Usage": "usage.md"
   - "User Guide":
     - "Command-Line Options": "user-guide/cli.md"
     - "Verbs": "user-guide/verbs.md"
