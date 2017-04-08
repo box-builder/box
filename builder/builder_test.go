@@ -415,7 +415,7 @@ func (bs *builderSuite) TestTag(c *C) {
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "test")
 	c.Assert(err, IsNil)
 
-	c.Assert(inspect.RepoTags, DeepEquals, []string{"debian:latest", "test:latest"})
+	c.Assert(inspect.RepoTags, DeepEquals, []string{"test:latest"})
 	b.Close()
 }
 
