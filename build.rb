@@ -68,7 +68,11 @@ skip do
 
   workdir "/go/src/github.com/box-builder/box"
   set_exec entrypoint: ["/dind"], cmd: %w[make docker-test]
-  tag "box-test-"+getenv("SUM")
+  sum = getenv("SUM")
+  if sum != ""
+    sum = "-#{sum}"
+  end
+  tag "box-test#{sum}"
 end
 
 run "mv /go/bin/box /box"
