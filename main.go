@@ -53,6 +53,14 @@ func main() {
 			Usage: "Disable the build cache",
 		},
 		cli.BoolFlag{
+			Name:  "no-color",
+			Usage: "Disable colors this run",
+		},
+		cli.BoolFlag{
+			Name:  "force-color",
+			Usage: "Force colors this run",
+		},
+		cli.BoolFlag{
 			Name:  "no-tty",
 			Usage: "Disable TTY features this run",
 		},
@@ -119,7 +127,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		tty := term.IsTerminal(0)
+		tty := term.IsTerminal(1)
 
 		if ctx.Bool("no-tty") {
 			tty = false
@@ -129,11 +137,22 @@ func main() {
 			tty = true
 		}
 
+		color := tty
+
+		if ctx.Bool("no-color") {
+			color = false
+		}
+
+		if ctx.Bool("force-color") {
+			color = true
+		}
+
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		runChan := make(chan struct{})
 		buildConfig := builder.BuildConfig{
 			Globals: &types.Global{
 				ShowRun:   true,
+				Color:     color,
 				TTY:       tty,
 				OmitFuncs: ctx.GlobalStringSlice("omit"),
 				Cache:     getCache(ctx),
@@ -206,6 +225,7 @@ func runMulti(ctx *cli.Context) {
 		buildConfig := builder.BuildConfig{
 			Globals: &types.Global{
 				ShowRun:   false,
+				Color:     true,
 				TTY:       true,
 				OmitFuncs: append(ctx.StringSlice("omit"), "debug"),
 				Cache:     getCache(ctx),

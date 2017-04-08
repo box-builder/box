@@ -16,6 +16,7 @@ type BuildResult struct {
 // Global represents global variables for the processing of an entire box run.
 type Global struct {
 	Cache     bool
+	Color     bool
 	TTY       bool
 	ShowRun   bool
 	OmitFuncs []string
