@@ -63,6 +63,9 @@ func (i *Interpreter) User(username string) error {
 
 // Tag is the `tag` verb.
 func (i *Interpreter) Tag(name string) error {
+	if err := i.exec.Commit("", nil); err != nil {
+		return err
+	}
 	return i.exec.Image().Tag(name)
 }
 

@@ -1,6 +1,6 @@
 from "debian"
 
-after { tag "box-builder/box:master" }
+after { tag "boxbuilder/box:master" }
 DOCKER_VERSION = "1.13.1"
 GOLANG_VERSION = "1.7.5"
 LVM2_VERSION = "2.02.103"
@@ -68,7 +68,11 @@ skip do
 
   workdir "/go/src/github.com/box-builder/box"
   set_exec entrypoint: ["/dind"], cmd: %w[make docker-test]
-  tag "box-test"
+  sum = getenv("SUM")
+  if sum != ""
+    sum = "-#{sum}"
+  end
+  tag "box-test#{sum}"
 end
 
 run "mv /go/bin/box /box"
