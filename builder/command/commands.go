@@ -6,11 +6,6 @@
 //
 package command
 
-/*
-TODO:
-flatten
-*/
-
 import (
 	"github.com/box-builder/box/builder/executor"
 	"github.com/box-builder/box/types"
