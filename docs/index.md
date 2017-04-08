@@ -38,6 +38,10 @@ and debian and redhat packages on the [releases page](https://github.com/box-bui
 
 ## Invocation
 
+### Default plan
+
+If you have `box.rb` in the current directory, you can just run `box`.
+
 ### Use the shell
 
 If you want to try out box quickly, you can use the shell interface, AKA
