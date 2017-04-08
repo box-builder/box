@@ -25,7 +25,8 @@ Some features that differentiate it from `docker build`:
 
 Quick Install: `curl -sSL box-builder.sh | sudo bash`
 
-Just `gunzip` the downloaded file and put it in your path:
+Or [download a release](https://github.com/box-builder/box/releases): Just
+`gunzip` the downloaded file and put it in your path:
 
 ```bash
 $ gunzip box.$(uname -s).gz
@@ -166,5 +167,5 @@ Launch with `box repl`.
 `box multi` can build several plans at once. Just supply multiple
 filenames!
 
-Multi-builds do not return run output and build in parallel, so there
-will be a lot of output in many cases.
+Note that multi-builds do not return the output of run statements, largely
+because there would be a lot of noise in parallel execution.
