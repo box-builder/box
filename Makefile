@@ -1,3 +1,4 @@
+SUM := $(shell head -c 16 /dev/urandom | sha256sum | awk '{ print $$1 }' | tail -c 16)
 PACKAGES := ./cli-tests ./layers ./image ./tar ./multi ./builder/executor/docker ./builder
 BUILD_TAGS := "btrfs_noversion libdm_no_deferred_remove"
 
@@ -32,20 +33,23 @@ checks: fetch
 	@sh checks.sh
  
 build:
-	go run -tags $(BUILD_TAGS) main.go build.rb
+	SUM=${SUM} go run -tags $(BUILD_TAGS) main.go build.rb
  
 build-ci:
-	CI_BUILD=1 go run -tags $(BUILD_TAGS) main.go --no-tty build.rb
+	SUM=${SUM} CI_BUILD=1 go run -tags $(BUILD_TAGS) main.go --no-tty build.rb
 
 run-test-ci:
-	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -i box-test
+	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -i box-test-${SUM}
 
 run-test:
-	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -it box-test
+	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -it box-test-${SUM}
 
-test-ci: checks build-ci run-test-ci
+rmi:
+	docker rmi box-test-${SUM}
 
-test: checks all build run-test
+test-ci: checks build-ci run-test-ci rmi
+
+test: checks all build run-test rmi
 
 release: clean all test
 	VERSION=${VERSION} RELEASE=1 go run main.go -n -t box-builder/box:${VERSION} build.rb
