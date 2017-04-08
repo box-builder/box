@@ -15,6 +15,8 @@ import (
 	"github.com/box-builder/box/signal"
 	"github.com/box-builder/box/types"
 	"github.com/chzyer/readline"
+	"github.com/docker/docker/pkg/term"
+	"github.com/fatih/color"
 )
 
 const (
@@ -42,12 +44,15 @@ func NewRepl(omit []string, log *logger.Logger) (*Repl, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	globals := &types.Global{
 		OmitFuncs: omit,
-		TTY:       true,
+		TTY:       term.IsTerminal(1),
+		Color:     true,
 		Cache:     false,
 		ShowRun:   true,
 		Logger:    log,
 		Context:   ctx,
 	}
+
+	color.NoColor = false // force color on
 
 	exec, err := docker.NewDocker(globals)
 	if err != nil {
@@ -95,7 +100,7 @@ func (r *Repl) Loop() error {
 			if line != "" {
 				r.readline.SetPrompt(normalPrompt)
 			} else {
-				fmt.Println("You can press ^D or type \"quit\", \"exit\" to exit the shell")
+				fmt.Println("You can press ^D or type \"quit\" or \"exit\" to exit the shell")
 			}
 
 			line = ""
