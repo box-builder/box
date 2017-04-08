@@ -1,6 +1,6 @@
 from "debian"
 
-after { tag "box-builder/box:master" }
+after { tag "boxbuilder/box:master" }
 DOCKER_VERSION = "1.13.1"
 GOLANG_VERSION = "1.7.5"
 LVM2_VERSION = "2.02.103"

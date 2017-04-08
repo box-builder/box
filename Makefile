@@ -52,9 +52,9 @@ test-ci: checks build-ci run-test-ci rmi
 test: checks all build run-test rmi
 
 release: clean all test
-	VERSION=${VERSION} RELEASE=1 go run main.go -n -t box-builder/box:${VERSION} build.rb
+	VERSION=${VERSION} RELEASE=1 go run main.go -n -t boxbuilder/box:${VERSION} build.rb
 	docker rm -f box-build-${VERSION} || :
-	docker run --name box-build-${VERSION} --entrypoint /bin/bash box-builder/box:${VERSION} -c 'exit 0'
+	docker run --name box-build-${VERSION} --entrypoint /bin/bash boxbuilder/box:${VERSION} -c 'exit 0'
 	docker cp box-build-${VERSION}:/box .
 	docker rm box-build-${VERSION}
 	sh release/release.sh ${VERSION}
