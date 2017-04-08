@@ -119,10 +119,14 @@ func main() {
 			os.Exit(1)
 		}
 
-		tty := !ctx.Bool("no-tty")
+		tty := term.IsTerminal(0)
 
-		if !term.IsTerminal(0) {
-			tty = ctx.Bool("force-tty")
+		if ctx.Bool("no-tty") {
+			tty = false
+		}
+
+		if ctx.Bool("force-tty") {
+			tty = true
 		}
 
 		cancelCtx, cancel := context.WithCancel(context.Background())
