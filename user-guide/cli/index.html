@@ -109,7 +109,7 @@
                 </li>
                 
                 <li>
-                    <a href="https://github.com/erikh/box">
+                    <a href="https://github.com/box-builder/box">
                         
                             <i class="fa fa-github"></i>
                         
@@ -148,6 +148,9 @@
         
     
         <li class="main "><a href="#-force-tty">--force-tty</a></li>
+        
+    
+        <li class="main "><a href="#-no-trim">--no-trim</a></li>
         
     
     </ul>
@@ -202,7 +205,11 @@ many programs to behave different specifically in <code>run</code> statements, a
 <p>No TTY mode is the default when unix pipes are involved.</p>
 <h2 id="-force-tty">--force-tty</h2>
 <p>Force the TTY on even if it is off for some reason.</p>
-<p>The combination of <code>--no-tty --force-tty</code> is to force the tty.</p></div>
+<p>The combination of <code>--no-tty --force-tty</code> is to force the tty.</p>
+<h2 id="-no-trim">--no-trim</h2>
+<p>By default, box trims output to the width of the current terminal (unless 
+there is no terminal). This boolean option prevents that behavior, causing box
+to print the complete output.</p></div>
         </div>
 
         <footer class="col-md-12">

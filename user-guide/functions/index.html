@@ -109,7 +109,7 @@
                 </li>
                 
                 <li>
-                    <a href="https://github.com/erikh/box">
+                    <a href="https://github.com/box-builder/box">
                         
                             <i class="fa fa-github"></i>
                         
@@ -158,8 +158,7 @@ your build for further processing; the <code>read</code> function allows that.</
 <h2 id="save">save</h2>
 <p><code>save</code> saves an image with parameters:</p>
 <ul>
-<li><code>tag</code>: tag the image in the docker image store. This does not generate a
-  commit, like the <code>tag</code> verb does.</li>
+<li><code>tag</code>: tag the image in the docker image store.</li>
 <li><code>file</code>: save the image to a file. The resulting file will be a bare tarball
   with the image contents, suitable for <code>docker load</code>.</li>
 <li><code>type</code>: Two options: <code>docker</code>, and <code>oci</code>.</li>
@@ -241,8 +240,8 @@ the user. This works by reading the /etc/passwd file in the image.</p>
 <p>Yields an error if it cannot find the user or from has not been called.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
-run &quot;useradd -m -d /home/erikh -s /bin/sh erikh&quot;
-run &quot;id #{getuid(&quot;erikh&quot;)}&quot;
+run &quot;useradd -m -d /home/box-builder -s /bin/sh box-builder&quot;
+run &quot;id #{getuid(&quot;box-builder&quot;)}&quot;
 </code></pre>
 
 <h2 id="getgid">getgid</h2>

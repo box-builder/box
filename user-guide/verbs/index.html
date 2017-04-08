@@ -109,7 +109,7 @@
                 </li>
                 
                 <li>
-                    <a href="https://github.com/erikh/box">
+                    <a href="https://github.com/box-builder/box">
                         
                             <i class="fa fa-github"></i>
                         
@@ -220,7 +220,7 @@ and/or programs.</p>
 <pre><code class="ruby">from &quot;debian&quot;
 copy &quot;.&quot;, &quot;/test&quot;
 debug # verify all files landed in test like you expected them to
-run &quot;chown -R erikh:erikh /test&quot; # this will run after you close the shell
+run &quot;chown -R box-builder:box-builder /test&quot; # this will run after you close the shell
 </code></pre>
 
 <h2 id="after">after</h2>
@@ -295,7 +295,7 @@ can take a lot of time over remote connections and is not advised.</p>
 run &quot;true&quot;
 copy &quot;.&quot;, &quot;/test&quot;
 flatten # image is shrunk to one layer here
-tag &quot;erikh/test&quot;
+tag &quot;box-builder/test&quot;
 </code></pre>
 
 <h2 id="tag">tag</h2>
@@ -304,7 +304,7 @@ It must be a valid tag name.</p>
 <p>Example:</p>
 <pre><code class="ruby">from &quot;debian&quot;
 run &quot;true&quot; # create a layer
-tag &quot;erikh/true&quot; # tag the latest image as &quot;erikh/true&quot;
+tag &quot;box-builder/true&quot; # tag the latest image as &quot;box-builder/true&quot;
 </code></pre>
 
 <h2 id="entrypoint">entrypoint</h2>
@@ -378,12 +378,12 @@ with_user &quot;nobody&quot; do # just the commands inside this block will run a
 end
 
 # notice how we are still root
-run &quot;useradd -s /bin/sh -m -d /home/erikh erikh&quot;
+run &quot;useradd -s /bin/sh -m -d /home/box-builder box-builder&quot;
 
-# all commands from here on will run as `erikh`, overridden only by `with_user`
+# all commands from here on will run as `box-builder`, overridden only by `with_user`
 # and other `user` calls.
-user &quot;erikh&quot;
-run &quot;echo foo &gt;/tmp/erikh-file&quot;
+user &quot;box-builder&quot;
+run &quot;echo foo &gt;/tmp/box-builder-file&quot;
 
 # set the workdir temporarily for the commands within the block.
 # this will create /tmp/another-file-in-tmp.

@@ -109,7 +109,7 @@
                 </li>
                 
                 <li>
-                    <a href="https://github.com/erikh/box">
+                    <a href="https://github.com/box-builder/box">
                         
                             <i class="fa fa-github"></i>
                         
@@ -183,7 +183,7 @@ allow new actions, such as flattening and tagging images.</p>
 </li>
 </ul>
 <h2 id="getting-box">Getting Box</h2>
-<p><strong><a href="https://github.com/erikh/box/releases/">Download a Release</a></strong></p>
+<p><strong><a href="https://github.com/box-builder/box/releases/">Download a Release</a></strong></p>
 <h3 id="installation">Installation</h3>
 <p>Quick Install: <code>curl -sSL box-builder.sh | sudo bash</code></p>
 <p>Just <code>gunzip</code> the downloaded file and put it in your path:</p>
@@ -192,8 +192,8 @@ $ chmod 755 box.$(uname -s)
 $ sudo mv box.$(uname -s) /usr/local/bin/box
 </code></pre>
 
-<p>Alternatively, we have a <a href="https://github.com/erikh/homebrew-box">homebrew tap</a>
-and debian and redhat packages on the <a href="https://github.com/erikh/box/releases">releases page</a>.</p>
+<p>Alternatively, we have a <a href="https://github.com/box-builder/homebrew-box">homebrew tap</a>
+and debian and redhat packages on the <a href="https://github.com/box-builder/box/releases">releases page</a>.</p>
 <h2 id="invocation">Invocation</h2>
 <h3 id="use-the-shell">Use the shell</h3>
 <p>If you want to try out box quickly, you can use the shell interface, AKA
@@ -213,13 +213,13 @@ argument:</p>
 </code></pre>
 
 <p>The current working directory that Box runs in is very important, it is the
-jumping-off point for most copy operations. If you run the <code>erikh/box</code>
+jumping-off point for most copy operations. If you run the <code>box-builder/box</code>
 container, you may wish to run it in this way:</p>
 <pre><code class="bash">$ docker run -i \
   -v $PWD:$PWD \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -w $PWD \
-  erikh/box:latest myplan.rb
+  box-builder/box:latest myplan.rb
 </code></pre>
 
 <p>For additional flags and functionality, see the help:</p>
@@ -286,10 +286,10 @@ populating it with sums and command instructions in a very similar way that
 
 <h2 id="example-box-plan-advanced-version">Example Box Plan (advanced version)</h2>
 <p>This is the Box plan we use to build Box itself. It uses many of its
-features. Be sure to check the <a href="https://erikh.github.io/box/verbs/">verbs</a> to
+features. Be sure to check the <a href="https://box-builder.github.io/box/verbs/">verbs</a> to
 refer to different constructs used in the file.</p>
 <p>You can find the latest version of it
-<a href="https://github.com/erikh/box/blob/master/build.rb">here</a> too.</p>
+<a href="https://github.com/box-builder/box/blob/master/build.rb">here</a> too.</p>
 <pre><code class="ruby">from &quot;golang&quot;
 
 skip do
@@ -325,10 +325,10 @@ skip do
 
   run &quot;pip -q install mkdocs mkdocs-bootswatch&quot;
 
-  copy &quot;.&quot;, &quot;/go/src/github.com/erikh/box&quot;
-  run &quot;cd /go/src/github.com/erikh/box &amp;&amp; make clean install&quot;
+  copy &quot;.&quot;, &quot;/go/src/github.com/box-builder/box&quot;
+  run &quot;cd /go/src/github.com/box-builder/box &amp;&amp; make clean install&quot;
 
-  workdir &quot;/go/src/github.com/erikh/box&quot;
+  workdir &quot;/go/src/github.com/box-builder/box&quot;
   set_exec entrypoint: [&quot;/dind&quot;], cmd: [&quot;make&quot;, &quot;docker-test&quot;]
   tag &quot;box-test&quot;
 end
@@ -338,7 +338,7 @@ set_exec entrypoint: [&quot;/box&quot;], cmd: []
 </code></pre>
 
 <h2 id="caveats">Caveats</h2>
-<p>You can see <a href="https://github.com/erikh/box/issues">all of our issues</a> here.</p></div>
+<p>You can see <a href="https://github.com/box-builder/box/issues">all of our issues</a> here.</p></div>
         </div>
 
         <footer class="col-md-12">
