@@ -179,7 +179,3 @@ end
 run "mv /go/bin/box /box"
 set_exec entrypoint: ["/box"], cmd: []
 ```
-
-## Caveats
-
-You can see [all of our issues](https://github.com/box-builder/box/issues) here.
