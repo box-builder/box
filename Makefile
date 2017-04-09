@@ -24,11 +24,6 @@ clean:
 docs:
 	mkdocs gh-deploy --clean
 
-bootstrap:
-	docker run --rm -i -w ${PWD} -v /var/run/docker.sock:/var/run/docker.sock -v ${PWD}:${PWD} box-builder/box:latest /dev/stdin < build.rb
-
-bootstrap-test: bootstrap run-test
-
 checks: fetch
 	@sh checks.sh
  
