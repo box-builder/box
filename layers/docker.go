@@ -2,21 +2,13 @@ package layers
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/box-builder/box/builder/config"
 	"github.com/box-builder/box/fetcher"
 	"github.com/box-builder/box/image"
 	"github.com/box-builder/box/types"
-	"github.com/containers/image/copy"
-	"github.com/containers/image/docker/daemon"
-	"github.com/containers/image/signature"
-	ctypes "github.com/containers/image/types"
-	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/client"
 )
 
@@ -130,118 +122,6 @@ func (d *Docker) calculateCommits(layers []*image.Layer) []*image.Layer {
 	}
 
 	return commitLayers
-}
-
-func (d *Docker) consumeEdits(progressChan chan ctypes.ProgressProperties) {
-	var last string
-	for prog := range progressChan {
-		if d.globals.TTY {
-			digest := prog.Artifact.Digest.String()
-
-			if digest == last {
-				fmt.Fprint(d.globals.Logger.Output(), "\r")
-			} else if last != "" {
-				fmt.Fprintln(d.globals.Logger.Output())
-			}
-
-			d.globals.Logger.Progress(strings.SplitN(digest, ":", 2)[1][:12], float64(prog.Offset/megaByte))
-			last = digest
-		}
-	}
-
-	if d.globals.TTY {
-		fmt.Fprintln(d.globals.Logger.Output())
-	}
-}
-
-func (d *Docker) makeImage(from string) (string, error) {
-	ref, err := daemon.ParseReference(from)
-	if err != nil {
-		return "", err
-	}
-
-	img, err := ref.NewImage(nil)
-	if err != nil {
-		return "", err
-	}
-	defer img.Close()
-
-	tgtRef, err := reference.ParseNamed(from)
-	if err != nil {
-		return "", err
-	}
-
-	tgt, err := daemon.NewReference("", tgtRef)
-	if err != nil {
-		return "", err
-	}
-
-	pc, err := signature.NewPolicyContext(&signature.Policy{
-		Default: []signature.PolicyRequirement{signature.NewPRInsecureAcceptAnything()},
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	progressChan := make(chan ctypes.ProgressProperties)
-
-	go d.consumeEdits(progressChan)
-
-	if d.globals.TTY {
-		d.globals.Logger.Print(d.globals.Logger.Notice("Editing image\n"))
-	} else {
-		d.globals.Logger.Print(d.globals.Logger.Notice("Editing image..."))
-	}
-
-	img2, err := copy.Image(pc, tgt, ref, &copy.Options{
-		RemoveSignatures: true,
-		LayerCopyHook: func(srcLayer ctypes.BlobInfo) bool {
-			var found bool
-			for _, l := range d.layers {
-				if srcLayer.Digest.String() == l {
-					found = true
-				}
-			}
-
-			return found
-		},
-		Progress:         progressChan,
-		ProgressInterval: 100 * time.Millisecond,
-	})
-	close(progressChan)
-	if err != nil {
-		return "", err
-	}
-
-	if !d.globals.TTY {
-		fmt.Fprintln(d.globals.Logger.Output(), "done.")
-	}
-
-	return img2.ConfigInfo().Digest.String(), nil
-}
-
-// MakeImage makes the final image, skipping any layers as necessary. The
-// layers must be pre-recorded within the executor. Note that if you have no
-// layers to skip, this operation will need to do nothing, so it will do
-// nothing.
-//
-// It returns an error condition, if any.
-func (d *Docker) MakeImage(config *config.Config) (string, error) {
-	// this is principally an optimization so we can determine later if we
-	// need to reconstruct the image.
-	if len(d.skipLayers) == 0 {
-		return config.Image, nil
-	}
-
-	var err error
-
-	config.Image, err = d.makeImage(config.Image)
-	if err != nil {
-		return "", err
-	}
-
-	return config.Image, nil
 }
 
 // Lookup an image by name, returning the id.
