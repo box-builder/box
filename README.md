@@ -50,11 +50,11 @@ You can however:
 
 * Define classes, functions, variables and constants
 * Access the environment through the
-  [getenv](/user-guide/functions/#getenv) box function (which is also
-  [omittable](/user-guide/cli/#-omit-o) if you don't want people to use
+  [getenv](https://box-builder.github.io/box/user-guide/functions/#getenv) box function (which is also
+  [omittable](https://box-builder.github.io/box/user-guide/cli/#-omit-o) if you don't want people to use
   it)
-* Retrieve the contents of container files with [read](/user-guide/functions/#read)
-* [import](/user-guide/functions/#import) libraries (also written in
+* Retrieve the contents of container files with [read](https://box-builder.github.io/box/user-guide/functions/#read)
+* [import](https://box-builder.github.io/box/user-guide/functions/#import) libraries (also written in
   mruby) to re-use common build plan components.
 
 ### Tagging and Image Editing
@@ -63,8 +63,8 @@ You can tag images mid-plan to create multiple images, each subsets (or
 supersets, depending on how you look at it) of each other.
 
 Additionally, you can use functions like
-[after](/user-guide/verbs/#after), [skip](/user-guide/functions/#skip),
-and [flatten](/user-guide/verbs/#flatten) to manipulate images in ways
+[after](https://box-builder.github.io/box/user-guide/verbs/#after), [skip](https://box-builder.github.io/box/user-guide/functions/#skip),
+and [flatten](https://box-builder.github.io/box/user-guide/verbs/#flatten) to manipulate images in ways
 you may not have considered:
 
 ```ruby
