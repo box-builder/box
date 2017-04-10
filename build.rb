@@ -1,6 +1,10 @@
 from "debian"
 
-after { tag "boxbuilder/box:master" }
+after do
+  tag "boxbuilder/box:master"
+  save file: "box-builder.oci.tar", kind: :oci
+end
+
 DOCKER_VERSION = "1.13.1"
 GOLANG_VERSION = "1.7.5"
 LVM2_VERSION = "2.02.103"
@@ -63,7 +67,7 @@ skip do
   run "pip -q install mkdocs mkdocs-bootswatch"
 
   env "PATH" => "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/usr/local/go/bin:/go/bin", "GOPATH" => "/go"
-  copy ".", "/go/src/github.com/box-builder/box"
+  copy ".", "/go/src/github.com/box-builder/box", ignore_file: ".boxignore"
   run "cd /go/src/github.com/box-builder/box && VERSION=#{getenv("VERSION")} make clean install-static"
 
   workdir "/go/src/github.com/box-builder/box"
