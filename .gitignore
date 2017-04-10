@@ -1,3 +1,4 @@
+box-builder.oci.tar
 ./box[_-]*
 ./box
 libmruby.a

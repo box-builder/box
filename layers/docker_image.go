@@ -8,18 +8,14 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/box-builder/box/copy"
 	"github.com/box-builder/box/image"
-	"github.com/box-builder/box/tar"
-	ccopy "github.com/containers/image/copy"
-	"github.com/containers/image/docker/daemon"
-	"github.com/containers/image/oci/layout"
-	"github.com/containers/image/signature"
-	ctypes "github.com/containers/image/types"
+	om "github.com/box-builder/overmount"
+	"github.com/box-builder/overmount/imgio"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
@@ -44,70 +40,34 @@ func NewDockerImage(imageConfig *ImageConfig) (*DockerImage, error) {
 }
 
 func (d *DockerImage) ociSave(filename, tag string) error {
-	ref, err := daemon.ParseReference(d.imageConfig.Config.Image)
+	repo, err := om.NewRepository(path.Join(os.Getenv("HOME"), ".overmount"), true)
 	if err != nil {
 		return err
 	}
 
-	tmpdir, err := ioutil.TempDir("", "image-")
+	img, err := imgio.NewDocker(d.client)
 	if err != nil {
 		return err
 	}
 
-	tgt, err := layout.NewReference(tmpdir, tag)
+	reader, err := d.client.ImageSave(d.imageConfig.Globals.Context, []string{d.imageConfig.Config.Image})
 	if err != nil {
 		return err
 	}
 
-	pc, err := signature.NewPolicyContext(&signature.Policy{
-		Default: []signature.PolicyRequirement{signature.NewPRInsecureAcceptAnything()},
-	})
-
+	layers, err := repo.Import(img, reader)
 	if err != nil {
 		return err
 	}
 
-	progressChan := make(chan ctypes.ProgressProperties)
+	if len(layers) != 1 {
+		return errors.New("image query expected one, returned more than one image")
+	}
 
-	go func() {
-		var last string
-		for prog := range progressChan {
-			digest := prog.Artifact.Digest.String()
-
-			if digest == last {
-				fmt.Print("\r")
-			} else if last != "" {
-				fmt.Println()
-			}
-
-			d.imageConfig.Globals.Logger.Progress(strings.SplitN(digest, ":", 2)[1][:12], float64(prog.Offset/megaByte))
-			last = digest
-		}
-
-		fmt.Println()
-	}()
-
-	_, err = ccopy.Image(pc, tgt, ref, &ccopy.Options{
-		RemoveSignatures: true,
-		ProgressInterval: 100 * time.Millisecond,
-		Progress:         progressChan,
-	})
-
+	imageContent, err := repo.Export(imgio.NewOCI(), layers[0], []string{tag})
 	if err != nil {
 		return err
 	}
-
-	file, _, err := tar.Archive(d.imageConfig.Globals.Context, tmpdir, "", nil, d.imageConfig.Globals.Logger)
-	if err != nil {
-		return err
-	}
-
-	// manually copy the file
-	r, err := os.Open(file)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
 
 	w, err := os.Create(filename)
 	if err != nil {
@@ -115,7 +75,7 @@ func (d *DockerImage) ociSave(filename, tag string) error {
 	}
 	defer w.Close()
 
-	return copy.WithProgress(w, r, d.imageConfig.Globals.Logger, fmt.Sprintf("Saving %q", filename))
+	return copy.WithProgress(w, imageContent, d.imageConfig.Globals.Logger, fmt.Sprintf("Saving %q", filename))
 }
 
 func (d *DockerImage) dockerSave(f io.WriteCloser, filename, tag string) error {
