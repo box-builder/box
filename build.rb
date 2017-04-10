@@ -6,7 +6,7 @@ after do
 end
 
 DOCKER_VERSION = "1.13.1"
-GOLANG_VERSION = "1.7.5"
+GOLANG_VERSION = "1.8.1"
 
 PACKAGES = %w[
   build-essential
