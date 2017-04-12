@@ -1241,3 +1241,17 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 	`)
 	c.Assert(err, IsNil)
 }
+
+func (bs *builderSuite) TestCommitAfter(c *C) {
+	_, err := runBuilder(`
+	from "debian:latest"
+	after { tag "debian:test" }
+	skip do
+		run "apt-get update"
+	end
+	`)
+
+	c.Assert(err, IsNil)
+	_, _, err = dockerClient.ImageInspectWithRaw(context.Background(), "debian:test")
+	c.Assert(err, IsNil)
+}
