@@ -20,10 +20,9 @@ import (
 type unpackedImage struct {
 	tempdir        string
 	images         []*image.Image
+	chainParentMap map[string]string
 	layers         map[string]*om.Layer
-	layerFileMap   map[string]string
-	layerParentMap map[string]string
-	tagMap         map[string][]string
+	tagMap         map[digest.Digest][]string
 }
 
 // Import takes a tar represented as an io.Reader, and converts and unpacks
@@ -55,32 +54,16 @@ func (d *Docker) constructImage(r *om.Repository, up *unpackedImage) ([]*om.Laye
 	layers := []*om.Layer{}
 	digestMap := map[digest.Digest]*om.Layer{}
 
-	for layerID, filename := range up.layerFileMap {
-		layer, ok := up.layers[layerID]
-		if !ok {
-			return nil, errors.Errorf("invalid layer id %v", layerID)
-		}
+	for layerID, layer := range up.layers {
+		if parent, ok := up.layers[up.chainParentMap[layerID]]; ok {
+			layer.Parent = parent
 
-		f, err := os.Open(filename)
-		if err != nil {
-			return nil, err
-		}
-
-		defer f.Close()
-		layer.Parent = up.layers[up.layerParentMap[layerID]]
-
-		var dg digest.Digest
-
-		dg, err = layer.Unpack(f)
-		if err == nil {
 			if err := layer.SaveParent(); err != nil {
 				return nil, err
 			}
-		} else if !os.IsExist(err) {
-			return nil, err
 		}
 
-		digestMap[dg] = layer
+		digestMap[layer.Digest()] = layer
 	}
 
 	for _, img := range up.images {
@@ -90,11 +73,23 @@ func (d *Docker) constructImage(r *om.Repository, up *unpackedImage) ([]*om.Laye
 			return nil, errors.New("top layer doesn't appear to exist")
 		}
 
+		// force a write on the top layer.
 		if err := top.SaveConfig(configmap.FromDockerV1(&img.V1Image)); err != nil {
 			return nil, err
 		}
 
-		tags, ok := up.tagMap[top.ID()]
+		// cascade the config through the image until we find another config.
+		for iter := top.Parent; iter != nil; iter = iter.Parent {
+			if _, err := iter.Config(); err == nil {
+				break
+			}
+
+			if err := iter.SaveConfig(configmap.FromDockerV1(&img.V1Image)); err != nil {
+				return nil, err
+			}
+		}
+
+		tags, ok := up.tagMap[topLayer]
 		if ok {
 			for _, tag := range tags {
 				if err := r.AddTag(tag, top); err != nil {
@@ -112,11 +107,10 @@ func (d *Docker) constructImage(r *om.Repository, up *unpackedImage) ([]*om.Laye
 func (d *Docker) unpackLayers(r *om.Repository, tempdir string) (*unpackedImage, error) {
 	up := &unpackedImage{
 		tempdir:        tempdir,
-		layerFileMap:   map[string]string{},
-		layerParentMap: map[string]string{},
+		chainParentMap: map[string]string{},
 		layers:         map[string]*om.Layer{},
 		images:         []*image.Image{},
-		tagMap:         map[string][]string{},
+		tagMap:         map[digest.Digest][]string{},
 	}
 
 	err := filepath.Walk(tempdir, func(p string, fi os.FileInfo, err error) error {
@@ -128,45 +122,36 @@ func (d *Docker) unpackLayers(r *om.Repository, tempdir string) (*unpackedImage,
 
 			layerJSON := map[string]interface{}{}
 
-			if err := json.NewDecoder(f).Decode(&layerJSON); err != nil {
-				f.Close()
+			err = json.NewDecoder(f).Decode(&layerJSON)
+			f.Close()
+			if err != nil {
 				return err
 			}
-			f.Close()
 
 			layerID, ok := layerJSON["id"].(string)
 			if !ok {
 				return errors.New("invalid layer id")
 			}
 
-			up.layerFileMap[layerID] = p
-
 			if _, ok := layerJSON["parent"]; ok {
-				up.layerParentMap[layerID], ok = layerJSON["parent"].(string)
+				up.chainParentMap[layerID], ok = layerJSON["parent"].(string)
 				if !ok {
 					return errors.New("invalid parent ID")
 				}
 			}
 
-			layer, err := r.CreateLayer(layerID, nil)
+			f, err = os.Open(p)
+			if err != nil {
+				return err
+			}
+
+			layer, err := r.CreateLayerFromAsset(f, nil, true)
+			f.Close()
 			if err != nil {
 				return err
 			}
 
 			up.layers[layerID] = layer
-		} else if path.Ext(p) == ".json" && path.Base(p) != "manifest.json" {
-			content, err := ioutil.ReadFile(p)
-			if err != nil {
-				return err
-			}
-
-			img := &image.Image{}
-
-			if err := json.Unmarshal(content, img); err != nil {
-				return err
-			}
-
-			up.images = append(up.images, img)
 		} else if path.Base(p) == "manifest.json" {
 			content, err := ioutil.ReadFile(p)
 			if err != nil {
@@ -192,12 +177,26 @@ func (d *Docker) unpackLayers(r *om.Repository, tempdir string) (*unpackedImage,
 
 				lastLayer := layers[len(layers)-1].(string)
 				lastLayer = path.Dir(lastLayer)
-				up.tagMap[lastLayer] = []string{}
+				dg := up.layers[lastLayer].Digest()
+				up.tagMap[dg] = []string{}
 
 				for _, tag := range tags {
-					up.tagMap[lastLayer] = append(up.tagMap[lastLayer], tag.(string))
+					up.tagMap[dg] = append(up.tagMap[dg], tag.(string))
 				}
 			}
+		} else if path.Ext(p) == ".json" {
+			content, err := ioutil.ReadFile(p)
+			if err != nil {
+				return err
+			}
+
+			img := &image.Image{}
+
+			if err := json.Unmarshal(content, img); err != nil {
+				return err
+			}
+
+			up.images = append(up.images, img)
 		}
 		return nil
 	})
