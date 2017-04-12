@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 
 	"github.com/box-builder/box/builder/config"
 	"github.com/box-builder/box/pull"
@@ -15,6 +16,11 @@ import (
 
 // Docker does stuff
 func Docker(context context.Context, globals *btypes.Global, client *client.Client, config *config.Config, name string) (string, []string, error) {
+	if !strings.Contains(name, ":") {
+		// if we don't have a sub-tag, we need to add :latest to avoid pulling the whole repo.
+		name += ":latest"
+	}
+
 	inspect, _, err := client.ImageInspectWithRaw(context, name)
 	if err != nil {
 		reader, err := client.ImagePull(context, name, types.ImagePullOptions{})
