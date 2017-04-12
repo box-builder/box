@@ -21,9 +21,75 @@ const (
 	virtualLayerPath = "layer.tar"
 )
 
+// CreateLayerFromAsset prepares a new layer for work and creates it in the
+// repository. The ID is calculated from the digest.
+func (r *Repository) CreateLayerFromAsset(reader io.Reader, parent *Layer, overwrite bool) (retLayer *Layer, retErr error) {
+	var path string
+	var err error
+	if r.IsVirtual() {
+		f, err := r.TempFile()
+		if err != nil {
+			return nil, err
+		}
+		f.Close()
+		path = f.Name()
+
+		defer func() {
+			if retErr != nil {
+				os.Remove(path)
+			}
+		}()
+	} else {
+		path, err = r.TempDir()
+		if err != nil {
+			return nil, err
+		}
+
+		defer func() {
+			if retErr != nil {
+				os.RemoveAll(path)
+			}
+		}()
+	}
+
+	asset, err := NewAsset(path, digest.SHA256.Digester(), r.IsVirtual())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := asset.Unpack(reader); err != nil {
+		return nil, err
+	}
+
+	layer, err := r.NewLayer(asset.Digest().Hex(), parent)
+	if err != nil {
+		return nil, err
+	}
+
+	if overwrite {
+		if err := os.RemoveAll(layer.layerBase()); err != nil && !os.IsNotExist(err) {
+			return nil, err
+		}
+	}
+
+	if err := layer.Create(); err != nil {
+		return nil, err
+	}
+
+	if err := os.Rename(path, layer.Path()); err != nil {
+		return nil, err
+	}
+
+	// FIXME some hackery around moving the asset; should probably codify.
+	asset.path = layer.Path()
+	layer.asset = asset
+
+	return layer, layer.SaveParent()
+}
+
 // CreateLayer prepares a new layer for work and creates it in the repository.
-func (r *Repository) CreateLayer(id string, parent *Layer) (*Layer, error) {
-	return r.newLayer(id, parent, true)
+func (r *Repository) CreateLayer(id string, parent *Layer, overwrite bool) (*Layer, error) {
+	return r.newLayer(id, parent, true, overwrite)
 }
 
 // NewLayer prepares a new layer for work but DOES NOT add it to the
@@ -36,10 +102,14 @@ func (r *Repository) NewLayer(id string, parent *Layer) (*Layer, error) {
 		return layer, nil
 	}
 
-	return r.newLayer(id, parent, false)
+	return r.newLayer(id, parent, false, false)
 }
 
-func (r *Repository) newLayer(id string, parent *Layer, create bool) (*Layer, error) {
+func (r *Repository) newLayer(id string, parent *Layer, create, overwrite bool) (*Layer, error) {
+	if id == "" {
+		return nil, errors.Wrap(ErrInvalidLayer, "ID is empty")
+	}
+
 	var err error
 
 	layer := &Layer{
@@ -50,13 +120,13 @@ func (r *Repository) newLayer(id string, parent *Layer, create bool) (*Layer, er
 		editMutex:  new(sync.Mutex),
 	}
 
-	if create && !layer.Exists() {
+	if overwrite || (create && !layer.Exists()) {
 		if err := layer.Create(); err != nil {
 			return layer, err // return the layer here (document later) in case they need to clean it up.
 		}
 	}
 
-	if err := r.AddLayer(layer); err != nil {
+	if err := r.AddLayer(layer, overwrite); err != nil {
 		return nil, err
 	}
 
@@ -93,7 +163,13 @@ func (l *Layer) Exists() bool {
 }
 
 // Digest returns the digest.Digest for the layer and any error.
-func (l *Layer) Digest() (digest.Digest, error) {
+func (l *Layer) Digest() digest.Digest {
+	return l.asset.Digest()
+}
+
+// LoadDigest recalculates the digest for the asset, and returns it (and any
+// error)
+func (l *Layer) LoadDigest() (digest.Digest, error) {
 	return l.asset.LoadDigest()
 }
 

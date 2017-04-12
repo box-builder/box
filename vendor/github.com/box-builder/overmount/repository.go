@@ -92,9 +92,9 @@ func (r *Repository) edit(editFunc func() error) error {
 }
 
 // AddLayer adds a layer to the repository.
-func (r *Repository) AddLayer(layer *Layer) error {
+func (r *Repository) AddLayer(layer *Layer, overwrite bool) error {
 	return r.edit(func() error {
-		if _, ok := r.layers[layer.id]; ok {
+		if _, ok := r.layers[layer.id]; ok && !overwrite {
 			return ErrLayerExists
 		}
 		r.layers[layer.id] = layer

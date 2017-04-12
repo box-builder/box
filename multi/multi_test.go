@@ -200,7 +200,7 @@ func (ms *multiSuite) TestBuilderBasic(c *C) {
 }
 
 func (ms *multiSuite) TestMultiFrom(c *C) {
-	imageName := "alpine"
+	imageName := "alpine:latest"
 
 	_, err := dockerClient.ImageRemove(context.Background(), imageName, types.ImageRemoveOptions{Force: true, PruneChildren: true})
 	c.Assert(err, IsNil)
