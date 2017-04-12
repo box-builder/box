@@ -9,6 +9,7 @@ import (
 	"path"
 	"strings"
 
+	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 
 	"github.com/box-builder/box/builder/config"
@@ -22,26 +23,9 @@ const imgIDText = "Loaded image ID: "
 func (d *Docker) editLayers(layer *om.Layer) ([]*om.Layer, error) {
 	editedLayers := []*om.Layer{}
 
-	calcR, calcW := io.Pipe()
-	defer calcW.Close()
-
-	digestMap := map[string]string{}
-
-	go copy.WithProgress(ioutil.Discard, calcR, d.globals.Logger, "Calculating Layers")
-	for iter := layer; iter != nil; iter = iter.Parent {
-		digest, err := iter.Pack(calcW)
-		if err != nil {
-			return nil, err
-		}
-
-		digestMap[iter.ID()] = digest.String()
-	}
-
-	calcW.Close()
-
 	for iter := layer; iter != nil; iter = iter.Parent {
 		for _, lid := range d.layers {
-			if lid == digestMap[iter.ID()] {
+			if digest.Digest(lid) == iter.Digest() {
 				editedLayers = append(editedLayers, iter)
 			}
 		}
@@ -51,9 +35,12 @@ func (d *Docker) editLayers(layer *om.Layer) ([]*om.Layer, error) {
 		return nil, errors.New("layer count would be 0 after edits")
 	}
 
-	// off-by-one is intentional to avoid mutating the root
-	for i := 0; i < len(editedLayers)-1; i++ {
-		editedLayers[i].Parent = editedLayers[i+1]
+	for i := 0; i < len(editedLayers); i++ {
+		if i == len(editedLayers)-1 {
+			editedLayers[i].Parent = nil
+		} else {
+			editedLayers[i].Parent = editedLayers[i+1]
+		}
 	}
 
 	return editedLayers, nil
