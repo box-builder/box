@@ -9,6 +9,8 @@ embeddable ruby. It allows for notions of conditionals, loops, and data
 structures for use within your builder plan. If you've written a Dockerfile
 before, writing a box build plan is easy.
 
+<img style="align: center" src="https://raw.githubusercontent.com/box-builder/box/master/docs-theme/img/box-logo.png"></img>
+
 ## Box Build Plans are Programs
 
 Exploit this! Use functions! Set variables and constants!
