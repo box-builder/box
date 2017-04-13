@@ -9,3 +9,4 @@ release-notes.txt
 *.bak
 bin
 portable.sh
+.DS_Store

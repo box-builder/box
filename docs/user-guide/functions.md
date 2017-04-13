@@ -8,7 +8,8 @@ These are the functions supported by Box.
 
 `save` saves an image with parameters:
 
-* `tag`: tag the image in the docker image store.
+* `tag`: tag the image in the docker image store. This does not generate a
+  commit, like the `tag` verb does.
 * `file`: save the image to a file. The resulting file will be a bare tarball
   with the image contents, suitable for `docker load`.
 * `type`: Two options: `docker`, and `oci`.
@@ -124,8 +125,8 @@ Example:
 
 ```ruby
 from "debian"
-run "useradd -m -d /home/box-builder -s /bin/sh box-builder"
-run "id #{getuid("box-builder")}"
+run "useradd -m -d /home/erikh -s /bin/sh erikh"
+run "id #{getuid("erikh")}"
 ```
 
 ## getgid

@@ -72,9 +72,3 @@ No TTY mode is the default when unix pipes are involved.
 Force the TTY on even if it is off for some reason.
 
 The combination of `--no-tty --force-tty` is to force the tty.
-
-## --no-trim
-
-By default, box trims output to the width of the current terminal (unless 
-there is no terminal). This boolean option prevents that behavior, causing box
-to print the complete output.
