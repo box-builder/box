@@ -4,7 +4,7 @@ set -e
 
 package="github.com/box-builder/box"
 
-dirs=$(go list ./... | sed -e "s!${package}!.!g" | grep -v ./vendor)
+dirs=$(go list ./... | sed -e "s!${package}!.!g" | grep -vE '^(./vendor|./docs)')
 files=$(find . -type f -name '*.go' | grep -v ./vendor)
 
 echo "Running gofmt..."
@@ -65,7 +65,7 @@ fi
 echo "Running misspell..."
 [ -n "`which misspell`" ] || go get github.com/client9/misspell/...
 set +e
-out=$(misspell -locale US -error -i exportfs ${dirs} | grep -vE '^vendor')
+out=$(misspell -locale US -error -i exportfs ${dirs} | grep -vE '^(vendor|docs)')
 set -e
 if [ "`echo \"${out}\" | sed '/^$/d' | wc -l`" -gt 0 ]
 then
