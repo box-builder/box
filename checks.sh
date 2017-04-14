@@ -65,7 +65,7 @@ fi
 echo "Running misspell..."
 [ -n "`which misspell`" ] || go get github.com/client9/misspell/...
 set +e
-out=$(misspell -locale US -error -i exportfs ${dirs} | grep -vE '^(vendor|docs)')
+out=$(misspell -locale US -error -i exportfs ${dirs} | grep -vE '^(vendor|docs|site)')
 set -e
 if [ "`echo \"${out}\" | sed '/^$/d' | wc -l`" -gt 0 ]
 then
