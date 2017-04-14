@@ -104,7 +104,7 @@ func (r *Repl) handleError(line string, err error) bool {
 }
 
 // Loop runs the loop. Returns nil on io.EOF, otherwise errors are forwarded.
-func (r *Repl) Loop() error {
+func (r *Repl) Loop() {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Printf("Aborting due to interpreter error: %v\n", err)
@@ -112,9 +112,6 @@ func (r *Repl) Loop() error {
 		}
 		r.readline.Close()
 	}()
-
-	var line string
-	var stackKeep int
 
 	signals := make(chan os.Signal, 2)
 	// in no-tty mode, a literal ^C would be sent directly to the signal handler
@@ -128,6 +125,7 @@ func (r *Repl) Loop() error {
 	lineChan := make(chan string, 1)
 	errChan := make(chan error, 1)
 	syncChan := make(chan struct{})
+
 	go func() {
 		for {
 			tmp, err := r.readline.Readline()
@@ -140,12 +138,54 @@ func (r *Repl) Loop() error {
 		}
 	}()
 
-	for {
-		var (
-			cancel context.CancelFunc
-			cont   bool
-		)
+	r.doLoop(lineChan, errChan, signals, syncChan)
+}
 
+func checkQuit(line string) {
+	switch strings.TrimSpace(line) {
+	case "quit":
+		fallthrough
+	case "exit":
+		os.Exit(0)
+	}
+}
+
+func (r *Repl) readChannels(line string, lineChan <-chan string, errChan <-chan error, signals <-chan os.Signal) (string, bool) {
+	var (
+		tmp string
+		err error
+	)
+
+	select {
+	case err = <-errChan:
+		if r.handleError(line, err) {
+			return "", true
+		}
+	case <-signals:
+		fmt.Println("Statement canceled.")
+
+		select {
+		case err := <-errChan:
+			r.handleError(line, err) // the return value isn't necessary here.
+		default:
+		}
+
+		return "", true
+	case tmp = <-lineChan:
+	}
+
+	return line + tmp + "\n", false
+}
+
+func (r *Repl) doLoop(lineChan <-chan string, errChan <-chan error, signals <-chan os.Signal, syncChan chan struct{}) {
+	var (
+		line      string
+		stackKeep int
+		cancel    context.CancelFunc
+		cont      bool
+	)
+
+	for {
 		if cancel != nil {
 			cancel()
 		}
@@ -190,40 +230,4 @@ func (r *Repl) Loop() error {
 
 		syncChan <- struct{}{}
 	}
-}
-
-func checkQuit(line string) {
-	switch strings.TrimSpace(line) {
-	case "quit":
-		fallthrough
-	case "exit":
-		os.Exit(0)
-	}
-}
-
-func (r *Repl) readChannels(line string, lineChan <-chan string, errChan <-chan error, signals <-chan os.Signal) (string, bool) {
-	var (
-		tmp string
-		err error
-	)
-
-	select {
-	case err = <-errChan:
-		if r.handleError(line, err) {
-			return "", true
-		}
-	case <-signals:
-		fmt.Println("Statement canceled.")
-
-		select {
-		case err := <-errChan:
-			r.handleError(line, err) // the return value isn't necessary here.
-		default:
-		}
-
-		return "", true
-	case tmp = <-lineChan:
-	}
-
-	return line + tmp + "\n", false
 }
