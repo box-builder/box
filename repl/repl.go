@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	gm "github.com/mitchellh/go-mruby"
+
 	"github.com/box-builder/box/builder/command"
 	"github.com/box-builder/box/builder/evaluator"
 	"github.com/box-builder/box/builder/evaluator/mruby"
@@ -114,25 +116,28 @@ func (r *Repl) Loop() error {
 
 		line += tmp + "\n"
 
-		switch strings.TrimSpace(line) {
-		case "quit":
-			fallthrough
-		case "exit":
-			os.Exit(0)
-		}
+		checkQuit(line)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		r.globals.Context = ctx
 		signal.Handler.AddFunc(cancel)
 
 		newKeep, err := r.evaluator.RunCode(line, stackKeep)
-		if err != nil && newKeep == stackKeep {
-			r.readline.SetPrompt(multilinePrompt)
-			continue
+		if err != nil {
+			switch err.(type) {
+			case gm.ParserError:
+				if newKeep == stackKeep {
+					r.readline.SetPrompt(multilinePrompt)
+					continue
+				}
+			default:
+				goto reset
+			}
 		}
 
 		stackKeep = newKeep
 
+	reset:
 		line = ""
 		r.readline.SetPrompt(normalPrompt)
 		if err != nil {
@@ -143,5 +148,14 @@ func (r *Repl) Loop() error {
 		if r.evaluator.Result().Value != "" {
 			fmt.Println(r.evaluator.Result().Value)
 		}
+	}
+}
+
+func checkQuit(line string) {
+	switch strings.TrimSpace(line) {
+	case "quit":
+		fallthrough
+	case "exit":
+		os.Exit(0)
 	}
 }
