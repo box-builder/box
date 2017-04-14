@@ -12,8 +12,6 @@ import (
 	"github.com/docker/docker/client"
 )
 
-const megaByte = 1024 * 1024
-
 // Docker needs a documetnation
 type Docker struct {
 	doSkipLayers bool
