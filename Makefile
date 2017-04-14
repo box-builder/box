@@ -1,5 +1,5 @@
 SUM := $(shell head -c 16 /dev/urandom | sha256sum | awk '{ print $$1 }' | tail -c 16)
-PACKAGES := ./cli-tests ./layers ./image ./tar ./multi ./builder/executor/docker ./builder
+PACKAGES := ./builder/evaluator/mruby/ ./cli-tests ./layers ./image ./tar ./multi ./builder/executor/docker ./builder
 BUILD_TAGS := "btrfs_noversion libdm_no_deferred_remove"
 
 all: checks install

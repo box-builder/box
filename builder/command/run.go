@@ -2,6 +2,10 @@ package command
 
 // Run corresponds to the `run` verb
 func (i *Interpreter) Run(command string, showRun bool) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	i.exec.Config().TemporaryCommand([]string{"/bin/sh", "-c"}, []string{command})
 
 	if i.globals.ShowRun == true && !showRun {

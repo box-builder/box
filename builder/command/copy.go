@@ -13,6 +13,10 @@ import (
 
 // Copy implements `copy`
 func (i *Interpreter) Copy(source, target string, ignoreList []string) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	list, err := util.ReadLines(".dockerignore")
 	if os.IsNotExist(err) {
 		list = []string{}

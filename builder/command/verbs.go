@@ -9,8 +9,23 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrNoImage reports when the image cannot be used because it was not specified.
+var ErrNoImage = errors.New("no image base specified")
+
+func (i *Interpreter) hasImage() error {
+	if i.exec.Config().Image == "" {
+		return errors.Wrap(ErrNoImage, "from has not been called")
+	}
+
+	return nil
+}
+
 // Label corresponds to the `label` verb.
 func (i *Interpreter) Label(labelMap map[string]string) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	for key, value := range labelMap {
 		i.exec.Config().Labels[key] = value
 	}
@@ -20,6 +35,10 @@ func (i *Interpreter) Label(labelMap map[string]string) error {
 
 // Debug corresponds to the `debug` verb.
 func (i *Interpreter) Debug(shell string) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	i.exec.SetStdin(true)
 	defer i.exec.SetStdin(false)
 
@@ -30,6 +49,10 @@ func (i *Interpreter) Debug(shell string) error {
 
 // SetExec corresponds to the `set_exec` verb.
 func (i *Interpreter) SetExec(execTargets map[string][]string) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	for key, cmds := range execTargets {
 		switch key {
 		case "entrypoint":
@@ -46,6 +69,10 @@ func (i *Interpreter) SetExec(execTargets map[string][]string) error {
 
 // WorkDir is the `workdir` verb.
 func (i *Interpreter) WorkDir(dir string) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	if !path.IsAbs(dir) {
 		return errors.Errorf("path %q is not absolute in workdir", dir)
 	}
@@ -57,12 +84,20 @@ func (i *Interpreter) WorkDir(dir string) error {
 
 // User is the `user` verb.
 func (i *Interpreter) User(username string) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	i.exec.Config().User.Image = username
 	return i.makeLayer(false)
 }
 
 // Tag is the `tag` verb.
 func (i *Interpreter) Tag(name string) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	if err := i.exec.Commit("", nil); err != nil {
 		return err
 	}
@@ -71,12 +106,20 @@ func (i *Interpreter) Tag(name string) error {
 
 // Entrypoint is the `entrypoint` verb.
 func (i *Interpreter) Entrypoint(stringArgs []string) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	i.exec.Config().Entrypoint.Image = stringArgs
 	return i.makeLayer(false)
 }
 
 // WithUser is the `with_user` verb.
 func (i *Interpreter) WithUser(username string, run func() error) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	i.exec.Config().User.Temporary = username
 	defer func() { i.exec.Config().User.Temporary = "" }()
 
@@ -85,6 +128,10 @@ func (i *Interpreter) WithUser(username string, run func() error) error {
 
 // Inside is the `inside` verb.
 func (i *Interpreter) Inside(p string, run func() error) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	var currentDir string
 
 	if !path.IsAbs(p) {
@@ -116,6 +163,10 @@ func (i *Interpreter) Inside(p string, run func() error) error {
 
 // Env corresponds to the `env` verb.
 func (i *Interpreter) Env(env map[string]string) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	newEnv := map[string]string{}
 
 	for _, part := range i.exec.Config().Env {
@@ -140,6 +191,10 @@ func (i *Interpreter) Env(env map[string]string) error {
 
 // Cmd corresponds to the `cmd` verb.
 func (i *Interpreter) Cmd(cmds []string) error {
+	if err := i.hasImage(); err != nil {
+		return err
+	}
+
 	i.exec.Config().Cmd.Image = cmds
 	return i.makeLayer(false)
 }
