@@ -45,7 +45,7 @@ skip do
 
   env "PATH" => "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/usr/local/go/bin:/go/bin", "GOPATH" => "/go"
   copy ".", "/go/src/github.com/box-builder/box", ignore_file: ".boxignore"
-  run "cd /go/src/github.com/box-builder/box && VERSION=#{getenv("VERSION")} make clean install-static"
+  run "cd /go/src/github.com/box-builder/box && VERSION=#{getenv("VERSION")} make clean install"
 
   workdir "/go/src/github.com/box-builder/box"
   set_exec entrypoint: ["/dind"], cmd: %w[make docker-test]
