@@ -1,6 +1,5 @@
 SUM := $(shell head -c 16 /dev/urandom | sha256sum | awk '{ print $$1 }' | tail -c 16)
 PACKAGES := ./builder/evaluator/mruby/ ./cli-tests ./layers ./image ./tar ./multi ./builder/executor/docker ./builder
-BUILD_TAGS := "btrfs_noversion libdm_no_deferred_remove"
 
 all: checks install
 
@@ -12,10 +11,7 @@ fetch:
 	cd vendor/github.com/mitchellh/go-mruby && MRUBY_CONFIG=$(shell pwd)/mruby_config.rb make
 
 install: fetch
-	go install -v -ldflags="-X main.Version=$${VERSION:-$(shell git rev-parse HEAD)}" -tags $(BUILD_TAGS) .
-
-install-static: fetch
-	go install -v -ldflags="-X main.Version=$${VERSION:-$(shell git rev-parse HEAD)} -extldflags=-static" -tags $(BUILD_TAGS) .
+	go install -v -ldflags="-X main.Version=$${VERSION:-$(shell git rev-parse HEAD)}" .
 
 clean:
 	cd vendor/github.com/mitchellh/go-mruby && make clean
@@ -28,10 +24,10 @@ checks: fetch
 	@sh checks.sh
  
 build:
-	SUM=${SUM} go run -tags $(BUILD_TAGS) main.go build.rb
+	SUM=${SUM} go run main.go build.rb
  
 build-ci:
-	SUM=${SUM} CI_BUILD=1 go run -tags $(BUILD_TAGS) main.go --no-tty build.rb
+	SUM=${SUM} CI_BUILD=1 go run main.go --no-tty build.rb
 
 run-test-ci:
 	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -i box-test-${SUM}
