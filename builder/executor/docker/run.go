@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 
@@ -13,17 +14,21 @@ import (
 	"github.com/docker/docker/pkg/term"
 )
 
-func (d *Docker) stdinCopy(conn net.Conn, errChan chan error, stopChan chan struct{}) {
+func (d *Docker) stdinCopy(conn net.Conn, errChan chan error) (io.WriteCloser, *term.State) {
 	if d.stdin {
 		state, err := term.SetRawTerminal(0)
 		if err != nil {
 			errChan <- fmt.Errorf("Could not attach terminal to container: %v", err)
+			return nil, nil
 		}
 
-		defer term.RestoreTerminal(0, state)
-
-		doCopy(conn, os.Stdin, errChan, stopChan)
+		r, w := io.Pipe()
+		go io.Copy(w, os.Stdin)
+		go doCopy(conn, r, errChan)
+		return w, state
 	}
+
+	return nil, nil
 }
 
 func (d *Docker) handleRunError(ctx context.Context, id string, errChan chan error) {
@@ -43,7 +48,6 @@ func (d *Docker) handleRunError(ctx context.Context, id string, errChan chan err
 
 // RunHook is the run hook for docker agents.
 func (d *Docker) RunHook(ctx context.Context, id string) (string, error) {
-	stopChan := make(chan struct{})
 	errChan := make(chan error, 1)
 	defer close(errChan)
 
@@ -53,12 +57,18 @@ func (d *Docker) RunHook(ctx context.Context, id string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Could not attach to container: %v", err)
 	}
-
-	go d.stdinCopy(cearesp.Conn, errChan, stopChan)
-
 	defer cearesp.Close()
 
-	stat, err := d.startAndWait(ctx, id, cearesp.Reader, errChan, stopChan)
+	w, state := d.stdinCopy(cearesp.Conn, errChan)
+	if w != nil {
+		defer w.Close()
+	}
+
+	if state != nil {
+		defer term.RestoreTerminal(0, state)
+	}
+
+	stat, err := d.startAndWait(ctx, id, cearesp.Conn, errChan)
 	if err != nil {
 		return "", err
 	}
@@ -70,35 +80,21 @@ func (d *Docker) RunHook(ctx context.Context, id string) (string, error) {
 	return "", nil
 }
 
-func doCopy(wtr io.Writer, rdr io.Reader, errChan chan error, stopChan chan struct{}) {
-	// repeat copy until error is returned. if error is not io.EOF, forward
-	// to channel. Return on any error.
-	for {
+func doCopy(wtr io.Writer, rdr io.Reader, errChan chan error) {
+repeat:
+	_, err := io.Copy(wtr, rdr)
+
+	if _, ok := err.(*net.OpError); ok { // EINTR basically
+		goto repeat
+	} else if err != nil {
 		select {
-		case <-stopChan:
-			return
+		case errChan <- err:
 		default:
 		}
-
-		if _, err := io.Copy(wtr, rdr); err == nil {
-			continue
-		} else if _, ok := err.(*net.OpError); ok {
-			continue
-		} else if err != nil {
-			select {
-			case <-stopChan:
-			case errChan <- err:
-			default:
-			}
-		}
-
-		return
 	}
 }
 
-func (d *Docker) startAndWait(ctx context.Context, id string, reader io.Reader, errChan chan error, stopChan chan struct{}) (int, error) {
-	defer close(stopChan)
-
+func (d *Docker) startAndWait(ctx context.Context, id string, reader io.Reader, errChan chan error) (int, error) {
 	err := d.client.ContainerStart(ctx, id, types.ContainerStartOptions{})
 	if err != nil {
 		return -1, fmt.Errorf("Could not start container: %v", err)
@@ -111,8 +107,12 @@ func (d *Docker) startAndWait(ctx context.Context, id string, reader io.Reader, 
 		defer d.globals.Logger.EndOutput()
 	}
 
+	var buf *bytes.Buffer
+
 	if !d.globals.ShowRun {
-		writer = bytes.NewBuffer([]byte{})
+		buf = bytes.NewBuffer([]byte{})
+		reader = io.TeeReader(reader, buf)
+		writer = ioutil.Discard
 	}
 
 	if !d.globals.TTY {
@@ -121,20 +121,19 @@ func (d *Docker) startAndWait(ctx context.Context, id string, reader io.Reader, 
 			_, err = stdcopy.StdCopy(writer, writer, reader)
 			if err != nil && err != io.EOF {
 				select {
-				case <-stopChan:
 				default:
 					errChan <- err
 				}
 			}
 		}()
 	} else {
-		go doCopy(writer, reader, errChan, stopChan)
+		go doCopy(writer, reader, errChan)
 	}
 
 	stat, err := d.client.ContainerWait(ctx, id)
 	if err != nil {
-		if wbuf, ok := writer.(*bytes.Buffer); ok {
-			fmt.Print(wbuf)
+		if buf != nil {
+			fmt.Println(buf)
 		}
 		return -1, err
 	}
