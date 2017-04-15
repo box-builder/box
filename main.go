@@ -271,10 +271,7 @@ func runRepl(ctx *cli.Context) {
 		os.Exit(1)
 	}
 
-	if err := r.Loop(); err != nil {
-		log.Error(err)
-		os.Exit(1)
-	}
+	r.Loop() // the REPL manages its own exit states
 }
 
 func mkBuilder(cancel context.CancelFunc, buildConfig builder.BuildConfig) (*builder.Builder, error) {
