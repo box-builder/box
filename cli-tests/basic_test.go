@@ -1,13 +1,39 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/rendon/testcli"
 
 	. "gopkg.in/check.v1"
 )
+
+func (s *cliSuite) TestCanonicalFile(c *C) {
+	cmd := testcli.Command("box")
+	cmd.Run()
+	c.Assert(strings.Contains(cmd.Stdout(), "USAGE:"), Equals, true)
+
+	tmpPath := filepath.Join(os.TempDir(), "boxtest")
+	contents := []byte("from 'debian'\ntag 'boxrbtest'\n")
+	err := os.Mkdir(tmpPath, 0644)
+	c.Assert(err, IsNil)
+	err = ioutil.WriteFile(filepath.Join(tmpPath, "/box.rb"), contents, 0644)
+	c.Assert(err, IsNil)
+	cwd, oserr := os.Getwd()
+	c.Assert(oserr, IsNil)
+	os.Chdir(tmpPath)
+
+	cmd = testcli.Command("box")
+	cmd.Run()
+	c.Assert(strings.Contains(cmd.Stdout(), "Tagged: boxrbtest"), Equals, true, Commentf("%s", cmd.Stdout()))
+
+	// cleanup
+	os.Chdir(cwd)
+	os.RemoveAll(tmpPath)
+}
 
 func (s *cliSuite) TestBasic(c *C) {
 	cmd, err := build("", "test.rb")
