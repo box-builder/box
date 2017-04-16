@@ -33,7 +33,7 @@ var (
 	// Copyright is the copyright, generated automatically for each year.
 	Copyright = fmt.Sprintf("(C) %d %s - Licensed under MIT license", time.Now().Year(), Author)
 	// UsageText is the description of how to use the program.
-	UsageText = "box [options] filename"
+	UsageText = "box [options] [filename|box.rb]"
 )
 
 func main() {
@@ -121,6 +121,8 @@ func main() {
 
 		args := ctx.Args()
 
+		filename := detectFile(ctx)
+
 		if len(args) < 1 {
 			cli.ShowAppHelp(ctx)
 			log.Error("Please provide a filename to process!")
@@ -160,7 +162,7 @@ func main() {
 				Context:   cancelCtx,
 			},
 			Runner:   runChan,
-			FileName: args[0],
+			FileName: filename,
 		}
 
 		b, err := mkBuilder(cancel, buildConfig)
@@ -283,4 +285,16 @@ func mkBuilder(cancel context.CancelFunc, buildConfig builder.BuildConfig) (*bui
 	signal.Handler.AddFunc(cancel)
 	signal.Handler.AddRunner(buildConfig.Runner)
 	return b, nil
+}
+
+func detectFile(c *cli.Context) string {
+	a := c.Args()
+	if len(a) < 1 {
+		if _, err := os.Stat("box.rb"); os.IsNotExist(err) {
+			cli.ShowAppHelp(c)
+			os.Exit(0)
+		}
+		return "box.rb"
+	}
+	return a[0]
 }
