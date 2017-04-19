@@ -122,6 +122,8 @@ func (r *Repl) Loop() {
 		defer gosig.Stop(signals)
 	}
 
+	printHelp()
+
 	lineChan := make(chan string, 1)
 	errChan := make(chan error, 1)
 	syncChan := make(chan struct{})
@@ -141,6 +143,16 @@ func (r *Repl) Loop() {
 	r.doLoop(lineChan, errChan, signals, syncChan)
 }
 
+func printHelp() {
+	fmt.Println(`
+Thanks for trying box! We don't have on-line help yet :(
+If you want, try our documentation here: https://box-builder.github.io/box
+
+* If you ever need to reset your repl, type "reset".
+* If you need to cancel a ruby statement, press Control+C.
+		`)
+}
+
 func (r *Repl) checkQuit(line string) (bool, error) {
 	switch strings.TrimSpace(line) {
 	case "quit":
@@ -148,13 +160,7 @@ func (r *Repl) checkQuit(line string) (bool, error) {
 	case "exit":
 		os.Exit(0)
 	case "help":
-		fmt.Println(`
-Thanks for trying box! We don't have on-line help yet :(
-If you want, try our documentation here: https://box-builder.github.io/box
-
-* If you ever need to reset your repl, type "reset".
-* If you need to cancel a ruby statement, press Control+C.
-		`)
+		printHelp()
 		return true, nil
 	case "reset":
 		exec, err := docker.NewDocker(r.globals)
