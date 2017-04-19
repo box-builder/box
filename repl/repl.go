@@ -147,6 +147,15 @@ func (r *Repl) checkQuit(line string) (bool, error) {
 		fallthrough
 	case "exit":
 		os.Exit(0)
+	case "help":
+		fmt.Println(`
+Thanks for trying box! We don't have on-line help yet :(
+If you want, try our documentation here: https://box-builder.github.io/box
+
+* If you ever need to reset your repl, type "reset".
+* If you need to cancel a ruby statement, press Control+C.
+		`)
+		return true, nil
 	case "reset":
 		exec, err := docker.NewDocker(r.globals)
 		if err != nil {
