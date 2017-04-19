@@ -1,7 +1,9 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/rendon/testcli"
@@ -93,4 +95,30 @@ func (s *cliSuite) TestVersion(c *C) {
 	cmd := testcli.Command("box", "--version")
 	cmd.Run()
 	c.Assert(strings.Contains(cmd.Stdout(), "box version"), Equals, true)
+}
+
+func (s *cliSuite) TestCanonicalFile(c *C) {
+	// no args, no box.rb should show usage
+	cmd := testcli.Command("box")
+	cmd.Run()
+	c.Assert(strings.Contains(cmd.Stdout(), "USAGE:"), Equals, true)
+
+	// no args, with box.rb should build image
+	tmpPath := filepath.Join(os.TempDir(), "boxtest")
+	contents := []byte("from 'debian'\ntag 'boxrbtest'\n")
+	err := os.Mkdir(tmpPath, 0644)
+	c.Assert(err, IsNil)
+	err = ioutil.WriteFile(filepath.Join(tmpPath, "/box.rb"), contents, 0644)
+	c.Assert(err, IsNil)
+	cwd, oserr := os.Getwd()
+	c.Assert(oserr, IsNil)
+	os.Chdir(tmpPath)
+
+	cmd = testcli.Command("box")
+	cmd.Run()
+	c.Assert(strings.Contains(cmd.Stdout(), "Execute: tag boxrbtest"), Equals, true, Commentf("%s", cmd.Stdout()))
+
+	// cleanup
+	os.Chdir(cwd)
+	os.RemoveAll(tmpPath)
 }

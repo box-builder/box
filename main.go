@@ -18,6 +18,8 @@ import (
 	"github.com/urfave/cli"
 )
 
+const defaultFile = "box.rb"
+
 var (
 	// Version is the version of the application
 	Version = "0.4.2"
@@ -33,7 +35,7 @@ var (
 	// Copyright is the copyright, generated automatically for each year.
 	Copyright = fmt.Sprintf("(C) %d %s - Licensed under MIT license", time.Now().Year(), Author)
 	// UsageText is the description of how to use the program.
-	UsageText = "box [options] filename"
+	UsageText = "box [options] [filename]"
 )
 
 func main() {
@@ -119,13 +121,7 @@ func main() {
 			os.Exit(0)
 		}
 
-		args := ctx.Args()
-
-		if len(args) < 1 {
-			cli.ShowAppHelp(ctx)
-			log.Error("Please provide a filename to process!")
-			os.Exit(1)
-		}
+		filename := detectFile(ctx)
 
 		tty := term.IsTerminal(1)
 
@@ -156,11 +152,11 @@ func main() {
 				TTY:       tty,
 				OmitFuncs: ctx.GlobalStringSlice("omit"),
 				Cache:     getCache(ctx),
-				Logger:    logger.New(args[0], notrim),
+				Logger:    logger.New(filename, notrim),
 				Context:   cancelCtx,
 			},
 			Runner:   runChan,
-			FileName: args[0],
+			FileName: filename,
 		}
 
 		b, err := mkBuilder(cancel, buildConfig)
@@ -213,11 +209,6 @@ func runMulti(ctx *cli.Context) {
 	log := logger.New("main", notrim)
 
 	args := ctx.Args()
-	if len(args) < 1 {
-		cli.ShowAppHelp(ctx)
-		log.Error("Please provide a filename to process!")
-		os.Exit(1)
-	}
 
 	for _, filename := range args {
 		cancelCtx, cancel := context.WithCancel(context.Background())
@@ -283,4 +274,16 @@ func mkBuilder(cancel context.CancelFunc, buildConfig builder.BuildConfig) (*bui
 	signal.Handler.AddFunc(cancel)
 	signal.Handler.AddRunner(buildConfig.Runner)
 	return b, nil
+}
+
+func detectFile(c *cli.Context) string {
+	a := c.Args()
+	if len(a) < 1 {
+		if _, err := os.Stat("box.rb"); os.IsNotExist(err) {
+			cli.ShowAppHelp(c)
+			os.Exit(0)
+		}
+		return defaultFile
+	}
+	return a[0]
 }
