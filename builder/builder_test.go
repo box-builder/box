@@ -528,17 +528,41 @@ func (bs *builderSuite) TestFlatten(c *C) {
 }
 
 func (bs *builderSuite) TestEntrypointCmd(c *C) {
+	b, err := runBuilder(`
+		from "debian"
+		run "echo"
+		set_exec cmd: [ "foo" ]
+	`)
+	c.Assert(err, IsNil)
+	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"foo"})
+
+	b, err = runBuilder(`
+    from "debian"
+    run "echo hi"
+    entrypoint "/bin/cat"
+  `)
+
+	c.Assert(err, IsNil)
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
+	c.Assert(err, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/cat"})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
+	b.Close()
+
 	// the echo hi is to trigger a specific interaction problem with entrypoint
 	// and run where the entrypoint/cmd would not be overridden during commit
 	// time for run.
-	b, err := runBuilder(`
+	b, err = runBuilder(`
     from "debian"
     entrypoint "/bin/cat"
     run "echo hi"
   `)
 
 	c.Assert(err, IsNil)
-	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
+	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/cat"})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
@@ -581,7 +605,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	c.Assert(err, IsNil)
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
-	c.Assert(inspect.Config.Entrypoint, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
 	b.Close()
 
@@ -596,7 +620,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/sh"})
-	c.Assert(inspect.Config.Entrypoint, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{})
 	b.Close()
 
 	b, err = runBuilder(`
@@ -609,7 +633,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
-	c.Assert(inspect.Config.Entrypoint, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{})
 	b.Close()
 
 	b, err = runBuilder(`
@@ -1103,15 +1127,13 @@ func (bs *builderSuite) TestExecPropagation(c *C) {
   `)
 	c.Assert(err, IsNil)
 
-	c.Assert(b.exec.Config().Entrypoint.Image, IsNil)
+	c.Assert(b.exec.Config().Entrypoint.Image, DeepEquals, []string{})
 	c.Assert(b.exec.Config().Cmd.Image, DeepEquals, []string{"/bin/bash"})
 
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "test")
 	c.Assert(err, IsNil)
-	c.Assert(strslice.StrSlice(b.exec.Config().Cmd.Image), DeepEquals, inspect.Config.Cmd)
-
-	// Docker rewrites a nil as the array below.
-	c.Assert(strslice.StrSlice{"/bin/sh", "-c"}, DeepEquals, inspect.Config.Entrypoint)
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice(b.exec.Config().Cmd.Image))
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{})
 
 	b.Close()
 }

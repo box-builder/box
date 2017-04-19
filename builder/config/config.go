@@ -70,8 +70,23 @@ func (c *Config) ToDocker(temporary, tty, stdin bool) *container.Config {
 		user = c.User.Image
 	}
 
-	if cmd == nil && entrypoint == nil {
+	if len(entrypoint) == 0 && !temporary {
+		entrypoint = []string{}
+	}
+
+	if len(cmd) == 0 && !temporary {
+		cmd = []string{}
+	}
+
+	if len(cmd) == 0 && len(entrypoint) == 0 {
 		cmd = []string{"/bin/sh"}
+	}
+
+	if !temporary {
+		c.Entrypoint.Image = entrypoint
+		c.Entrypoint.Temporary = entrypoint
+		c.Cmd.Temporary = cmd
+		c.Cmd.Image = cmd
 	}
 
 	return &container.Config{
@@ -91,11 +106,17 @@ func (c *Config) ToDocker(temporary, tty, stdin bool) *container.Config {
 }
 
 // FromDocker sets *Config properties from a docker *container.Config
-func (c *Config) FromDocker(cont *container.Config) {
+func (c *Config) FromDocker(temporary bool, cont *container.Config) {
 	c.Image = cont.Image
 	c.Env = cont.Env
-	c.Entrypoint.Image = cont.Entrypoint
-	c.Cmd.Image = cont.Cmd
+	c.Entrypoint.Temporary = cont.Entrypoint
+	c.Cmd.Temporary = cont.Cmd
+
+	if !temporary {
+		c.Entrypoint.Image = cont.Entrypoint
+		c.Cmd.Image = cont.Cmd
+	}
+
 	c.User.Image = cont.User
 	c.WorkDir.Image = cont.WorkingDir
 

@@ -71,7 +71,7 @@ func (ds *dockerSuite) TestLookup(c *C) {
 	// XXX ok if this call fails
 	d.client.ImageRemove(d.globals.Context, imageName, types.ImageRemoveOptions{PruneChildren: true, Force: true})
 
-	id, err := d.Lookup(imageName)
+	id, err := d.Lookup(ds.config, imageName)
 	c.Assert(err, NotNil)
 	c.Assert(id, Equals, "")
 
@@ -79,7 +79,7 @@ func (ds *dockerSuite) TestLookup(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(origid, Not(Equals), "")
 
-	newid, err := d.Lookup(imageName)
+	newid, err := d.Lookup(ds.config, imageName)
 	c.Assert(err, IsNil)
 	c.Assert(newid, Equals, origid)
 }

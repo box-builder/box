@@ -63,7 +63,7 @@ func Docker(context context.Context, globals *btypes.Global, client *client.Clie
 		}
 	}
 
-	config.FromDocker(inspect.Config)
+	config.FromDocker(false, inspect.Config)
 	config.Image = inspect.ID
 
 	return inspect.ID, inspect.RootFS.Layers, nil

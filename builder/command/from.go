@@ -40,7 +40,7 @@ func (i *Interpreter) From(image string) error {
 
 	if pulling {
 		<-pullChan
-		id, err = i.exec.Layers().Lookup(image)
+		id, err = i.exec.Layers().Lookup(i.exec.Config(), image)
 		if err != nil {
 			return err
 		}
