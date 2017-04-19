@@ -111,7 +111,7 @@ func main() {
 	}
 
 	app.Action = func(ctx *cli.Context) {
-		notrim := ctx.Bool("no-trim")
+		notrim := ctx.GlobalBool("no-trim")
 		log := logger.New("main", notrim)
 
 		if ctx.Bool("help") {
@@ -208,7 +208,7 @@ func main() {
 
 func runMulti(ctx *cli.Context) {
 	copy.NoOut = true
-	notrim := ctx.Bool("no-trim")
+	notrim := ctx.GlobalBool("no-trim")
 	builders := []*builder.Builder{}
 	log := logger.New("main", notrim)
 
@@ -264,7 +264,7 @@ func getCache(ctx *cli.Context) bool {
 }
 
 func runRepl(ctx *cli.Context) {
-	log := logger.New("repl", ctx.Bool("no-trim"))
+	log := logger.New("repl", ctx.GlobalBool("no-trim"))
 	r, err := repl.NewRepl(ctx.GlobalStringSlice("omit"), log)
 	if err != nil {
 		log.Error(fmt.Sprintf("bootstrapping repl: %v\n", err))
