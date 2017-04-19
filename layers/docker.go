@@ -123,11 +123,13 @@ func (d *Docker) calculateCommits(layers []*image.Layer) []*image.Layer {
 }
 
 // Lookup an image by name, returning the id.
-func (d *Docker) Lookup(name string) (string, error) {
+func (d *Docker) Lookup(config *config.Config, name string) (string, error) {
 	img, _, err := d.client.ImageInspectWithRaw(d.globals.Context, name)
 	if err != nil {
 		return "", err
 	}
+
+	config.FromDocker(false, img.Config)
 
 	return img.ID, nil
 }

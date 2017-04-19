@@ -212,7 +212,7 @@ func (d *DockerImage) CheckCache(cacheKey string) (bool, error) {
 
 			if inspect.Comment == cacheKey {
 				d.imageConfig.Globals.Logger.CacheHit(img.ID)
-				d.imageConfig.Config.FromDocker(inspect.Config)
+				d.imageConfig.Config.FromDocker(true, inspect.Config)
 				d.imageConfig.Config.Image = img.ID
 				return true, d.imageConfig.Layers.AddImage(img.ID)
 			}

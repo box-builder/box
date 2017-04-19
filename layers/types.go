@@ -50,7 +50,7 @@ type Layers interface {
 	MakeImage(config *config.Config) (string, error)
 
 	// Look up an image identifier.
-	Lookup(string) (string, error)
+	Lookup(*config.Config, string) (string, error)
 }
 
 // ImageConfig sets the properties used to construct an image
