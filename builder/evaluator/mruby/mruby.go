@@ -148,7 +148,7 @@ func (m *MRuby) Result() types.BuildResult {
 //
 // Given this function is intended to run multiple times, it does not execute
 // the after hooks if they are set.
-func (m *MRuby) RunCode(line string, stackKeep int) (int, error) {
+func (m *MRuby) RunCode(line string, stackKeep int, make bool) (int, error) {
 	if m.compileContext == nil {
 		m.compileContext = gm.NewCompileContext(m.mrb)
 		m.compileContext.CaptureErrors(true)
@@ -167,12 +167,14 @@ func (m *MRuby) RunCode(line string, stackKeep int) (int, error) {
 		return keep, m.makeError(err)
 	}
 
-	if res != nil {
+	if res != nil && res.String() != "" {
 		return keep, m.makeResult(res.String())
 	}
 
-	if _, err := m.Exec.Layers().MakeImage(m.Exec.Config()); err != nil {
-		return keep, m.makeError(err)
+	if make {
+		if _, err := m.Exec.Layers().MakeImage(m.Exec.Config()); err != nil {
+			return keep, m.makeError(err)
+		}
 	}
 
 	return keep, m.makeResult(m.Exec.Image().ImageID())
