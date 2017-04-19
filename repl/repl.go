@@ -141,13 +141,33 @@ func (r *Repl) Loop() {
 	r.doLoop(lineChan, errChan, signals, syncChan)
 }
 
-func checkQuit(line string) {
+func (r *Repl) checkQuit(line string) (bool, error) {
 	switch strings.TrimSpace(line) {
 	case "quit":
 		fallthrough
 	case "exit":
 		os.Exit(0)
+	case "reset":
+		exec, err := docker.NewDocker(r.globals)
+		if err != nil {
+			return false, err
+		}
+
+		e, err := mruby.NewMRuby(&mruby.Config{
+			Filename: "repl",
+			Globals:  r.globals,
+			Interp:   command.NewInterpreter(r.globals, exec),
+			Exec:     exec,
+		})
+		if err != nil {
+			return false, err
+		}
+
+		r.evaluator = e
+		return true, nil
 	}
+
+	return false, nil
 }
 
 func (r *Repl) readChannels(line string, lineChan <-chan string, errChan <-chan error, signals <-chan os.Signal) (string, bool) {
@@ -200,7 +220,14 @@ func (r *Repl) doLoop(lineChan <-chan string, errChan <-chan error, signals <-ch
 			continue
 		}
 
-		checkQuit(line)
+		if skip, err := r.checkQuit(line); err != nil {
+			fmt.Printf("+++ Error: %v\n", err)
+			os.Exit(1)
+		} else if skip {
+			line = ""
+			syncChan <- struct{}{}
+			continue
+		}
 
 		newKeep, err := r.evaluator.RunCode(line, stackKeep)
 		if err != nil {
