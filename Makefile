@@ -24,10 +24,10 @@ checks: fetch
 	@sh checks.sh
  
 build:
-	SUM=${SUM} go run main.go build.rb
+	SUM=${SUM} go run main.go
  
 build-ci:
-	SUM=${SUM} CI_BUILD=1 go run main.go --no-tty build.rb
+	SUM=${SUM} CI_BUILD=1 go run main.go --no-tty
 
 run-test-ci:
 	docker run -e "TESTRUN=$(TESTRUN)" --privileged --rm -i box-test-${SUM}
@@ -43,7 +43,7 @@ test-ci: checks build-ci run-test-ci rmi
 test: checks all build run-test rmi
 
 release: clean all test
-	VERSION=${VERSION} RELEASE=1 go run main.go -n -t boxbuilder/box:${VERSION} build.rb
+	VERSION=${VERSION} RELEASE=1 go run main.go -n -t boxbuilder/box:${VERSION}
 	docker rm -f box-build-${VERSION} || :
 	docker run --name box-build-${VERSION} --entrypoint /bin/bash boxbuilder/box:${VERSION} -c 'exit 0'
 	docker cp box-build-${VERSION}:/box .
