@@ -7,7 +7,7 @@ import (
 // Evaluator is a generic language evaluator.
 type Evaluator interface {
 	Result() types.BuildResult
-	RunCode(string, int) (int, error)
+	RunCode(string, int, bool) (int, error)
 	RunScript(string) error
 	Close() error
 }

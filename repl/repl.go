@@ -202,7 +202,7 @@ func (r *Repl) doLoop(lineChan <-chan string, errChan <-chan error, signals <-ch
 
 		checkQuit(line)
 
-		newKeep, err := r.evaluator.RunCode(line, stackKeep)
+		newKeep, err := r.evaluator.RunCode(line, stackKeep, false)
 		if err != nil {
 			switch err.(type) {
 			case *gm.ParserError:
@@ -225,7 +225,9 @@ func (r *Repl) doLoop(lineChan <-chan string, errChan <-chan error, signals <-ch
 		}
 
 		if r.evaluator.Result().Value != "" {
-			fmt.Println(r.evaluator.Result().Value)
+			r.globals.Logger.EvalResponse(r.evaluator.Result().Value)
+		} else {
+			r.globals.Logger.EvalResponse("Executed!")
 		}
 
 		syncChan <- struct{}{}
