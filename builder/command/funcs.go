@@ -8,9 +8,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// FIXME
-// import needs to be implemented in mruby evaluator.
-
 // Save corresponds to the `save` func.
 func (i *Interpreter) Save(file, kind, tag string) error {
 	if tag != "" {
