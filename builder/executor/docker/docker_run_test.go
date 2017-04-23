@@ -15,12 +15,12 @@ var (
 )
 
 func (ds *dockerSuite) TestRunCommit(c *C) {
-	commit := func(ctx context.Context, id string) (string, error) {
-		return "cachekey", nil
+	commit := func(ctx context.Context, id string) error {
+		return nil
 	}
 
-	fail := func(ctx context.Context, id string) (string, error) {
-		return "", errors.New("an error")
+	fail := func(ctx context.Context, id string) error {
+		return errors.New("an error")
 	}
 
 	d, err := NewDocker(runGlobals)
