@@ -57,8 +57,8 @@ func (i *Interpreter) Copy(source, target string, ignoreList []string) error {
 
 	defer f.Close()
 
-	hook := func(ctx context.Context, id string) (string, error) {
-		return "", i.exec.CopyToContainer(id, f)
+	hook := func(ctx context.Context, id string) error {
+		return i.exec.CopyToContainer(id, f)
 	}
 
 	return i.exec.Commit(cacheKey, hook)

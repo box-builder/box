@@ -47,7 +47,7 @@ func (d *Docker) handleRunError(ctx context.Context, id string, errChan chan err
 }
 
 // RunHook is the run hook for docker agents.
-func (d *Docker) RunHook(ctx context.Context, id string) (string, error) {
+func (d *Docker) RunHook(ctx context.Context, id string) error {
 	errChan := make(chan error, 1)
 	defer close(errChan)
 
@@ -55,7 +55,7 @@ func (d *Docker) RunHook(ctx context.Context, id string) (string, error) {
 
 	cearesp, err := d.client.ContainerAttach(ctx, id, types.ContainerAttachOptions{Stream: true, Stdin: d.stdin, Stdout: true, Stderr: true})
 	if err != nil {
-		return "", fmt.Errorf("Could not attach to container: %v", err)
+		return fmt.Errorf("Could not attach to container: %v", err)
 	}
 	defer cearesp.Close()
 
@@ -70,14 +70,14 @@ func (d *Docker) RunHook(ctx context.Context, id string) (string, error) {
 
 	stat, err := d.startAndWait(ctx, id, cearesp.Conn, errChan)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if stat != 0 {
-		return "", fmt.Errorf("Command exited with status %d for container %q", stat, id)
+		return fmt.Errorf("Command exited with status %d for container %q", stat, id)
 	}
 
-	return "", nil
+	return nil
 }
 
 func doCopy(wtr io.Writer, rdr io.Reader, errChan chan error) {
