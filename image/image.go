@@ -14,7 +14,7 @@ import (
 	"github.com/box-builder/box/types"
 )
 
-// Layer is one unit of storage. FIXME complete this later
+// Layer is one unit of storage.
 type Layer struct {
 	chainID string
 	id      string

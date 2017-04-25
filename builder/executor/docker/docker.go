@@ -101,14 +101,8 @@ func (d *Docker) Commit(cacheKey string, hook executor.Hook) error {
 	defer d.Destroy(id)
 
 	if hook != nil {
-		// FIXME this cache key handling is terrible.
-		tmp, err := hook(d.globals.Context, id)
-		if err != nil {
+		if err := hook(d.globals.Context, id); err != nil {
 			return err
-		}
-
-		if tmp != "" {
-			cacheKey = tmp
 		}
 	}
 

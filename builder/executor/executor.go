@@ -9,7 +9,7 @@ import (
 )
 
 // Hook is a hook used in commit calls
-type Hook func(context.Context, string) (string, error)
+type Hook func(context.Context, string) error
 
 // Executor is an engine for talking to different layering/execution context
 // subsystems. It is the meat-and-potatoes of image building.
@@ -42,7 +42,7 @@ type Executor interface {
 
 	// RunHook is used to manage run invocations, and is processed by the run
 	// statement.
-	RunHook(context.Context, string) (string, error)
+	RunHook(context.Context, string) error
 
 	// SetStdin turns on the stdin features during run invocations. It is used to
 	// facilitate debugging.
