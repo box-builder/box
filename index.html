@@ -39,7 +39,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <img class="box-logo" src="../img/box-logo.png">
+            <img class="box-logo" src="https://raw.githubusercontent.com/box-builder/box/master/docs-theme/img/box-logo.png">
             <a class="navbar-brand" href=".">Box</a>
         </div>
 
@@ -155,9 +155,10 @@ what techniques to use while writing them.</p>
 <h3 id="box-build-plans-are-programs">Box Build Plans are Programs</h3>
 <p>Exploit this! Use functions! Set variables and constants!</p>
 <p>run this plan with:</p>
-<pre><code class="shell">GOLANG_VERSION=1.7.5 box &lt;plan file&gt;
+<pre><code class="shell">GOLANG_VERSION=1.7.5 box [plan file]
 </code></pre>
 
+<p>If a plan name is not specified it will default to <code>box.rb</code>.</p>
 <pre><code class="ruby">from &quot;ubuntu&quot;
 
 # this function will create a new layer running the command inside the
@@ -288,6 +289,6 @@ because there would be a lot of noise in parallel execution.</p></div>
 </html>
 
 <!--
-MkDocs version : 0.16.3
-Build Date UTC : 2017-04-14 07:54:35
+MkDocs version : 0.16.2
+Build Date UTC : 2017-04-25 11:58:37
 -->
