@@ -209,6 +209,7 @@ code {
     -webkit-box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4);
     box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4);
     background-clip: padding-box;
+    z-index: 1210;
 }
 .modal-header {
     padding: 15px;
