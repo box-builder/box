@@ -1,4 +1,4 @@
-## Box Features
+## Welcome!
 
 Box is a utility for the building of docker images. Through use of mruby,
 we provide additional flexibility over the vanilla `docker build` command by
