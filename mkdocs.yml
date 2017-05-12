@@ -6,7 +6,6 @@ extra_css: [extra.css]
 pages:
   - "Intro": "index.md"
   - "Usage": "usage.md"
-  - "Installation": "installation.md"
   - "User Guide":
     - "Command-Line Options": "user-guide/cli.md"
     - "Verbs": "user-guide/verbs.md"
