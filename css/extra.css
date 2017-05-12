@@ -159,7 +159,7 @@ code {
 .container-header {
     min-height: 200px;
     margin-bottom: 20px;
-    background: url(../img/header_bg.jpg) center top #272727;
+    background: url(https://raw.githubusercontent.com/box-builder/box/master/docs-theme/img/header_bg.jpg) center top #272727;
     background-size: 1104px 549px;
     position: relative;
 }
@@ -193,7 +193,7 @@ code {
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 1040;
+    z-index: 1300;
     display: none;
     overflow: auto;
     overflow-y: scroll;
@@ -209,6 +209,7 @@ code {
     -webkit-box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4);
     box-shadow: 0 3px 5px rgba(0, 0, 0, 0.4);
     background-clip: padding-box;
+    z-index: 1301;
 }
 .modal-header {
     padding: 15px;
