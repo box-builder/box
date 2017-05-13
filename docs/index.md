@@ -13,6 +13,8 @@ Some features that differentiate it from `docker build`:
     * Simultaneous build of multiple projects
     * Read-Eval-Print-Loop (Shell) mode
 * In the build plan itself:
+    * Layer Management and editing
+    * Post-run hooks (similar to Dockerfile `ONBUILD`, but during the initial run)
     * Tagging
     * Flattening
     * Debug mode (drop to a shell in the middle of a plan run and inspect your container)
@@ -128,7 +130,7 @@ console.
 ### Verb Properties
 
 [copy](/user-guide/verbs/#copy), [run](/user-guide/verbs/#run), and
-other support properties to modify their behavior. You should check out
+others support properties to modify their behavior. You should check out
 what you can do in the docs, but here are a few examples.
 
 ```ruby
