@@ -106,7 +106,8 @@ func (s *cliSuite) TestCanonicalFile(c *C) {
 	// no args, with box.rb should build image
 	tmpPath := filepath.Join(os.TempDir(), "boxtest")
 	contents := []byte("from 'debian'\ntag 'boxrbtest'\n")
-	err := os.Mkdir(tmpPath, 0644)
+	err := os.MkdirAll(tmpPath, 0755)
+	defer os.RemoveAll(tmpPath)
 	c.Assert(err, IsNil)
 	err = ioutil.WriteFile(filepath.Join(tmpPath, "/box.rb"), contents, 0644)
 	c.Assert(err, IsNil)
