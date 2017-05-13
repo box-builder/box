@@ -17,6 +17,9 @@ clean:
 	cd vendor/github.com/mitchellh/go-mruby && make clean
 	rm -rf bin
 
+docs-serve:
+	mkdocs serve -a 0.0.0.0:8000
+
 docs:
 	mkdocs gh-deploy --clean
 

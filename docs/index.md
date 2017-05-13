@@ -13,31 +13,17 @@ Some features that differentiate it from `docker build`:
     * Simultaneous build of multiple projects
     * Read-Eval-Print-Loop (Shell) mode
 * In the build plan itself:
+    * Layer Management and editing
+    * Post-run hooks (similar to Dockerfile `ONBUILD`, but during the initial run)
     * Tagging
     * Flattening
     * Debug mode (drop to a shell in the middle of a plan run and inspect your container)
     * Ruby block methods for `user` ([with\_user](verbs/#with95user)) and `workdir` ([inside](verbs/#inside)) allow
       you to scope `copy` and `run` operations for a more obvious build plan.
 
-## Getting Box
+## Installation
 
-**[Download a Release](https://github.com/box-builder/box/releases/)**
-
-### Installation
-
-Quick Install: `curl -sSL box-builder.sh | sudo bash`
-
-Or [download a release](https://github.com/box-builder/box/releases): Just
-`gunzip` the downloaded file and put it in your path:
-
-```bash
-$ gunzip box.$(uname -s).gz
-$ chmod 755 box.$(uname -s)
-$ sudo mv box.$(uname -s) /usr/local/bin/box
-```
-
-Alternatively, we have a [homebrew tap](https://github.com/box-builder/homebrew-box)
-and debian and redhat packages on the [releases page](https://github.com/box-builder/box/releases).
+See the [Download Page](../download) for more information on installing box.
 
 ## Build Plans
 
@@ -144,7 +130,7 @@ console.
 ### Verb Properties
 
 [copy](/user-guide/verbs/#copy), [run](/user-guide/verbs/#run), and
-other support properties to modify their behavior. You should check out
+others support properties to modify their behavior. You should check out
 what you can do in the docs, but here are a few examples.
 
 ```ruby
