@@ -17,13 +17,15 @@ type Interpreter struct {
 	CacheKey string // if set to "", does not consider cache next step
 	globals  *types.Global
 	exec     executor.Executor
+	vars     map[string]string
 }
 
 // NewInterpreter contypes a new *Interpreter.
-func NewInterpreter(globals *types.Global, exec executor.Executor) *Interpreter {
+func NewInterpreter(globals *types.Global, exec executor.Executor, vars map[string]string) *Interpreter {
 	return &Interpreter{
 		globals: globals,
 		exec:    exec,
+		vars:    vars,
 	}
 }
 

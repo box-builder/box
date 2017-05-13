@@ -165,6 +165,7 @@ func main() {
 			},
 			Runner:   runChan,
 			FileName: filename,
+			Vars:     parseVars(ctx),
 		}
 
 		b, err := mkBuilder(cancel, buildConfig)
@@ -233,6 +234,7 @@ func runMulti(ctx *cli.Context) {
 			},
 			Runner:   runChan,
 			FileName: filename,
+			Vars:     parseVars(ctx),
 		}
 		signal.Handler.AddFunc(cancel)
 		signal.Handler.AddRunner(runChan)
@@ -264,7 +266,7 @@ func getCache(ctx *cli.Context) bool {
 
 func runRepl(ctx *cli.Context) {
 	log := logger.New("repl", ctx.GlobalBool("no-trim"))
-	r, err := repl.NewRepl(ctx.GlobalStringSlice("omit"), log)
+	r, err := repl.NewRepl(ctx.GlobalStringSlice("omit"), log, parseVars(ctx))
 	if err != nil {
 		log.Error(fmt.Sprintf("bootstrapping repl: %v\n", err))
 		os.Exit(1)
@@ -284,14 +286,25 @@ func mkBuilder(cancel context.CancelFunc, buildConfig builder.BuildConfig) (*bui
 	return b, nil
 }
 
-func detectFile(c *cli.Context) string {
-	a := c.Args()
+func detectFile(ctx *cli.Context) string {
+	a := ctx.Args()
 	if len(a) < 1 {
 		if _, err := os.Stat("box.rb"); os.IsNotExist(err) {
-			cli.ShowAppHelp(c)
+			cli.ShowAppHelp(ctx)
 			os.Exit(0)
 		}
 		return defaultFile
 	}
 	return a[0]
+}
+
+func parseVars(ctx *cli.Context) map[string]string {
+	vars := map[string]string{}
+
+	for _, v := range ctx.StringSlice("var") {
+		parts := strings.SplitN(v, "=", 2)
+		vars[parts[0]] = parts[1]
+	}
+
+	return vars
 }
