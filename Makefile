@@ -22,6 +22,7 @@ docs-serve:
 
 docs:
 	mkdocs gh-deploy --clean
+	mkdocs gh-deploy --clean --remote-name erikh
 
 checks: fetch
 	@sh checks.sh
