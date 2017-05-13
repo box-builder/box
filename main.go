@@ -44,12 +44,20 @@ func main() {
 	app.Name = Name
 	app.Email = Email
 	app.Version = Version
+	cli.VersionFlag = cli.BoolFlag{
+		Name:  "version",
+		Usage: "print the version",
+	}
 	app.Usage = Usage
 	app.Author = Author
 	app.Copyright = Copyright
 	app.UsageText = UsageText
 	app.HideHelp = true
 	app.Flags = []cli.Flag{
+		cli.StringSliceFlag{
+			Name:  "var, v",
+			Usage: "Provide a variable to the build plan accepts `key=value` syntax.",
+		},
 		cli.BoolFlag{
 			Name:  "no-cache, n",
 			Usage: "Disable the build cache",
