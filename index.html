@@ -53,6 +53,9 @@
                     <li >
                         <a href="usage/" class="dropdown-toggle"><span>Usage</span></a>
                     </li>
+                    <li >
+                        <a href="download/" class="dropdown-toggle"><span>Download</span></a>
+                    </li>
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span>User Guide<b class="caret"></b></span></a>
                         <ul class="dropdown-menu">
@@ -93,8 +96,7 @@
         <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
         <li class="main active"><a href="#welcome">Welcome!</a></li>
-        <li class="main "><a href="#getting-box">Getting Box</a></li>
-            <li><a href="#installation">Installation</a></li>
+        <li class="main "><a href="#installation">Installation</a></li>
         <li class="main "><a href="#build-plans">Build Plans</a></li>
             <li><a href="#box-build-plans-are-programs">Box Build Plans are Programs</a></li>
             <li><a href="#powered-by-mruby">Powered by mruby</a></li>
@@ -124,6 +126,8 @@ allow new actions, such as flattening and tagging images.</p>
 </ul>
 </li>
 <li>In the build plan itself:<ul>
+<li>Layer Management and editing</li>
+<li>Post-run hooks (similar to Dockerfile <code>ONBUILD</code>, but during the initial run)</li>
 <li>Tagging</li>
 <li>Flattening</li>
 <li>Debug mode (drop to a shell in the middle of a plan run and inspect your container)</li>
@@ -132,19 +136,8 @@ allow new actions, such as flattening and tagging images.</p>
 </ul>
 </li>
 </ul>
-<h2 id="getting-box">Getting Box</h2>
-<p><strong><a href="https://github.com/box-builder/box/releases/">Download a Release</a></strong></p>
-<h3 id="installation">Installation</h3>
-<p>Quick Install: <code>curl -sSL box-builder.sh | sudo bash</code></p>
-<p>Or <a href="https://github.com/box-builder/box/releases">download a release</a>: Just
-<code>gunzip</code> the downloaded file and put it in your path:</p>
-<pre><code class="bash">$ gunzip box.$(uname -s).gz
-$ chmod 755 box.$(uname -s)
-$ sudo mv box.$(uname -s) /usr/local/bin/box
-</code></pre>
-
-<p>Alternatively, we have a <a href="https://github.com/box-builder/homebrew-box">homebrew tap</a>
-and debian and redhat packages on the <a href="https://github.com/box-builder/box/releases">releases page</a>.</p>
+<h2 id="installation">Installation</h2>
+<p>See the <a href="./../download">Download Page</a> for more information on installing box.</p>
 <h2 id="build-plans">Build Plans</h2>
 <p>Build Plans power Box and are the core of its functionality. This
 document describes how you can power box by writing build plans, and
@@ -229,7 +222,7 @@ your container.</p>
 console.</p>
 <h3 id="verb-properties">Verb Properties</h3>
 <p><a href="./user-guide/verbs/#copy">copy</a>, <a href="./user-guide/verbs/#run">run</a>, and
-other support properties to modify their behavior. You should check out
+others support properties to modify their behavior. You should check out
 what you can do in the docs, but here are a few examples.</p>
 <pre><code class="ruby"># `output: false` runs vim without attaching to the TTY, allowing you to run this
 # command in a logging environment as well as a terminal one
@@ -287,5 +280,5 @@ because there would be a lot of noise in parallel execution.</p></div>
 
 <!--
 MkDocs version : 0.16.3
-Build Date UTC : 2017-05-12 08:43:54
+Build Date UTC : 2017-05-13 09:15:06
 -->

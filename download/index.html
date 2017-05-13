@@ -7,22 +7,22 @@
         
         
         
-        <link rel="shortcut icon" href="/img/favicon.ico">
-        <title>Box</title>
-        <link href="/css/bootstrap-custom.min.css" rel="stylesheet">
-        <link href="/css/font-awesome-4.5.0.css" rel="stylesheet">
-        <link href="/css/base.css" rel="stylesheet">
-        <link rel="stylesheet" href="/css/highlight.css">
-        <link href="/css/extra.css" rel="stylesheet">
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Download - Box</title>
+        <link href="../css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="../css/font-awesome-4.5.0.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="../css/highlight.css">
+        <link href="../css/extra.css" rel="stylesheet">
         <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
         <!--[if lt IE 9]>
             <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
             <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
         <![endif]-->
 
-	      <script src="/js/jquery-1.10.2.min.js"></script>
-        <script src="/js/bootstrap-3.0.3.min.js"></script>
-        <script src="/js/highlight.pack.js"></script> 
+	      <script src="../js/jquery-1.10.2.min.js"></script>
+        <script src="../js/bootstrap-3.0.3.min.js"></script>
+        <script src="../js/highlight.pack.js"></script> 
     </head>
 
     <body>
@@ -40,7 +40,7 @@
                 <span class="icon-bar"></span>
             </button>
             <img class="box-logo" src="https://raw.githubusercontent.com/box-builder/box/master/docs-theme/img/box-logo.png">
-            <a class="navbar-brand" href="/">Box</a>
+            <a class="navbar-brand" href="..">Box</a>
         </div>
 
         <!-- Expanded navigation -->
@@ -48,28 +48,28 @@
                 <!-- Main navigation -->
                 <ul class="nav navbar-nav">
                     <li >
-                        <a href="/" class="dropdown-toggle"><span>Intro</span></a>
+                        <a href=".." class="dropdown-toggle"><span>Intro</span></a>
                     </li>
                     <li >
-                        <a href="/usage/" class="dropdown-toggle"><span>Usage</span></a>
+                        <a href="../usage/" class="dropdown-toggle"><span>Usage</span></a>
                     </li>
-                    <li >
-                        <a href="/download/" class="dropdown-toggle"><span>Download</span></a>
+                    <li class="active">
+                        <a href="./" class="dropdown-toggle"><span>Download</span></a>
                     </li>
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span>User Guide<b class="caret"></b></span></a>
                         <ul class="dropdown-menu">
                             
 <li >
-    <a href="/user-guide/cli/">Command-Line Options</a>
+    <a href="../user-guide/cli/">Command-Line Options</a>
 </li>
                             
 <li >
-    <a href="/user-guide/verbs/">Verbs</a>
+    <a href="../user-guide/verbs/">Verbs</a>
 </li>
                             
 <li >
-    <a href="/user-guide/functions/">Functions</a>
+    <a href="../user-guide/functions/">Functions</a>
 </li>
                         </ul>
                     </li>
@@ -95,27 +95,32 @@
         
         <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
     <ul class="nav bs-sidenav">
+        <li class="main active"><a href="#download">Download</a></li>
     </ul>
 </div></div>
 
         <div class="container">
+            <div class="col-md-9" role="main">
 
-    <div class="row-fluid">
-      <div id="main-content" class="span12">
-        <h1 id="404-page-not-found" style="text-align: center">404</h1>
-        <p style="text-align: center"><strong>Page not found</strong></p>
-      </div>
-    </div>
+<h2 id="download">Download</h2>
+<p>Quick Install: <code>curl -sSL box-builder.sh | sudo bash</code></p>
+<p>Or <a href="https://github.com/box-builder/box/releases">download a release</a>: Just
+<code>gunzip</code> the downloaded file and put it in your path:</p>
+<pre><code class="bash">$ gunzip box.$(uname -s).gz
+$ chmod 755 box.$(uname -s)
+$ sudo mv box.$(uname -s) /usr/local/bin/box
+</code></pre>
 
-
+<p>Alternatively, we have a <a href="https://github.com/box-builder/homebrew-box">homebrew tap</a>
+and debian and redhat packages on the <a href="https://github.com/box-builder/box/releases">releases page</a>.</p></div>
         </div>
 
         <footer class="col-md-12">
             <p>Documentation built with <a href="http://www.mkdocs.org/">MkDocs</a>.</p>
         </footer>
-        <script>var base_url = '';</script>
-        <script data-main="/mkdocs/js/search.js" src="/mkdocs/js/require.js"></script>
-        <script src="/js/base.js"></script><div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+        <script>var base_url = '..';</script>
+        <script data-main="../mkdocs/js/search.js" src="../mkdocs/js/require.js"></script>
+        <script src="../js/base.js"></script><div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
