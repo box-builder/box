@@ -36,4 +36,15 @@ func (s *cliSuite) TestVars(c *C) {
 
 	c.Assert(err, IsNil)
 	checkFailure(c, cmd)
+
+	cmd, err = build(`
+    from "debian"
+		copy ".", "."
+		if var_exists("testfile")
+			run "test -f #{var("testfile")}"
+		end
+	`, "-n")
+
+	c.Assert(err, IsNil)
+	checkSuccess(c, cmd)
 }

@@ -9,14 +9,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+// VarExists corresponds to the `var_exists` func.
+func (i *Interpreter) VarExists(key string) bool {
+	_, ok := i.vars[key]
+	return ok
+}
+
 // Var corresponds to the `var` func.
 func (i *Interpreter) Var(key string) (string, error) {
 	val, ok := i.vars[key]
 	if !ok {
 		return "", fmt.Errorf("value for key %q does not exist", key)
 	}
-
-	fmt.Println(val)
 
 	return val, nil
 }
