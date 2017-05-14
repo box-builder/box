@@ -1,3 +1,5 @@
+## Verbs
+
 Verbs take action on a container and usually create a layer. Some commands can
 be used to move data into and out of containers, or set properties and run
 commands.

@@ -35,10 +35,11 @@ type Repl struct {
 	readline  *readline.Instance
 	evaluator evaluator.Evaluator
 	globals   *types.Global
+	vars      map[string]string
 }
 
 // NewRepl contypes a new Repl.
-func NewRepl(omit []string, log *logger.Logger) (*Repl, error) {
+func NewRepl(omit []string, log *logger.Logger, vars map[string]string) (*Repl, error) {
 	rl, err := readline.New(normalPrompt)
 	if err != nil {
 		return nil, err
@@ -69,7 +70,7 @@ func NewRepl(omit []string, log *logger.Logger) (*Repl, error) {
 	e, err := mruby.NewMRuby(&mruby.Config{
 		Filename: "repl",
 		Globals:  globals,
-		Interp:   command.NewInterpreter(globals, exec),
+		Interp:   command.NewInterpreter(globals, exec, vars),
 		Exec:     exec,
 	})
 	if err != nil {
@@ -80,7 +81,7 @@ func NewRepl(omit []string, log *logger.Logger) (*Repl, error) {
 
 	signal.Handler.AddFunc(cancel)
 
-	return &Repl{readline: rl, evaluator: e, globals: globals}, nil
+	return &Repl{readline: rl, evaluator: e, globals: globals, vars: vars}, nil
 }
 
 func (r *Repl) handleError(line string, err error) bool {
@@ -171,7 +172,7 @@ func (r *Repl) checkQuit(line string) (bool, error) {
 		e, err := mruby.NewMRuby(&mruby.Config{
 			Filename: "repl",
 			Globals:  r.globals,
-			Interp:   command.NewInterpreter(r.globals, exec),
+			Interp:   command.NewInterpreter(r.globals, exec, r.vars),
 			Exec:     exec,
 		})
 		if err != nil {

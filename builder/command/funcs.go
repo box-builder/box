@@ -1,12 +1,29 @@
 package command
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"strings"
 
 	"github.com/pkg/errors"
 )
+
+// VarExists corresponds to the `var_exists` func.
+func (i *Interpreter) VarExists(key string) bool {
+	_, ok := i.vars[key]
+	return ok
+}
+
+// Var corresponds to the `var` func.
+func (i *Interpreter) Var(key string) (string, error) {
+	val, ok := i.vars[key]
+	if !ok {
+		return "", fmt.Errorf("value for key %q does not exist", key)
+	}
+
+	return val, nil
+}
 
 // Save corresponds to the `save` func.
 func (i *Interpreter) Save(file, kind, tag string) error {

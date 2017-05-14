@@ -21,6 +21,7 @@ type BuildConfig struct {
 	Globals  *types.Global
 	Runner   chan struct{}
 	FileName string
+	Vars     map[string]string
 }
 
 // Builder implements the builder core.
@@ -52,7 +53,7 @@ func NewBuilder(bc BuildConfig) (*Builder, error) {
 		Filename: bc.FileName,
 		Globals:  bc.Globals,
 		Exec:     exec,
-		Interp:   command.NewInterpreter(bc.Globals, exec),
+		Interp:   command.NewInterpreter(bc.Globals, exec, bc.Vars),
 	})
 	if err != nil {
 		return nil, err

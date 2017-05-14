@@ -1,3 +1,5 @@
+## Command-Line Options
+
 Command-Line Options in box alter behavior of box for its runtime.  Using these
 options shape your build and suit it for use in many group environments.
 
@@ -17,6 +19,12 @@ time.
 ## --help (-h) and --version (-v)
 
 Show the help and version respectively.
+
+## --var (-v)
+
+This flag sets variable names for use inside the interpreter. They can be
+supplied at the command-line and are readable with the
+[var](/user-guide/functions.md#var) function.
 
 ## --no-cache (-n)
 

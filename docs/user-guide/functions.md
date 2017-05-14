@@ -1,8 +1,29 @@
+## Functions
+
 Functions in Box provide a data-passing mechanism for build instructions. For
 example, you may wish to read the contents of a file from the container into
 your build for further processing; the `read` function allows that.
 
 These are the functions supported by Box.
+
+## var
+
+`var` yields a variable set with the `-v` or `--var` command-line flag.
+
+Example:
+
+Save this plan as `box.rb` and run it with `box -var test=box.rb`.
+
+```ruby
+from "debian"
+copy "box.rb", "."
+run "test -f #{var("test")}"
+```
+
+This will test the `box.rb` file and report a success because it was copied in
+during the first step.
+
+Note that vars which reference undefined variables will yield an exception.
 
 ## save
 

@@ -16,14 +16,41 @@ type funcFunc func(args []*gm.MrbValue, self *gm.MrbValue) (gm.Value, gm.Value)
 
 func (m *MRuby) funcJumpTable() map[string]*funcDefinition {
 	return map[string]*funcDefinition{
-		"import": {m.importFunc, gm.ArgsReq(1)},
-		"save":   {m.saveFunc, gm.ArgsReq(1)},
-		"getenv": {m.getenv, gm.ArgsReq(1)},
-		"getuid": {m.getuid, gm.ArgsReq(1)},
-		"getgid": {m.getgid, gm.ArgsReq(1)},
-		"read":   {m.read, gm.ArgsReq(1)},
-		"skip":   {m.skip, gm.ArgsNone() | gm.ArgsBlock()},
+		"var_exists": {m.varExistsFunc, gm.ArgsReq(1)},
+		"var":        {m.varFunc, gm.ArgsReq(1)},
+		"import":     {m.importFunc, gm.ArgsReq(1)},
+		"save":       {m.saveFunc, gm.ArgsReq(1)},
+		"getenv":     {m.getenv, gm.ArgsReq(1)},
+		"getuid":     {m.getuid, gm.ArgsReq(1)},
+		"getgid":     {m.getgid, gm.ArgsReq(1)},
+		"read":       {m.read, gm.ArgsReq(1)},
+		"skip":       {m.skip, gm.ArgsNone() | gm.ArgsBlock()},
 	}
+}
+
+func (m *MRuby) varExistsFunc(args []*gm.MrbValue, self *gm.MrbValue) (gm.Value, gm.Value) {
+	if err := checkArgs(args, 1); err != nil {
+		return nil, m.createException(err)
+	}
+
+	if m.Interp.VarExists(args[0].String()) {
+		return m.mrb.TrueValue(), nil
+	}
+
+	return m.mrb.FalseValue(), nil
+}
+
+func (m *MRuby) varFunc(args []*gm.MrbValue, self *gm.MrbValue) (gm.Value, gm.Value) {
+	if err := checkArgs(args, 1); err != nil {
+		return nil, m.createException(err)
+	}
+
+	value, err := m.Interp.Var(args[0].String())
+	if err != nil {
+		return nil, m.createException(err)
+	}
+
+	return gm.String(value), nil
 }
 
 func (m *MRuby) importFunc(args []*gm.MrbValue, self *gm.MrbValue) (gm.Value, gm.Value) {
