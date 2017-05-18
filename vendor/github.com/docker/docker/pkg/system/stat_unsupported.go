@@ -1,4 +1,4 @@
-// +build !linux,!windows,!freebsd,!solaris,!openbsd,!darwin
+// +build !linux,!windows,!freebsd,!solaris
 
 package system
 

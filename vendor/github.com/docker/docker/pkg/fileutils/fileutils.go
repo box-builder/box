@@ -13,12 +13,12 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
-// exclusion returns true if the specified pattern is an exclusion
+// exclusion return true if the specified pattern is an exclusion
 func exclusion(pattern string) bool {
 	return pattern[0] == '!'
 }
 
-// empty returns true if the specified pattern is empty
+// empty return true if the specified pattern is empty
 func empty(pattern string) bool {
 	return pattern == ""
 }
@@ -31,7 +31,7 @@ func CleanPatterns(patterns []string) ([]string, [][]string, bool, error) {
 	// Loop over exclusion patterns and:
 	// 1. Clean them up.
 	// 2. Indicate whether we are dealing with any exception rules.
-	// 3. Error if we see a single exclusion marker on its own (!).
+	// 3. Error if we see a single exclusion marker on it's own (!).
 	cleanedPatterns := []string{}
 	patternDirs := [][]string{}
 	exceptions := false
@@ -52,7 +52,7 @@ func CleanPatterns(patterns []string) ([]string, [][]string, bool, error) {
 		if exclusion(pattern) {
 			pattern = pattern[1:]
 		}
-		patternDirs = append(patternDirs, strings.Split(pattern, string(os.PathSeparator)))
+		patternDirs = append(patternDirs, strings.Split(pattern, "/"))
 	}
 
 	return cleanedPatterns, patternDirs, exceptions, nil
@@ -83,9 +83,8 @@ func Matches(file string, patterns []string) (bool, error) {
 // The more generic fileutils.Matches() can't make these assumptions.
 func OptimizedMatches(file string, patterns []string, patDirs [][]string) (bool, error) {
 	matched := false
-	file = filepath.FromSlash(file)
 	parentPath := filepath.Dir(file)
-	parentPathDirs := strings.Split(parentPath, string(os.PathSeparator))
+	parentPathDirs := strings.Split(parentPath, "/")
 
 	for i, pattern := range patterns {
 		negative := false
@@ -103,8 +102,8 @@ func OptimizedMatches(file string, patterns []string, patDirs [][]string) (bool,
 		if !match && parentPath != "." {
 			// Check to see if the pattern matches one of our parent dirs.
 			if len(patDirs[i]) <= len(parentPathDirs) {
-				match, _ = regexpMatch(strings.Join(patDirs[i], string(os.PathSeparator)),
-					strings.Join(parentPathDirs[:len(patDirs[i])], string(os.PathSeparator)))
+				match, _ = regexpMatch(strings.Join(patDirs[i], "/"),
+					strings.Join(parentPathDirs[:len(patDirs[i])], "/"))
 			}
 		}
 
@@ -126,9 +125,6 @@ func OptimizedMatches(file string, patterns []string, patDirs [][]string) (bool,
 // of directories.  This means that we should be backwards compatible
 // with filepath.Match(). We'll end up supporting more stuff, due to
 // the fact that we're using regexp, but that's ok - it does no harm.
-//
-// As per the comment in golangs filepath.Match, on Windows, escaping
-// is disabled. Instead, '\\' is treated as path separator.
 func regexpMatch(pattern, path string) (bool, error) {
 	regStr := "^"
 
@@ -180,7 +176,7 @@ func regexpMatch(pattern, path string) (bool, error) {
 		} else if ch == '?' {
 			// "?" is any char except "/"
 			regStr += "[^" + escSL + "]"
-		} else if ch == '.' || ch == '$' {
+		} else if strings.Index(".$", string(ch)) != -1 {
 			// Escape some regexp special chars that have no meaning
 			// in golang's filepath.Match
 			regStr += `\` + string(ch)
@@ -217,7 +213,7 @@ func regexpMatch(pattern, path string) (bool, error) {
 }
 
 // CopyFile copies from src to dst until either EOF is reached
-// on src or an error occurs. It verifies src exists and removes
+// on src or an error occurs. It verifies src exists and remove
 // the dst if it exists.
 func CopyFile(src, dst string) (int64, error) {
 	cleanSrc := filepath.Clean(src)
