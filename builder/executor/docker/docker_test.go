@@ -8,11 +8,11 @@ import (
 	"strings"
 	. "testing"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
+	"github.com/box-builder/box/logger"
+	bt "github.com/box-builder/box/tar"
 	"github.com/docker/docker/pkg/term"
-	"github.com/erikh/box/logger"
-	bt "github.com/erikh/box/tar"
+	"github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types"
 
 	. "gopkg.in/check.v1"
 )

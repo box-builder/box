@@ -16,8 +16,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/erikh/box/copy"
-	"github.com/erikh/box/signal"
+	"github.com/box-builder/box/copy"
+	"github.com/box-builder/box/signal"
 	mruby "github.com/mitchellh/go-mruby"
 )
 

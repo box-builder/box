@@ -1236,8 +1236,8 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 
 	_, err = runBuilder(`
 		from "debian"
-		copy ".", "/go/src/github.com/erikh/box/builder/"
-		run "ls /go/src/github.com/erikh/box/builder/"
+		copy ".", "/go/src/github.com/box-builder/box/builder/"
+		run "ls /go/src/github.com/box-builder/box/builder/"
 	`)
 	c.Assert(err, IsNil)
 }

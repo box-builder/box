@@ -19,7 +19,7 @@ Some features that differentiate it from `docker build`:
 
 ## Getting Box
 
-**[Download a Release](https://github.com/erikh/box/releases/)**
+**[Download a Release](https://github.com/box-builder/box/releases/)**
 
 ### Installation
 
@@ -34,7 +34,7 @@ $ sudo mv box.$(uname -s) /usr/local/bin/box
 ```
 
 Alternatively, we have a [homebrew tap](https://github.com/erikh/homebrew-box)
-and debian and redhat packages on the [releases page](https://github.com/erikh/box/releases).
+and debian and redhat packages on the [releases page](https://github.com/box-builder/box/releases).
 
 ## Invocation
 
@@ -64,7 +64,7 @@ $ box myplan.rb
 ```
 
 The current working directory that Box runs in is very important, it is the
-jumping-off point for most copy operations. If you run the `erikh/box`
+jumping-off point for most copy operations. If you run the `box-builder/box`
 container, you may wish to run it in this way:
 
 ```bash
@@ -72,7 +72,7 @@ $ docker run -i \
   -v $PWD:$PWD \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -w $PWD \
-  erikh/box:latest myplan.rb
+  box-builder/box:latest myplan.rb
 ```
 
 For additional flags and functionality, see the help:
@@ -168,7 +168,7 @@ features. Be sure to check the [verbs](https://erikh.github.io/box/verbs/) to
 refer to different constructs used in the file.
 
 You can find the latest version of it
-[here](https://github.com/erikh/box/blob/master/build.rb) too.
+[here](https://github.com/box-builder/box/blob/master/build.rb) too.
 
 ```ruby
 from "golang"
@@ -206,10 +206,10 @@ skip do
 
   run "pip -q install mkdocs mkdocs-bootswatch"
 
-  copy ".", "/go/src/github.com/erikh/box"
-  run "cd /go/src/github.com/erikh/box && make clean install"
+  copy ".", "/go/src/github.com/box-builder/box"
+  run "cd /go/src/github.com/box-builder/box && make clean install"
 
-  workdir "/go/src/github.com/erikh/box"
+  workdir "/go/src/github.com/box-builder/box"
   set_exec entrypoint: ["/dind"], cmd: ["make", "docker-test"]
   tag "box-test"
 end
@@ -220,4 +220,4 @@ set_exec entrypoint: ["/box"], cmd: []
 
 ## Caveats
 
-You can see [all of our issues](https://github.com/erikh/box/issues) here.
+You can see [all of our issues](https://github.com/box-builder/box/issues) here.

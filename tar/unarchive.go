@@ -9,6 +9,6 @@ import (
 // Unarchive unpacks the reader into the destination directory. An error is
 // yielded if this operation cannot occur or failed.
 func Unarchive(reader io.Reader, dest string) error {
-	options := &archive.TarOptions{WhiteoutFormat: archive.OverlayWhiteoutFormat}
+	options := &archive.TarOptions{}
 	return archive.Unpack(reader, dest, options)
 }

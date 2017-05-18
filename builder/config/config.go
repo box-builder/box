@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
+	"github.com/docker/engine-api/types/container"
 )
 
 // StringSliceState is a state tracker for two types of states: image-level and

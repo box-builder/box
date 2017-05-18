@@ -6,11 +6,11 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
-	"github.com/erikh/box/builder/config"
-	"github.com/erikh/box/logger"
-	"github.com/erikh/box/pull"
+	"github.com/box-builder/box/builder/config"
+	"github.com/box-builder/box/logger"
+	"github.com/box-builder/box/pull"
+	"github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types"
 )
 
 // Docker does stuff
