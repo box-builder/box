@@ -1,3 +1,7 @@
+### v0.5.2
+
+* Downgraded docker client to be more compatible with more versions of docker.
+
 ### v0.5.1
 
 * `entrypoint` and `cmd` now handle nils and arrays of strings appropriately.
