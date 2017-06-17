@@ -269,7 +269,7 @@ func (bs *builderSuite) TestCopyOverDir(c *C) {
     from "debian:jessie"
     copy "%s", "/tmp"
   `, testpath))
-	c.Assert(err, NotNil)
+	c.Assert(err, IsNil)
 
 	_, err = runBuilder(fmt.Sprintf(`
     from "debian:jessie"

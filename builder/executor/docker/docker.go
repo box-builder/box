@@ -241,5 +241,5 @@ func (d *Docker) CopyFromContainer(id, path string) (io.Reader, int64, error) {
 // containerto the container so it can then be committed. It does not close the
 // reader.
 func (d *Docker) CopyToContainer(id string, r io.Reader) error {
-	return d.client.CopyToContainer(d.context, id, "/", r, types.CopyToContainerOptions{})
+	return d.client.CopyToContainer(d.context, id, "/", r, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
 }
