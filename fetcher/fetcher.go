@@ -57,7 +57,7 @@ func Docker(context context.Context, logger *logger.Logger, client *client.Clien
 		}
 	}
 
-	config.FromDocker(inspect.Config)
+	config.FromDocker(false, inspect.Config)
 	config.Image = inspect.ID
 
 	return inspect.ID, inspect.RootFS.Layers, nil

@@ -254,11 +254,13 @@ func (d *Docker) MakeImage(config *config.Config) (string, error) {
 }
 
 // Lookup an image by name, returning the id.
-func (d *Docker) Lookup(name string) (string, error) {
+func (d *Docker) Lookup(config *config.Config, name string) (string, error) {
 	img, _, err := d.client.ImageInspectWithRaw(d.context, name)
 	if err != nil {
 		return "", err
 	}
+
+	config.FromDocker(false, img.Config)
 
 	return img.ID, nil
 }

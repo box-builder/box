@@ -299,7 +299,7 @@ func from(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, sel
 
 	if pulling {
 		<-pullChan
-		id, err = b.exec.Layers().Lookup(name)
+		id, err = b.exec.Layers().Lookup(b.exec.Config(), name)
 		if err != nil {
 			return nil, createException(m, err.Error())
 		}

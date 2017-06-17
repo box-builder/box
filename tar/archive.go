@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -19,6 +18,7 @@ import (
 
 // rewriteTar rewrites the tar's paths to copy the source to the target.
 func rewriteTar(source, target string, logger *logger.Logger, tr *tar.Reader, tw *tar.Writer) error {
+	// all this code is terrible
 	fi, err := os.Stat(source)
 	if err != nil {
 		return err
@@ -43,22 +43,33 @@ func rewriteTar(source, target string, logger *logger.Logger, tr *tar.Reader, tw
 			name = header.Name
 		}
 
-		abs := filepath.Join(source, name)
+		if header.Linkname != "" {
+			var linkName string
 
-		if (dir || target[len(target)-1] == '/') && header.Name[0] != '/' {
-			// not a single file
-			header.Linkname = path.Join(target, header.Linkname)
-			header.Name = path.Join(target, header.Name)
+			if header.Linkname[0] == '/' {
+				linkName = header.Linkname[1:]
+			} else {
+				linkName = header.Linkname
+			}
+
+			header.Linkname = linkName
+		}
+
+		if dir {
+			header.Name = filepath.Join(target, name)
 		} else {
-			header.Linkname = target
-			header.Name = target
+			if target[len(target)-1] == '/' {
+				header.Name = filepath.Join(target, name)
+			} else {
+				header.Name = target
+			}
 		}
 
 		if err := tw.WriteHeader(header); err != nil {
 			return err
 		}
 
-		if err := copy.WithProgress(tw, tr, logger, fmt.Sprintf("%s -> %s", abs, header.Name)); err != nil {
+		if err := copy.WithProgress(tw, tr, logger, fmt.Sprintf("%s -> %s", filepath.Join(source, name), header.Name)); err != nil {
 			return err
 		}
 	}
