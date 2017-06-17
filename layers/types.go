@@ -60,7 +60,7 @@ type Layers interface {
 	MakeImage(config *config.Config) (string, error)
 
 	// Look up an image identifier.
-	Lookup(string) (string, error)
+	Lookup(*config.Config, string) (string, error)
 
 	// SetContext sets the context for subsequent calls.
 	SetContext(ctx context.Context)

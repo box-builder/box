@@ -42,7 +42,7 @@ func (bs *builderSuite) SetUpSuite(c *C) {
 	dockerClient, err = client.NewEnvClient()
 	c.Assert(err, IsNil)
 
-	b, err := runBuilder(`from "debian"`)
+	b, err := runBuilder(`from "debian:jessie"`)
 	c.Assert(err, IsNil)
 	b.Close()
 }
@@ -111,7 +111,7 @@ func (bs *builderSuite) TestContext(c *C) {
 
 	go func() {
 		result := b.RunScript(`
-			from "debian"
+			from "debian:jessie"
 			run "sleep 2"
 			run "ls"
 		`)
@@ -129,7 +129,7 @@ func (bs *builderSuite) TestContext(c *C) {
 
 	go func() {
 		result := b.RunScript(`
-			from "debian"
+			from "debian:jessie"
 			run "sleep 2"
 			run "ls"
 		`)
@@ -152,7 +152,7 @@ func (bs *builderSuite) TestImport(c *C) {
 	defer f.Close()
 
 	_, err = f.Write([]byte(`
-    from "debian"
+    from "debian:jessie"
   `))
 
 	c.Assert(err, IsNil)
@@ -174,7 +174,7 @@ func (bs *builderSuite) TestImport(c *C) {
 
 func (bs *builderSuite) TestCopyToRelativePathWithWorkdir(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test"
     workdir "/test"
     copy ".", "builder"
@@ -184,7 +184,7 @@ func (bs *builderSuite) TestCopyToRelativePathWithWorkdir(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test"
     workdir "/test"
     copy "config", "."
@@ -196,7 +196,7 @@ func (bs *builderSuite) TestCopyToRelativePathWithWorkdir(c *C) {
 
 func (bs *builderSuite) TestCopyWithGlob(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test"
     workdir "/test"
     copy "*", "."
@@ -207,7 +207,7 @@ func (bs *builderSuite) TestCopyWithGlob(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test"
     workdir "/test"
     copy "*", "."
@@ -219,7 +219,7 @@ func (bs *builderSuite) TestCopyWithGlob(c *C) {
 
 func (bs *builderSuite) TestCopyWithIgnore(c *C) {
 	b, err := runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		copy ".", "builder", ignore_list: ["builder.go"]
 		run "ls /builder"
 		run "test -f /builder/builder.go"
@@ -235,7 +235,7 @@ func (bs *builderSuite) TestCopyWithIgnore(c *C) {
 	f.Close()
 
 	b, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		copy ".", "builder", ignore_file: "filelist"
 		run "test -f /builder/builder.go || test -f /builder/util.go"
 	`)
@@ -252,7 +252,7 @@ func (bs *builderSuite) TestCopyWithIgnore(c *C) {
 	f.Close()
 
 	b, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		copy ".", "builder"
 		run "test -f /builder/builder.go || test -f /builder/util.go"
 	`)
@@ -266,13 +266,13 @@ func (bs *builderSuite) TestCopyOverDir(c *C) {
 	testpath := filepath.Join(dockerfilePath, "test1.rb")
 
 	_, err := runBuilder(fmt.Sprintf(`
-    from "debian"
+    from "debian:jessie"
     copy "%s", "/tmp"
   `, testpath))
 	c.Assert(err, NotNil)
 
 	_, err = runBuilder(fmt.Sprintf(`
-    from "debian"
+    from "debian:jessie"
     copy "%s", "/tmp/"
     run "test -f /tmp/test1.rb"
   `, testpath))
@@ -296,7 +296,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 	testpath := filepath.Join(dockerfilePath, "test1.rb")
 
 	b, err := runBuilder(fmt.Sprintf(`
-    from "debian"
+    from "debian:jessie"
     copy "%s", "/test1.rb"
   `, testpath))
 	c.Assert(err, IsNil)
@@ -311,7 +311,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     copy "builder.go", "/"
   `)
 
@@ -325,7 +325,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     copy ".", "test"
   `)
 
@@ -336,7 +336,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     workdir "/test"
     copy ".", "test/"
   `)
@@ -348,7 +348,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
 		run "mkdir /test"
     inside "/test" do
       copy ".", "test/"
@@ -363,7 +363,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     inside "/test" do
       copy "..", "test/"
     end
@@ -373,7 +373,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     inside "/test" do
       copy "testdata/..", "test/"
     end
@@ -383,7 +383,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     inside "/test" do
       copy "testdata/../..", "test/"
     end
@@ -393,7 +393,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     inside "/test" do
       copy "testdata/../../builder/..", "test/"
     end
@@ -405,7 +405,7 @@ func (bs *builderSuite) TestCopy(c *C) {
 
 func (bs *builderSuite) TestTag(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
     tag "test"
   `)
 
@@ -421,7 +421,7 @@ func (bs *builderSuite) TestTag(c *C) {
 
 func (bs *builderSuite) TestSave(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
 		save tag: "test"
   `)
 
@@ -443,7 +443,7 @@ func (bs *builderSuite) TestSave(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
 		run "apt-get update -qq"
 		save file: "test.tar"
   `)
@@ -459,21 +459,21 @@ func (bs *builderSuite) TestSave(c *C) {
 	io.Copy(ioutil.Discard, r.Body)
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
 		save file: "../test.tar"
   `)
 	c.Assert(err, NotNil)
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
 		save file: "/test.tar"
   `)
 	c.Assert(err, NotNil)
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
 		run "apt-get update -qq"
 		save file: "oci.tar", kind: "oci"
   `)
@@ -501,7 +501,7 @@ func (bs *builderSuite) TestSave(c *C) {
 
 func (bs *builderSuite) TestFlatten(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "echo foo >bar"
     run "echo here is another layer >a_file"
     tag "notflattened"
@@ -532,7 +532,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	// and run where the entrypoint/cmd would not be overridden during commit
 	// time for run.
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
     entrypoint "/bin/cat"
     run "echo hi"
   `)
@@ -541,12 +541,12 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/cat"})
-	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
+	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"bash"})
 	b.Close()
 
 	// if cmd is set earlier than entrypoint, it should not change
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     cmd "hi"
     entrypoint "/bin/echo"
   `)
@@ -560,7 +560,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 
 	// likewise for entrypoint.
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     entrypoint "/bin/echo"
     cmd "hi"
   `)
@@ -574,19 +574,19 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 
 	// normal cmd usage.
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     cmd "hi"
   `)
 
 	c.Assert(err, IsNil)
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
-	c.Assert(inspect.Config.Entrypoint, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{})
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"hi"})
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
 		entrypoint []
 		cmd []
   `)
@@ -596,11 +596,11 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/sh"})
-	c.Assert(inspect.Config.Entrypoint, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{})
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
 		entrypoint []
 		cmd ["/bin/bash"]
   `)
@@ -609,11 +609,11 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
-	c.Assert(inspect.Config.Entrypoint, IsNil)
+	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{})
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
 		entrypoint %w[/bin/echo -e]
 		cmd %w[foo bar quux baz]
   `)
@@ -627,7 +627,7 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
 
 func (bs *builderSuite) TestRun(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "echo -n foo >/bar"
   `)
 
@@ -637,7 +637,7 @@ func (bs *builderSuite) TestRun(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test && chown nobody:nogroup /test"
     with_user "nobody" do
       run "echo -n foo >/test/bar"
@@ -650,7 +650,7 @@ func (bs *builderSuite) TestRun(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test && chown nobody:nogroup /test"
     user "nobody"
     run "echo -n foo >/test/bar"
@@ -662,7 +662,7 @@ func (bs *builderSuite) TestRun(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test"
     inside "/test" do
       run "echo -n foo >bar"
@@ -675,7 +675,7 @@ func (bs *builderSuite) TestRun(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test"
     workdir "/test"
     run "echo -n foo >bar"
@@ -689,7 +689,7 @@ func (bs *builderSuite) TestRun(c *C) {
 
 func (bs *builderSuite) TestWorkDirInside(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
     workdir "."
   `)
 
@@ -697,7 +697,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     inside "." do
       run "true"
     end
@@ -707,7 +707,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test"
     workdir "/test"
     run "echo -n foo >bar"
@@ -723,7 +723,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test"
     inside "/test" do
       run "echo -n foo >bar"
@@ -744,7 +744,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test"
     workdir "/test"
     copy ".", "."
@@ -760,7 +760,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test"
     inside "/test" do
       copy ".", "."
@@ -780,7 +780,7 @@ func (bs *builderSuite) TestWorkDirInside(c *C) {
 
 func (bs *builderSuite) TestUser(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test && chown nobody:nogroup /test"
     user "nobody"
     run "echo -n foo >/test/bar"
@@ -796,7 +796,7 @@ func (bs *builderSuite) TestUser(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "mkdir /test && chown nobody:nogroup /test"
     with_user "nobody" do
       run "echo -n foo >/test/bar"
@@ -818,7 +818,7 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 	os.Setenv("NO_CACHE", "")
 
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
   `)
 
 	c.Assert(err, IsNil)
@@ -890,28 +890,28 @@ func (bs *builderSuite) TestBuildCache(c *C) {
 
 func (bs *builderSuite) TestSetExec(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
     set_exec cmd: "quux"
   `)
 	c.Assert(err, NotNil)
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     set_exec entrypoint: "quux"
   `)
 	c.Assert(err, NotNil)
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     set_exec test: ["quux"]
   `)
 	c.Assert(err, NotNil)
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     set_exec entrypoint: ["/bin/bash"]
   `)
 	c.Assert(err, IsNil)
@@ -922,7 +922,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     set_exec cmd: ["/bin/bash"]
   `)
 	c.Assert(err, IsNil)
@@ -933,7 +933,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     cmd "exit 0"
     set_exec entrypoint: ["/bin/bash", "-c"]
   `)
@@ -946,7 +946,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     entrypoint "/bin/bash", "-c"
     set_exec cmd: ["exit 0"]
   `)
@@ -961,7 +961,7 @@ func (bs *builderSuite) TestSetExec(c *C) {
 
 func (bs *builderSuite) TestEnv(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
     env GOPATH: "/go"
   `)
 	c.Assert(err, IsNil)
@@ -981,7 +981,7 @@ func (bs *builderSuite) TestEnv(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     env "GOPATH" => "/go", "PATH" => "/usr/local"
   `)
 	c.Assert(err, IsNil)
@@ -1005,7 +1005,7 @@ func (bs *builderSuite) TestEnv(c *C) {
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     env "TERM" => "myterm", "PATH" => "/test"
     tag "builder-env-base"
   `)
@@ -1046,7 +1046,7 @@ func (bs *builderSuite) TestEnv(c *C) {
 
 func (bs *builderSuite) TestReaderFuncs(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+    from "debian:jessie"
     run "echo -n #{getuid("root")} > /uid"
     run "echo -n #{getgid("nogroup")} > /gid"
     run "echo -n '#{read("/etc/passwd")}' > /passwd"
@@ -1071,21 +1071,21 @@ func (bs *builderSuite) TestReaderFuncs(c *C) {
 	c.Assert(content, DeepEquals, origContent)
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     puts read("/nonexistent")
   `)
 	c.Assert(err, NotNil)
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     puts getuid("quux")
   `)
 	c.Assert(err, NotNil)
 	b.Close()
 
 	b, err = runBuilder(`
-    from "debian"
+    from "debian:jessie"
     puts getgid("quux")
   `)
 	c.Assert(err, NotNil)
@@ -1094,7 +1094,7 @@ func (bs *builderSuite) TestReaderFuncs(c *C) {
 
 func (bs *builderSuite) TestExecPropagation(c *C) {
 	b, err := runBuilder(`
-    from "debian"
+		from "debian:jessie"
     run "useradd -s /bin/bash -m -d /home/test test"
     env something: "here"
     run "apt-get update"
@@ -1103,29 +1103,29 @@ func (bs *builderSuite) TestExecPropagation(c *C) {
   `)
 	c.Assert(err, IsNil)
 
-	c.Assert(b.exec.Config().Entrypoint.Image, IsNil)
-	c.Assert(b.exec.Config().Cmd.Image, DeepEquals, []string{"/bin/bash"})
+	c.Assert(b.exec.Config().Entrypoint.Image, DeepEquals, []string{})
+	c.Assert(b.exec.Config().Cmd.Image, DeepEquals, []string{"bash"})
 
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "test")
 	c.Assert(err, IsNil)
 	c.Assert(strslice.StrSlice(b.exec.Config().Cmd.Image), DeepEquals, inspect.Config.Cmd)
 
 	// Docker rewrites a nil as the array below.
-	c.Assert(strslice.StrSlice{"/bin/sh", "-c"}, DeepEquals, inspect.Config.Entrypoint)
+	c.Assert(strslice.StrSlice{}, DeepEquals, inspect.Config.Entrypoint)
 
 	b.Close()
 }
 
 func (bs *builderSuite) TestLabels(c *C) {
 	_, err := runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		label
 		tag "failed"
 	`)
 	c.Assert(err, NotNil)
 
 	_, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		label "foo" => "bar"
 		tag "labeled"
 	`)
@@ -1136,7 +1136,7 @@ func (bs *builderSuite) TestLabels(c *C) {
 	c.Assert(inspect.Config.Labels["foo"], Equals, "bar")
 
 	_, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		label foo2: "bar"
 		tag "labeled"
 	`)
@@ -1149,7 +1149,7 @@ func (bs *builderSuite) TestLabels(c *C) {
 
 func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 	_, err := runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		workdir "/etc"
 		inside "apt" do
 			run "ls"
@@ -1159,7 +1159,7 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 	c.Assert(err, IsNil)
 
 	_, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		inside "/etc" do
 			inside "apt" do
 				run "ls"
@@ -1170,7 +1170,7 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 
 	// work dir is the default for debian here which is `/`. This should pass.
 	_, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		inside "etc" do
 			inside "apt" do
 				run "ls"
@@ -1180,7 +1180,7 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 	c.Assert(err, IsNil)
 
 	_, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		workdir "/etc"
 		inside "/" do
 			run "cd tmp"
@@ -1189,7 +1189,7 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 	c.Assert(err, IsNil)
 
 	_, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		workdir "/etc"
 		inside "/" do
 			run "cd tmp"
@@ -1198,14 +1198,14 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 	c.Assert(err, IsNil)
 
 	_, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		workdir "/home/erikh"
 		copy ".", "box/"
 	`)
 	c.Assert(err, IsNil)
 
 	_, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		workdir "/home/erikh"
 		copy ".", "box"
 	`)
@@ -1218,7 +1218,7 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 	c.Assert(os.Symlink(path, "test"), IsNil)
 
 	_, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		workdir "/home/erikh"
 		copy ".", "box"
 		run "stat /home/erikh/box/test", output: false
@@ -1228,14 +1228,14 @@ func (bs *builderSuite) TestInsideRelativeWorkDir(c *C) {
 	os.Remove("test")
 
 	_, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		workdir "/home/erikh"
 		copy "builder.go", "/builder.go"
 	`)
 	c.Assert(err, IsNil)
 
 	_, err = runBuilder(`
-		from "debian"
+		from "debian:jessie"
 		copy ".", "/go/src/github.com/box-builder/box/builder/"
 		run "ls /go/src/github.com/box-builder/box/builder/"
 	`)
