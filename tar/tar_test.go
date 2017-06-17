@@ -128,7 +128,7 @@ func (ts *tarSuite) TestArchiveRelativeSymlink(c *C) {
 		count++
 
 		if header.Name == "/testdir/testsym" {
-			c.Assert(header.Linkname, Equals, "/test", Commentf("%v", header.Linkname))
+			c.Assert(header.Linkname, Equals, "../test", Commentf("%v", header.Linkname))
 		}
 
 		names = append(names, header.Name)
