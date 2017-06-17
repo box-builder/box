@@ -1,3 +1,25 @@
+### v0.5.3
+
+copy statements have changed:
+
+* Copy-over-dir is now on, will appropriately copy into dirs (or create
+  them) or over them depending on the presence of a final `/` in the
+  target path.
+* Copies of relative symlinks now work correctly.
+* Copies of files with *no* trailing `/` are added to the image
+  verbatim.
+
+and finally, a long note about entrypoint and cmd: 
+
+previously, nulls would be set on the entrypoint, triggering inheritance
+from `run` statments that were the previous commit in the docker chain.
+What this does now is set it to `[]string` which is an empty command in
+the docker configuration.
+
+Note that there is now no way to do `entrypoint nil` in a way that will
+inherit from the previous entrypoint statement, however, I don't think
+this is necessarily a bad thing. :)
+
 ### v0.5.2
 
 * Downgraded docker client to be more compatible with more versions of docker.
