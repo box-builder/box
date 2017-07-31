@@ -1,3 +1,13 @@
 #!/bin/sh
 
-exec docker run --rm -it -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:$PWD -w $PWD boxbuilder/box:@@VERSION@@ $*
+dockerenv=""
+
+if [ "x${BOX_INCLUDE_ENV}" != "x" ]
+then
+  for e in ${BOX_INCLUDE_ENV}
+  do
+    dockerenv="${dockerenv} -e $(printf "${e}=$(eval printf '%s' $$e)")"
+  done
+fi
+
+exec docker run --rm -it ${dockerenv} -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:$PWD -w $PWD boxbuilder/box:@@VERSION@@ $*
