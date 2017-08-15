@@ -546,10 +546,12 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
   `)
 
 	c.Assert(err, IsNil)
+	original, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "debian")
+	c.Assert(err, IsNil)
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/cat"})
-	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
+	c.Assert(inspect.Config.Cmd, DeepEquals, original.Config.Cmd)
 	b.Close()
 
 	// the echo hi is to trigger a specific interaction problem with entrypoint
@@ -562,10 +564,12 @@ func (bs *builderSuite) TestEntrypointCmd(c *C) {
   `)
 
 	c.Assert(err, IsNil)
+	original, _, err = dockerClient.ImageInspectWithRaw(context.Background(), "debian")
+	c.Assert(err, IsNil)
 	inspect, _, err = dockerClient.ImageInspectWithRaw(context.Background(), b.exec.Config().Image)
 	c.Assert(err, IsNil)
 	c.Assert(inspect.Config.Entrypoint, DeepEquals, strslice.StrSlice{"/bin/cat"})
-	c.Assert(inspect.Config.Cmd, DeepEquals, strslice.StrSlice{"/bin/bash"})
+	c.Assert(inspect.Config.Cmd, DeepEquals, original.Config.Cmd)
 	b.Close()
 
 	// if cmd is set earlier than entrypoint, it should not change
@@ -1121,14 +1125,19 @@ func (bs *builderSuite) TestExecPropagation(c *C) {
     from "debian"
     run "useradd -s /bin/bash -m -d /home/test test"
     env something: "here"
-    run "apt-get update"
+    run "ls /"
     user "test"
     tag "test"
   `)
 	c.Assert(err, IsNil)
 
+	original, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "debian")
+	newCmd := b.exec.Config().Cmd.Image
+	cmd := fmt.Sprintf("%v", original.Config.Cmd[0])
+	c.Assert(len(original.Config.Cmd), Equals, len(newCmd))
+	c.Assert(err, IsNil)
 	c.Assert(b.exec.Config().Entrypoint.Image, DeepEquals, []string{})
-	c.Assert(b.exec.Config().Cmd.Image, DeepEquals, []string{"/bin/bash"})
+	c.Assert(newCmd, DeepEquals, []string{cmd})
 
 	inspect, _, err := dockerClient.ImageInspectWithRaw(context.Background(), "test")
 	c.Assert(err, IsNil)
