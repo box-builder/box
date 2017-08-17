@@ -1,3 +1,7 @@
+### v0.5.5
+
+Yet another fix to the portable environment.
+
 ### v0.5.4
 
 * A fix to the portable (os x and windows) script to allow it to pass variables in the environment.

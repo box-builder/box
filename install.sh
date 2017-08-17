@@ -1,7 +1,7 @@
 #!/bin/sh
 # linux/mac installer for box
 set -e
-version=0.5.4
+version=0.5.5
 if [ "$(uname -s)" = "Linux" ]; then 
   arch="linux"
 else
