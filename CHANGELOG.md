@@ -1,3 +1,7 @@
+### v0.5.6
+
+* The son of the bride of the environment fix
+
 ### v0.5.5
 
 Yet another fix to the portable environment.
