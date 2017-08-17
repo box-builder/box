@@ -1,3 +1,27 @@
+### v0.5.4
+
+* A fix to the portable (os x and windows) script to allow it to pass variables in the environment.
+
+With this patch, you can supply `BOX_INCLUDE_ENV` with a whitespace-separated
+list of environment variables to pass to box. This admittedly a hack until real
+variables arrive (0.6.0!) and we can deprecate the environment functionality.
+
+Nothing in the binary itself has changed.
+
+### v0.5.4
+
+* A fix to the portable (os x and windows) script to allow it to pass variables in the environment.
+
+With this patch, you can supply `BOX_INCLUDE_ENV` with a whitespace-separated
+list of environment variables to pass to box. This admittedly a hack until real
+variables arrive (0.6.0!) and we can deprecate the environment functionality.
+
+Nothing in the binary itself has changed.
+
+### v0.5.4
+
+* A fix to the portable (os x and windows) script to allow it to pass variables in the environment.
+
 ### v0.5.3
 
 copy statements have changed:

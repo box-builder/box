@@ -1,4 +1,4 @@
-from "debian"
+from "debian:jessie"
 
 after { tag "boxbuilder/box:master" }
 DOCKER_VERSION = "1.13.1"
