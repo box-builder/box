@@ -6,7 +6,7 @@ if [ "x${BOX_INCLUDE_ENV}" != "x" ]
 then
   for e in ${BOX_INCLUDE_ENV}
   do
-    dockerenv="${dockerenv} -e $(printf "${e}=$(eval printf '%s' $$e)")"
+    dockerenv="${dockerenv} -e $(echo "${e}=$(eval printf '%s' \$$e)"
   done
 fi
 
