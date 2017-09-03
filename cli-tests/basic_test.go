@@ -15,6 +15,27 @@ func (s *cliSuite) TestBasic(c *C) {
 	cmd, err := build("", "test.rb")
 	c.Assert(err, IsNil)
 	checkSuccess(c, cmd)
+
+}
+
+func (s *cliSuite) TestVar(c *C) {
+	cmd, err := build(`
+	   from "alpine"
+		 run "echo #{getvar("testvar)}"
+	`, "--var testvar=test")
+	c.Assert(err, IsNil)
+	checkSuccess(c, cmd)
+
+	c.Assert(strings.Contains(cmd.Stdout(), "test"), Equals, true, Commentf("%s", cmd.Stdout()))
+
+	cmd, err = build(`
+	   from "alpine"
+		 run "echo #{getvar("testvar)}"
+	`)
+	c.Assert(err, IsNil)
+	checkSuccess(c, cmd)
+
+	c.Assert(strings.Contains(cmd.Stdout(), "test"), Equals, false, Commentf("%", cmd.Stdout()))
 }
 
 func (s *cliSuite) TestCache(c *C) {
