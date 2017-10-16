@@ -57,7 +57,13 @@ func label(b *Builder, cacheKey string, args []*mruby.MrbValue, m *mruby.Mrb, se
 	}
 
 	iterateRubyHash(args[0], func(key, value *mruby.MrbValue) error {
-		b.exec.Config().Labels[key.String()] = value.String()
+		config := b.exec.Config()
+
+		if config.Labels == nil {
+			config.Labels = map[string]string{}
+		}
+
+		config.Labels[key.String()] = value.String()
 		return nil
 	})
 
