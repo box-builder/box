@@ -43,18 +43,6 @@ func rewriteTar(source, target string, logger *logger.Logger, tr *tar.Reader, tw
 			name = header.Name
 		}
 
-		if header.Linkname != "" {
-			var linkName string
-
-			if header.Linkname[0] == '/' {
-				linkName = header.Linkname[1:]
-			} else {
-				linkName = header.Linkname
-			}
-
-			header.Linkname = linkName
-		}
-
 		if dir {
 			header.Name = filepath.Join(target, name)
 		} else {
