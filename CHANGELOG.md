@@ -1,3 +1,13 @@
+### v0.5.7
+
+* Fix an issue copying absolutely pathed symlinks into the container from the
+  host.
+
+### v0.5.7
+
+* Fix an issue copying absolutely pathed symlinks into the conainer from the
+  host.
+
 ### v0.5.6
 
 * The son of the bride of the environment fix
