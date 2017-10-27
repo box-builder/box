@@ -25,9 +25,14 @@ func (i *Interpreter) Label(labelMap map[string]string) error {
 	if err := i.hasImage(); err != nil {
 		return err
 	}
+	config := i.exec.Config()
+
+	if config.Labels == nil {
+		config.Labels = make(map[string]string)
+	}
 
 	for key, value := range labelMap {
-		i.exec.Config().Labels[key] = value
+		config.Labels[key] = value
 	}
 
 	return i.makeLayer(false)
