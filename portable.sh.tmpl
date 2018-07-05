@@ -2,6 +2,11 @@
 
 dockerenv=""
 
+if [ $(tty -s; echo $?) -eq 0 ]
+then
+    dockerenv="-it"
+fi
+
 if [ "x${BOX_INCLUDE_ENV}" != "x" ]
 then
   for e in ${BOX_INCLUDE_ENV}
@@ -10,4 +15,4 @@ then
   done
 fi
 
-exec docker run --rm -it ${dockerenv} -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:$PWD -w $PWD boxbuilder/box:@@VERSION@@ $*
+exec docker run --rm ${dockerenv} -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:$PWD -w $PWD boxbuilder/box:@@VERSION@@ $*
